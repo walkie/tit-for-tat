@@ -7,3 +7,6 @@ description = "A game theory toolbox."
 repository = "https://github.com/walkie/game-theory-rust/"
 
 [dependencies]
+derive_more = "0.99"
+probability = "0.17"
+typed-index-collections = "3.0"
