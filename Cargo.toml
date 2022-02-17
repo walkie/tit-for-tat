@@ -1,0 +1,9 @@
+[package]
+name = "game-theory"
+version = "0.1.0"
+authors = ["Eric Walkingshaw <eric@walkingshaw.net>"]
+edition = "2021"
+description = "A game theory toolbox."
+repository = "https://github.com/walkie/game-theory-rust/"
+
+[dependencies]
