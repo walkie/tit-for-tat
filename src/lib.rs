@@ -1,2 +1,2 @@
 pub mod payoff;
-pub mod seq;
+pub mod per_player;

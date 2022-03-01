@@ -1,46 +1,57 @@
+//! This module defines the [`Payoff`] type for representing the outcome of a game.
+//!
+//! The `Payoff` type is a wrapper around a [`PerPlayer`] collection containing the (typically
+//! numerical) values awarded to each player in a game. The value for a single player can be
+//! obtained by indexing into the payoff using the same techniques described in the
+//! [`per_player`](crate::per_player) module.
+
 use derive_more::{From, Index, IndexMut, Into};
 use num::{FromPrimitive, Num};
 
-use crate::seq::player::{PerPlayer, PlayerIdx};
+use crate::per_player::{PerPlayer, PlayerIdx};
 
 #[derive(Clone, Debug, Eq, PartialEq, From, Into, Index, IndexMut)]
-pub struct Payoff<T, const NUM_PLAYERS: usize> {
-    values: PerPlayer<T, NUM_PLAYERS>,
+pub struct Payoff<T, const N: usize> {
+    values: PerPlayer<T, N>,
 }
 
-impl<T, const NUM_PLAYERS: usize> From<[T; NUM_PLAYERS]> for Payoff<T, NUM_PLAYERS> {
-    fn from(values: [T; NUM_PLAYERS]) -> Self {
+impl<T, const N: usize> From<[T; N]> for Payoff<T, N> {
+    fn from(values: [T; N]) -> Self {
         Payoff::new(PerPlayer::new(values))
     }
 }
 
-impl<T, const NUM_PLAYERS: usize> Payoff<T, NUM_PLAYERS> {
-    pub fn new(values: PerPlayer<T, NUM_PLAYERS>) -> Self {
+impl<T, const N: usize> Payoff<T, N> {
+    pub fn new(values: PerPlayer<T, N>) -> Self {
         Payoff { values }
     }
 
-    pub fn except(mut self, player: PlayerIdx<NUM_PLAYERS>, score: T) -> Self {
+    pub fn except(mut self, player: PlayerIdx<N>, score: T) -> Self {
         self.values[player] = score;
         self
     }
-}
 
-impl<T: Copy, const NUM_PLAYERS: usize> Payoff<T, NUM_PLAYERS> {
-    pub fn flat(score: T) -> Self {
-        Payoff::from([score; NUM_PLAYERS])
+    pub fn as_per_player(&self) -> &PerPlayer<T, N> {
+        &self.values
     }
 }
 
-impl<T: Copy + FromPrimitive + Num, const NUM_PLAYERS: usize> Payoff<T, NUM_PLAYERS> {
-    pub fn zero_sum_loser(loser: PlayerIdx<NUM_PLAYERS>) -> Self {
+impl<T: Copy, const N: usize> Payoff<T, N> {
+    pub fn flat(score: T) -> Self {
+        Payoff::from([score; N])
+    }
+}
+
+impl<T: Copy + FromPrimitive + Num, const N: usize> Payoff<T, N> {
+    pub fn zero_sum_loser(loser: PlayerIdx<N>) -> Self {
         let reward = T::one();
-        let penalty = T::one().sub(T::from_usize(NUM_PLAYERS).unwrap());
+        let penalty = T::one().sub(T::from_usize(N).unwrap());
         Payoff::flat(reward).except(loser, penalty)
     }
 
-    pub fn zero_sum_winner(winner: PlayerIdx<NUM_PLAYERS>) -> Self {
+    pub fn zero_sum_winner(winner: PlayerIdx<N>) -> Self {
         let penalty = T::zero().sub(T::one());
-        let reward = T::from_usize(NUM_PLAYERS).unwrap().sub(T::one());
+        let reward = T::from_usize(N).unwrap().sub(T::one());
         Payoff::flat(penalty).except(winner, reward)
     }
 }
@@ -48,7 +59,7 @@ impl<T: Copy + FromPrimitive + Num, const NUM_PLAYERS: usize> Payoff<T, NUM_PLAY
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::seq::player::{for1, for2, for3, for4};
+    use crate::per_player::{for1, for2, for3, for4};
 
     #[test]
     fn zero_sum_loser_correct() {
