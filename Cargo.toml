@@ -8,4 +8,5 @@ repository = "https://github.com/walkie/game-theory-rust/"
 
 [dependencies]
 derive_more = "0.99"
+num = "0.4"
 probability = "0.17"
