@@ -1,24 +1,24 @@
 //! This module defines the [`Payoff`] type for representing the outcome of a game.
-//!
-//! The `Payoff` type is a wrapper around a [`PerPlayer`] collection containing the (typically
-//! numerical) values awarded to each player in a game. The value for a single player can be
-//! obtained by indexing into the payoff using the same techniques described in the
-//! [`per_player`](crate::per_player) module.
 
-use derive_more::{From, Index, IndexMut, Into};
+use derive_more::{AsMut, AsRef, Index, IndexMut};
 use num::{FromPrimitive, Num};
+use std::ops::{Add, Mul, Sub};
 
 use crate::per_player::{PerPlayer, PlayerIdx};
 
-#[derive(Clone, Debug, Eq, PartialEq, From, Into, Index, IndexMut)]
+
+/// A wrapper around a [`PerPlayer`] collection containing the (typically numerical) values awarded
+/// to each player in a game.
+///
+/// TODO: Illustrate building payoffs using the builder pattern, zero-sum payoffs, etc.
+///
+/// The value for a single player can be obtained by indexing into the payoff using either a
+/// dynamically checked `usize` index via the [`for_player`](Payoff::for_player) and
+/// [`for_player_mut`](Payoff::for_player_mut) methods, or using a statically checked [`PlayerIdx`]
+/// index, as described in the documentation for the [`PerPlayer`] type.
+#[derive(Clone, Debug, Eq, PartialEq, AsMut, AsRef, Index, IndexMut)]
 pub struct Payoff<T, const N: usize> {
     values: PerPlayer<T, N>,
-}
-
-impl<T, const N: usize> From<[T; N]> for Payoff<T, N> {
-    fn from(values: [T; N]) -> Self {
-        Payoff::new(PerPlayer::new(values))
-    }
 }
 
 impl<T, const N: usize> Payoff<T, N> {
@@ -31,8 +31,22 @@ impl<T, const N: usize> Payoff<T, N> {
         self
     }
 
-    pub fn as_per_player(&self) -> &PerPlayer<T, N> {
-        &self.values
+    /// Get the number of players in the game, which corresponds to the number of elements in the
+    /// payoff.
+    pub fn num_players(&self) -> usize {
+        N
+    }
+
+    /// Get a reference to the value for the `i`th player in the game. Returns `None` if the index
+    /// is out of range.
+    pub fn for_player(&self, i: usize) -> Option<&T> {
+        self.values.for_player(i)
+    }
+
+    /// Get a mutable reference to the element corresponding to the `i`th player in the game.
+    /// Returns `None` if the index is out of range.
+    pub fn for_player_mut(&mut self, i: usize) -> Option<&mut T> {
+        self.values.for_player_mut(i)
     }
 }
 
@@ -53,6 +67,126 @@ impl<T: Copy + FromPrimitive + Num, const N: usize> Payoff<T, N> {
         let penalty = T::zero().sub(T::one());
         let reward = T::from_usize(N).unwrap().sub(T::one());
         Payoff::flat(penalty).except(winner, reward)
+    }
+}
+
+impl<T: Copy + Num, const N: usize> Payoff<T, N> {
+    fn map(self, f: impl Fn(T) -> T) -> Self {
+        let mut result = [T::zero(); N];
+        for (r, v) in result.iter_mut().zip(self) {
+            *r = f(v);
+        }
+        Payoff::from(result)
+    }
+
+    fn zip_with(self, other: Self, combine: impl Fn(T, T) -> T) -> Self {
+        let mut result = [T::zero(); N];
+        for ((r, a), b) in result.iter_mut().zip(self).zip(other) {
+            *r = combine(a, b);
+        }
+        Payoff::from(result)
+    }
+}
+
+impl<T, const N: usize> From<[T; N]> for Payoff<T, N> {
+    fn from(values: [T; N]) -> Self {
+        Payoff::new(PerPlayer::new(values))
+    }
+}
+
+impl<T: Copy + Num, const N: usize> Add<T> for Payoff<T, N> {
+    type Output = Self;
+
+    /// Add a constant to each value in a payoff.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    ///
+    /// assert_eq!(Payoff::from([2, -3, 4]) + 10, Payoff::from([12, 7, 14]));
+    /// assert_eq!(Payoff::from([0, 12]) + -6, Payoff::from([-6, 6]));
+    /// ```
+    fn add(self, constant: T) -> Self {
+        self.map(|v| v + constant)
+    }
+}
+
+impl<T: Copy + Num, const N: usize> Sub<T> for Payoff<T, N> {
+    type Output = Self;
+
+    /// Subtract a constant from each value in a payoff.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    ///
+    /// assert_eq!(Payoff::from([15, 6, 12]) - 10, Payoff::from([5, -4, 2]));
+    /// assert_eq!(Payoff::from([-3, 3]) - -6, Payoff::from([3, 9]));
+    /// ```
+    fn sub(self, constant: T) -> Self {
+        self.map(|v| v - constant)
+    }
+}
+
+impl<T: Copy + Num, const N: usize> Mul<T> for Payoff<T, N> {
+    type Output = Self;
+
+    /// Multiply a constant to each value in a payoff.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    ///
+    /// assert_eq!(Payoff::from([3, -4, 5]) * 3, Payoff::from([9, -12, 15]));
+    /// assert_eq!(Payoff::from([0, 3]) * -2, Payoff::from([0, -6]));
+    /// ```
+    fn mul(self, constant: T) -> Self {
+        self.map(|v| v * constant)
+    }
+}
+
+impl<T: Copy + Num, const N: usize> Add<Self> for Payoff<T, N> {
+    type Output = Self;
+    fn add(self, other_payoff: Self) -> Self {
+        self.zip_with(other_payoff, |a, b| a + b)
+    }
+}
+
+impl<T: Copy + Num, const N: usize> Sub<Self> for Payoff<T, N> {
+    type Output = Self;
+    fn sub(self, other_payoff: Self) -> Self {
+        self.zip_with(other_payoff, |a, b| a - b)
+    }
+}
+
+impl<T: Copy + Num, const N: usize> Mul<Self> for Payoff<T, N> {
+    type Output = Self;
+    fn mul(self, other_payoff: Self) -> Self {
+        self.zip_with(other_payoff, |a, b| a * b)
+    }
+}
+
+impl<T, const N: usize> IntoIterator for Payoff<T, N> {
+    type Item = <PerPlayer<T, N> as IntoIterator>::Item;
+    type IntoIter = <PerPlayer<T, N> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <PerPlayer<T, N> as IntoIterator>::IntoIter {
+        self.values.into_iter()
+    }
+}
+
+impl<'a, T, const N: usize> IntoIterator for &'a Payoff<T, N> {
+    type Item = <&'a PerPlayer<T, N> as IntoIterator>::Item;
+    type IntoIter = <&'a PerPlayer<T, N> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a PerPlayer<T, N> as IntoIterator>::IntoIter {
+        (&self.values).into_iter()
+    }
+}
+
+impl<'a, T, const N: usize> IntoIterator for &'a mut Payoff<T, N> {
+    type Item = <&'a mut PerPlayer<T, N> as IntoIterator>::Item;
+    type IntoIter = <&'a mut PerPlayer<T, N> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a mut PerPlayer<T, N> as IntoIterator>::IntoIter {
+        (&mut self.values).into_iter()
     }
 }
 
