@@ -1,88 +1,90 @@
 //! This module defines the [`PerPlayer`] collection type that stores one element for each player
 //! in a game.
-//!
-//! The type is parameterized by the type of elements `T` and the number of players in the game `N`.
-//! For example, the type `PerPlayer<f64, 3>` contains exactly three `f64` values, one for each
-//! player in a three-player game.
-//!
-//! The ["const generic"](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html)
-//! argument `N` is used to statically ensure that a [`PerPlayer`] value contains the correct
-//! number of elements for a given game, and to provide statically checked indexing into
-//! `PerPlayer` collections.
-//!
-//! # Dynamically checked indexes into a `PerPlayer` collection
-//!
-//! The [`for_player`](PerPlayer::for_player) and [`for_player_mut`](PerPlayer::for_player_mut)
-//! methods allow indexing into a `PerPlayer` collection with plain `usize` indexes. They return
-//! references wrapped in an [`Option`] type, which may be `None` if the index is too large for the
-//! number of players in the game.
-//!
-//! ```
-//! # use game_theory::per_player::PerPlayer;
-//! let mut pp = PerPlayer::new(["klaatu", "barada", "nikto"]);
-//! assert_eq!(pp.for_player(0), Some(&"klaatu"));
-//! assert_eq!(pp.for_player(1), Some(&"barada"));
-//! assert_eq!(pp.for_player(2), Some(&"nikto"));
-//! assert_eq!(pp.for_player(3), None);
-//!
-//! *pp.for_player_mut(0).unwrap() = "gort";
-//! assert_eq!(pp.for_player(0), Some(&"gort"));
-//! ```
-//!
-//! # Statically checked indexes into a `PerPlayer` collection
-//!
-//! The [`Index`] and [`IndexMut`] traits are implemented for `PerPlayer` collections with the
-//! [`PlayerIdx`] type. An index of type `PlayerIdx<N>` is guaranteed to be in-range for a
-//! collection of type `PerPlayer<T,N>`. This means that indexing operations into a `PerPlayer`
-//! collection with a `PlayerIdx` index are guaranteed not to fail due to an index out-of-bounds
-//! error.
-//!
-//! Indexes can be constructed dynamically using the [`PlayerIdx::new`] constructor. Although the
-//! indexing operation cannot fail, constructing an index may fail if the index is out of bounds,
-//! in which case the constructor will return `None`.
-//!
-//! ```
-//! # use game_theory::per_player::PlayerIdx;
-//! assert!(PlayerIdx::<2>::new(0).is_some());
-//! assert!(PlayerIdx::<2>::new(1).is_some());
-//! assert!(PlayerIdx::<2>::new(2).is_none());
-//! ```
-//!
-//! When constructing indexes, often the value of `N` can be inferred from the type of the
-//! `PerPlayer` collection it is used to index into.
-//!
-//! ```
-//! # use game_theory::per_player::{PerPlayer, PlayerIdx};
-//! let mut pp = PerPlayer::new([":-)", "O_o"]);
-//! let p0 = PlayerIdx::new(0).unwrap();
-//! let p1 = PlayerIdx::new(1).unwrap();
-//! assert_eq!(pp[p0], &":-)");
-//! assert_eq!(pp[p1], &"O_o");
-//! pp[p0] = ":-P";
-//! assert_eq!(pp[p0], &":-P");
-//! ```
-//!
-//! Additionally, this module contains several submodules that predefine named indexes for all
-//! players up to a player count of 16. For example, the indexes for four player games are
-//! included in the [`for4`] submodule.
-//!
-//! ```
-//! # use game_theory::per_player::{for4, PerPlayer};
-//! let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
-//! assert_eq!(pp[for4::P0], &"frodo");
-//! assert_eq!(pp[for4::P1], &"sam");
-//! assert_eq!(pp[for4::P2], &"merry");
-//! assert_eq!(pp[for4::P3], &"pippin");
-//! ```
 
-use derive_more::{AsMut, AsRef, From, Into, IntoIterator};
+use derive_more::{AsMut, AsRef};
+use std::iter::IntoIterator;
 use std::ops::{Index, IndexMut};
 
-/// A collection that stores one element of type `T` corresponding to each player in a game. The
-/// number of players in the game, `N`, is encoded in the type of the struct.
+/// A collection that stores one element corresponding to each player in a game.
 ///
-/// See the [module-level documentation](crate::per_player) for more info.
-#[derive(Clone, Debug, Eq, PartialEq, AsMut, AsRef, From, Into, IntoIterator)]
+/// The type is parameterized by the type of elements `T` and the number of players in the game `N`.
+/// For example, the type `PerPlayer<f64, 3>` contains exactly three `f64` values, one for each
+/// player in a three-player game.
+///
+/// The ["const generic"](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html)
+/// argument `N` is used to statically ensure that a [`PerPlayer`] value contains the correct
+/// number of elements for a given game, and to provide statically checked indexing into
+/// `PerPlayer` collections.
+///
+/// # Dynamically checked indexes into a `PerPlayer` collection
+///
+/// The [`for_player`](PerPlayer::for_player) and [`for_player_mut`](PerPlayer::for_player_mut)
+/// methods allow indexing into a `PerPlayer` collection with plain `usize` indexes. They return
+/// references wrapped in an [`Option`] type, which may be `None` if the index is too large for the
+/// number of players in the game.
+///
+/// ```
+/// use game_theory::per_player::PerPlayer;
+///
+/// let mut pp = PerPlayer::new(["klaatu", "barada", "nikto"]);
+/// assert_eq!(pp.for_player(0), Some(&"klaatu"));
+/// assert_eq!(pp.for_player(1), Some(&"barada"));
+/// assert_eq!(pp.for_player(2), Some(&"nikto"));
+/// assert_eq!(pp.for_player(3), None);
+///
+/// *pp.for_player_mut(0).unwrap() = "gort";
+/// assert_eq!(pp.for_player(0), Some(&"gort"));
+/// ```
+///
+/// # Statically checked indexes into a `PerPlayer` collection
+///
+/// The [`Index`] and [`IndexMut`] traits are implemented for `PerPlayer` collections with the
+/// [`PlayerIdx`] type. An index of type `PlayerIdx<N>` is guaranteed to be in-range for a
+/// collection of type `PerPlayer<T,N>`. This means that indexing operations into a `PerPlayer`
+/// collection with a `PlayerIdx` index are guaranteed not to fail due to an index out-of-bounds
+/// error.
+///
+/// Indexes can be constructed dynamically using the [`PlayerIdx::new`] constructor. Although the
+/// indexing operation cannot fail, constructing an index may fail if the index is out of bounds,
+/// in which case the constructor will return `None`.
+///
+/// ```
+/// use game_theory::per_player::PlayerIdx;
+///
+/// assert!(PlayerIdx::<2>::new(0).is_some());
+/// assert!(PlayerIdx::<2>::new(1).is_some());
+/// assert!(PlayerIdx::<2>::new(2).is_none());
+/// ```
+///
+/// When constructing indexes, often the value of `N` can be inferred from the type of the
+/// `PerPlayer` collection it is used to index into.
+///
+/// ```
+/// use game_theory::per_player::{PerPlayer, PlayerIdx};
+///
+/// let mut pp = PerPlayer::new([":-)", "O_o"]);
+/// let p0 = PlayerIdx::new(0).unwrap();
+/// let p1 = PlayerIdx::new(1).unwrap();
+/// assert_eq!(pp[p0], ":-)");
+/// assert_eq!(pp[p1], "O_o");
+/// pp[p0] = ":-P";
+/// assert_eq!(pp[p0], ":-P");
+/// ```
+///
+/// Additionally, this module contains several submodules that predefine named indexes for all
+/// players up to a player count of 16. For example, the indexes for four player games are
+/// included in the [`for4`] submodule.
+///
+/// ```
+/// use game_theory::per_player::{for4, PerPlayer};
+///
+/// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+/// assert_eq!(pp[for4::P0], "frodo");
+/// assert_eq!(pp[for4::P1], "sam");
+/// assert_eq!(pp[for4::P2], "merry");
+/// assert_eq!(pp[for4::P3], "pippin");
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq, AsMut, AsRef)]
 pub struct PerPlayer<T, const N: usize> {
     data: [T; N],
 }
@@ -101,9 +103,6 @@ impl<T, const N: usize> PerPlayer<T, N> {
 
     /// Get a reference to the element corresponding to the `i`th player in the game. Returns
     /// `None` if the index is out of range.
-    ///
-    /// See the [module-level documentation](crate::per_player) for more info on indexing into
-    /// `PerPlayer` collections.
     pub fn for_player(&self, i: usize) -> Option<&T> {
         if i < N {
             Some(&self.data[i])
@@ -114,9 +113,6 @@ impl<T, const N: usize> PerPlayer<T, N> {
 
     /// Get a mutable reference to the element corresponding to the `i`th player in the game.
     /// Returns `None` if the index is out of range.
-    ///
-    /// See the [module-level documentation](crate::per_player) for more info on indexing into
-    /// `PerPlayer` collections.
     pub fn for_player_mut(&mut self, i: usize) -> Option<&mut T> {
         if i < N {
             Some(&mut self.data[i])
@@ -126,8 +122,36 @@ impl<T, const N: usize> PerPlayer<T, N> {
     }
 }
 
-/// An index into a [`PerPlayer`] collection that is guaranteed to be in-range. See the
-/// [module-level documentation](crate::per_player) for more info.
+impl<T, const N: usize> IntoIterator for PerPlayer<T, N> {
+    type Item = <[T; N] as IntoIterator>::Item;
+    type IntoIter = <[T; N] as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <[T; N] as IntoIterator>::IntoIter {
+        self.data.into_iter()
+    }
+}
+
+impl<'a, T, const N: usize> IntoIterator for &'a PerPlayer<T, N> {
+    type Item = <&'a [T; N] as IntoIterator>::Item;
+    type IntoIter = <&'a [T; N] as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a [T; N] as IntoIterator>::IntoIter {
+        (&self.data).iter()
+    }
+}
+
+impl<'a, T, const N: usize> IntoIterator for &'a mut PerPlayer<T, N> {
+    type Item = <&'a mut [T; N] as IntoIterator>::Item;
+    type IntoIter = <&'a mut [T; N] as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a mut [T; N] as IntoIterator>::IntoIter {
+        (&mut self.data).iter_mut()
+    }
+}
+
+/// An index into a [`PerPlayer`] collection that is guaranteed to be in-range.
+///
+/// This type is used in the implementations of the [`Index`] and [`IndexMut`] traits and ensures
+/// that their operations will not fail. See  the documentation for the [`PerPlayer`] type for more
+/// info.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlayerIdx<const N: usize>(usize);
 
 impl<const N: usize> PlayerIdx<N> {
