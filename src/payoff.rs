@@ -6,9 +6,8 @@ use std::ops::{Add, Mul, Sub};
 
 use crate::per_player::{PerPlayer, PlayerIdx};
 
-
-/// A wrapper around a [`PerPlayer`] collection containing the (typically numerical) values awarded
-/// to each player in a game.
+/// A wrapper around a [`PerPlayer`] collection that contains the (typically numerical) values
+/// awarded to each player at the end of a game.
 ///
 /// TODO: Illustrate building payoffs using the builder pattern, zero-sum payoffs, etc.
 ///
@@ -147,6 +146,18 @@ impl<T: Copy + Num, const N: usize> Mul<T> for Payoff<T, N> {
 
 impl<T: Copy + Num, const N: usize> Add<Self> for Payoff<T, N> {
     type Output = Self;
+
+    /// Combine two payoffs by component-wise addition.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    ///
+    /// assert_eq!(
+    ///     Payoff::from([10, -20, 30]) + Payoff::from([2, 3, -4]),
+    ///     Payoff::from([12, -17, 26])
+    /// );
+    /// ```
     fn add(self, other_payoff: Self) -> Self {
         self.zip_with(other_payoff, |a, b| a + b)
     }
@@ -154,6 +165,18 @@ impl<T: Copy + Num, const N: usize> Add<Self> for Payoff<T, N> {
 
 impl<T: Copy + Num, const N: usize> Sub<Self> for Payoff<T, N> {
     type Output = Self;
+
+    /// Combine two payoffs by component-wise subtraction.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    ///
+    /// assert_eq!(
+    ///     Payoff::from([10, -20, 30]) - Payoff::from([2, 3, -4]),
+    ///     Payoff::from([8, -23, 34])
+    /// );
+    /// ```
     fn sub(self, other_payoff: Self) -> Self {
         self.zip_with(other_payoff, |a, b| a - b)
     }
@@ -161,6 +184,18 @@ impl<T: Copy + Num, const N: usize> Sub<Self> for Payoff<T, N> {
 
 impl<T: Copy + Num, const N: usize> Mul<Self> for Payoff<T, N> {
     type Output = Self;
+
+    /// Combine two payoffs by component-wise multiplication.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    ///
+    /// assert_eq!(
+    ///     Payoff::from([10, -20, 30]) * Payoff::from([2, 3, -4]),
+    ///     Payoff::from([20, -60, -120])
+    /// );
+    /// ```
     fn mul(self, other_payoff: Self) -> Self {
         self.zip_with(other_payoff, |a, b| a * b)
     }

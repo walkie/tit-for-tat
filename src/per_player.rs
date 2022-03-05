@@ -12,7 +12,7 @@ use std::ops::{Index, IndexMut};
 /// player in a three-player game.
 ///
 /// The ["const generic"](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html)
-/// argument `N` is used to statically ensure that a [`PerPlayer`] value contains the correct
+/// argument `N` is used to statically ensure that a [`PerPlayer`] collection contains the correct
 /// number of elements for a given game, and to provide statically checked indexing into
 /// `PerPlayer` collections.
 ///
@@ -38,22 +38,22 @@ use std::ops::{Index, IndexMut};
 ///
 /// # Statically checked indexes into a `PerPlayer` collection
 ///
-/// The [`Index`] and [`IndexMut`] traits are implemented for `PerPlayer` collections with the
-/// [`PlayerIdx`] type. An index of type `PlayerIdx<N>` is guaranteed to be in-range for a
-/// collection of type `PerPlayer<T,N>`. This means that indexing operations into a `PerPlayer`
-/// collection with a `PlayerIdx` index are guaranteed not to fail due to an index out-of-bounds
-/// error.
+/// The [`Index`] and [`IndexMut`] traits are implemented for `PerPlayer` collections with indexes
+/// of type [`PlayerIdx`]. An index of type `PlayerIdx<N>` is guaranteed to be in-range for a
+/// collection of type `PerPlayer<T, N>`, that is, indexing operations into a `PerPlayer`
+/// collection are guaranteed not to fail due to an index out-of-bounds error.
 ///
 /// Indexes can be constructed dynamically using the [`PlayerIdx::new`] constructor. Although the
-/// indexing operation cannot fail, constructing an index may fail if the index is out of bounds,
-/// in which case the constructor will return `None`.
+/// *indexing operation* cannot fail, *constructing an index* may fail if the index is out of
+/// bounds, in which case the constructor will return `None`.
 ///
 /// ```
 /// use game_theory::per_player::PlayerIdx;
 ///
-/// assert!(PlayerIdx::<2>::new(0).is_some());
-/// assert!(PlayerIdx::<2>::new(1).is_some());
-/// assert!(PlayerIdx::<2>::new(2).is_none());
+/// assert!(PlayerIdx::<3>::new(0).is_some());
+/// assert!(PlayerIdx::<3>::new(1).is_some());
+/// assert!(PlayerIdx::<3>::new(2).is_some());
+/// assert!(PlayerIdx::<3>::new(3).is_none());
 /// ```
 ///
 /// When constructing indexes, often the value of `N` can be inferred from the type of the
@@ -62,27 +62,32 @@ use std::ops::{Index, IndexMut};
 /// ```
 /// use game_theory::per_player::{PerPlayer, PlayerIdx};
 ///
-/// let mut pp = PerPlayer::new([":-)", "O_o"]);
+/// let mut pp = PerPlayer::new(["klaatu", "barada", "nikto"]);
 /// let p0 = PlayerIdx::new(0).unwrap();
 /// let p1 = PlayerIdx::new(1).unwrap();
-/// assert_eq!(pp[p0], ":-)");
-/// assert_eq!(pp[p1], "O_o");
-/// pp[p0] = ":-P";
-/// assert_eq!(pp[p0], ":-P");
+/// let p2 = PlayerIdx::new(2).unwrap();
+/// assert_eq!(pp[p0], "klaatu");
+/// assert_eq!(pp[p1], "barada");
+/// assert_eq!(pp[p2], "nikto");
+///
+/// pp[p0] = "gort";
+/// assert_eq!(pp[p0], "gort");
 /// ```
 ///
 /// Additionally, this module contains several submodules that predefine named indexes for all
-/// players up to a player count of 16. For example, the indexes for four player games are
-/// included in the [`for4`] submodule.
+/// players up to a player count of 16. For example, the indexes for three player games are
+/// included in the [`for3`] submodule.
 ///
 /// ```
-/// use game_theory::per_player::{for4, PerPlayer};
+/// use game_theory::per_player::{for3, PerPlayer};
 ///
-/// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
-/// assert_eq!(pp[for4::P0], "frodo");
-/// assert_eq!(pp[for4::P1], "sam");
-/// assert_eq!(pp[for4::P2], "merry");
-/// assert_eq!(pp[for4::P3], "pippin");
+/// let mut pp = PerPlayer::new(["klaatu", "barada", "nikto"]);
+/// assert_eq!(pp[for3::P0], "klaatu");
+/// assert_eq!(pp[for3::P1], "barada");
+/// assert_eq!(pp[for3::P2], "nikto");
+///
+/// pp[for3::P0] = "gort";
+/// assert_eq!(pp[for3::P0], "gort");
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq, AsMut, AsRef)]
 pub struct PerPlayer<T, const N: usize> {
@@ -103,6 +108,18 @@ impl<T, const N: usize> PerPlayer<T, N> {
 
     /// Get a reference to the element corresponding to the `i`th player in the game. Returns
     /// `None` if the index is out of range.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::per_player::PerPlayer;
+    ///
+    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    /// assert_eq!(pp.for_player(0), Some(&"frodo"));
+    /// assert_eq!(pp.for_player(1), Some(&"sam"));
+    /// assert_eq!(pp.for_player(2), Some(&"merry"));
+    /// assert_eq!(pp.for_player(3), Some(&"pippin"));
+    /// assert_eq!(pp.for_player(4), None);
+    /// ```
     pub fn for_player(&self, i: usize) -> Option<&T> {
         if i < N {
             Some(&self.data[i])
@@ -113,6 +130,21 @@ impl<T, const N: usize> PerPlayer<T, N> {
 
     /// Get a mutable reference to the element corresponding to the `i`th player in the game.
     /// Returns `None` if the index is out of range.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::per_player::PerPlayer;
+    ///
+    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    /// *pp.for_player_mut(1).unwrap() = "samwise";
+    /// *pp.for_player_mut(2).unwrap() = "meriadoc";
+    /// *pp.for_player_mut(3).unwrap() = "peregrin";
+    /// assert_eq!(pp.for_player(0), Some(&"frodo"));
+    /// assert_eq!(pp.for_player(1), Some(&"samwise"));
+    /// assert_eq!(pp.for_player(2), Some(&"meriadoc"));
+    /// assert_eq!(pp.for_player(3), Some(&"peregrin"));
+    /// assert_eq!(pp.for_player(4), None);
+    /// ```
     pub fn for_player_mut(&mut self, i: usize) -> Option<&mut T> {
         if i < N {
             Some(&mut self.data[i])
@@ -146,17 +178,38 @@ impl<'a, T, const N: usize> IntoIterator for &'a mut PerPlayer<T, N> {
     }
 }
 
-/// An index into a [`PerPlayer`] collection that is guaranteed to be in-range.
+/// An index into a [`PerPlayer`] collection that is guaranteed to be in-range for a game with `N`
+/// players.
 ///
 /// This type is used in the implementations of the [`Index`] and [`IndexMut`] traits and ensures
-/// that their operations will not fail. See  the documentation for the [`PerPlayer`] type for more
-/// info.
+/// that their operations will not fail.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlayerIdx<const N: usize>(usize);
 
 impl<const N: usize> PlayerIdx<N> {
     /// Construct a new index into a [`PerPlayer`] collection. Returns `None` if the provided index
-    /// value is out-of-range.
+    /// value is out-of-range for the number of players in the game.
+    ///
+    /// Predefined indexes for games of up to 16 players are defined in the `forN` modules.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::per_player::{for2, for8, PlayerIdx};
+    ///
+    /// let p0_opt = PlayerIdx::<2>::new(0);
+    /// let p1_opt = PlayerIdx::<2>::new(1);
+    /// let p2_opt = PlayerIdx::<2>::new(2);
+    ///
+    /// assert!(p0_opt.is_some());
+    /// assert!(p1_opt.is_some());
+    /// assert!(p2_opt.is_none());
+    ///
+    /// assert_eq!(p0_opt.unwrap(), for2::P0);
+    /// assert_eq!(p1_opt.unwrap(), for2::P1);
+    ///
+    /// assert_eq!(PlayerIdx::<8>::new(3).unwrap(), for8::P3);
+    /// assert_eq!(PlayerIdx::<8>::new(5).unwrap(), for8::P5);
+    /// ```
     pub fn new(index: usize) -> Option<Self> {
         if index < N {
             Some(PlayerIdx(index))
@@ -168,12 +221,40 @@ impl<const N: usize> PlayerIdx<N> {
 
 impl<T, const N: usize> Index<PlayerIdx<N>> for PerPlayer<T, N> {
     type Output = T;
+    /// Index into a `PerPlayer` collection. This operation is statically guaranteed not to fail.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::per_player::{for4, PerPlayer};
+    ///
+    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    /// assert_eq!(pp[for4::P0], "frodo");
+    /// assert_eq!(pp[for4::P1], "sam");
+    /// assert_eq!(pp[for4::P2], "merry");
+    /// assert_eq!(pp[for4::P3], "pippin");
+    /// ```
     fn index(&self, idx: PlayerIdx<N>) -> &T {
         unsafe { self.data.get_unchecked(idx.0) }
     }
 }
 
 impl<T, const N: usize> IndexMut<PlayerIdx<N>> for PerPlayer<T, N> {
+    /// Index into a `PerPlayer` collection in a mutable context. This operation is statically
+    /// guaranteed not to fail.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::per_player::{for4, PerPlayer};
+    ///
+    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    /// pp[for4::P1] = "samwise";
+    /// pp[for4::P2] = "meriadoc";
+    /// pp[for4::P3] = "peregrin";
+    /// assert_eq!(pp[for4::P0], "frodo");
+    /// assert_eq!(pp[for4::P1], "samwise");
+    /// assert_eq!(pp[for4::P2], "meriadoc");
+    /// assert_eq!(pp[for4::P3], "peregrin");
+    /// ```
     fn index_mut(&mut self, idx: PlayerIdx<N>) -> &mut T {
         unsafe { self.data.get_unchecked_mut(idx.0) }
     }
@@ -393,26 +474,4 @@ pub mod for16 {
     pub const P13: PlayerIdx<16> = PlayerIdx(13);
     pub const P14: PlayerIdx<16> = PlayerIdx(14);
     pub const P15: PlayerIdx<16> = PlayerIdx(15);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn player_indexing() {
-        let ps = PerPlayer::new(["a", "b", "c", "d"]);
-        let p0 = PlayerIdx::new(0).unwrap();
-        let p1 = PlayerIdx::new(1).unwrap();
-        let p2 = PlayerIdx::new(2).unwrap();
-        let p3 = PlayerIdx::new(3).unwrap();
-        assert_eq!("a", ps[p0]);
-        assert_eq!("b", ps[p1]);
-        assert_eq!("c", ps[p2]);
-        assert_eq!("d", ps[p3]);
-        assert_eq!("b", ps[for4::P1]);
-
-        let p5 = PlayerIdx::<4>::new(4);
-        assert!(p5.is_none());
-    }
 }
