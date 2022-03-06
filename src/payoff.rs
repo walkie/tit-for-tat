@@ -21,10 +21,34 @@ pub struct Payoff<T, const N: usize> {
 }
 
 impl<T, const N: usize> Payoff<T, N> {
+    /// Construct a new payoff from a `PerPlayer` collection of values.
+    ///
+    /// Use [`Payoff::from`] to construct a payoff from an array of values.
+    ///
+    /// # Example
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    /// use game_theory::per_player::PerPlayer;
+    ///
+    /// assert_eq!(Payoff::new(PerPlayer::new([2, 0, -2])), Payoff::from([2, 0, -2]));
+    /// ```
     pub fn new(values: PerPlayer<T, N>) -> Self {
         Payoff { values }
     }
 
+    /// Change the value of the payoff corresponding to the given player index.
+    ///
+    /// This method is designed to be chained with a payoff constructor, such as [`Payoff::from`],
+    /// or [`Payoff::flat`].
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    /// use game_theory::per_player::{for4, for6};
+    ///
+    /// assert_eq!(Payoff::from([1, 2, 3, 4]).except(for4::P2, -1), Payoff::from([1, 2, -1, 4]));
+    /// assert_eq!(Payoff::flat(0).except(for6::P4, 3), Payoff::from([0, 0, 0, 0, 3, 0]));
+    /// ```
     pub fn except(mut self, player: PlayerIdx<N>, score: T) -> Self {
         self.values[player] = score;
         self
@@ -32,24 +56,75 @@ impl<T, const N: usize> Payoff<T, N> {
 
     /// Get the number of players in the game, which corresponds to the number of elements in the
     /// payoff.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    ///
+    /// assert_eq!(Payoff::from([2, 0, -2]).num_players(), 3);
+    /// assert_eq!(Payoff::from([1, 1, 1, -3, 1]).num_players(), 5);
+    ///
+    /// ```
     pub fn num_players(&self) -> usize {
         N
     }
 
     /// Get a reference to the value for the `i`th player in the game. Returns `None` if the index
     /// is out of range.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    ///
+    /// let p = Payoff::from([1, -2, 3]);
+    ///
+    /// assert_eq!(p.for_player(0).copied(), Some(1));
+    /// assert_eq!(p.for_player(1).copied(), Some(-2));
+    /// assert_eq!(p.for_player(2).copied(), Some(3));
+    /// assert_eq!(p.for_player(3).copied(), None);
+    /// ```
     pub fn for_player(&self, i: usize) -> Option<&T> {
         self.values.for_player(i)
     }
 
     /// Get a mutable reference to the element corresponding to the `i`th player in the game.
     /// Returns `None` if the index is out of range.
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    ///
+    /// let mut p = Payoff::from([1, -2, 3]);
+    /// *p.for_player_mut(1).unwrap() = 4;
+    ///
+    /// assert_eq!(p.for_player(0).copied(), Some(1));
+    /// assert_eq!(p.for_player(1).copied(), Some(4));
+    /// assert_eq!(p.for_player(2).copied(), Some(3));
+    /// assert_eq!(p.for_player(3).copied(), None);
+    /// ```
     pub fn for_player_mut(&mut self, i: usize) -> Option<&mut T> {
         self.values.for_player_mut(i)
     }
 }
 
 impl<T: Copy, const N: usize> Payoff<T, N> {
+    /// Construct a payoff where every player scores the same amount.
+    ///
+    /// Note that the size of the payoff is determined by the type parameter `N`, which can often
+    /// be inferred by context.
+    ///
+    /// It is often useful to chain one or more applications of the [`Payoff::except`] method after
+    /// constructing a flat payoff.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::payoff::Payoff;
+    /// use game_theory::per_player::for8;
+    ///
+    /// assert_eq!(Payoff::flat(2), Payoff::from([2, 2, 2]));
+    /// assert_eq!(
+    ///     Payoff::flat(0).except(for8::P2, 5).except(for8::P5, -7),
+    ///     Payoff::from([0, 0, 5, 0, 0, -7, 0, 0])
+    /// );
+    /// ```
     pub fn flat(score: T) -> Self {
         Payoff::from([score; N])
     }

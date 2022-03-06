@@ -27,13 +27,13 @@ use std::ops::{Index, IndexMut};
 /// use game_theory::per_player::PerPlayer;
 ///
 /// let mut pp = PerPlayer::new(["klaatu", "barada", "nikto"]);
-/// assert_eq!(pp.for_player(0), Some(&"klaatu"));
-/// assert_eq!(pp.for_player(1), Some(&"barada"));
-/// assert_eq!(pp.for_player(2), Some(&"nikto"));
-/// assert_eq!(pp.for_player(3), None);
+/// assert_eq!(pp.for_player(0).copied(), Some("klaatu"));
+/// assert_eq!(pp.for_player(1).copied(), Some("barada"));
+/// assert_eq!(pp.for_player(2).copied(), Some("nikto"));
+/// assert_eq!(pp.for_player(3).copied(), None);
 ///
 /// *pp.for_player_mut(0).unwrap() = "gort";
-/// assert_eq!(pp.for_player(0), Some(&"gort"));
+/// assert_eq!(pp.for_player(0).copied(), Some("gort"));
 /// ```
 ///
 /// # Statically checked indexes into a `PerPlayer` collection
@@ -114,11 +114,11 @@ impl<T, const N: usize> PerPlayer<T, N> {
     /// use game_theory::per_player::PerPlayer;
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
-    /// assert_eq!(pp.for_player(0), Some(&"frodo"));
-    /// assert_eq!(pp.for_player(1), Some(&"sam"));
-    /// assert_eq!(pp.for_player(2), Some(&"merry"));
-    /// assert_eq!(pp.for_player(3), Some(&"pippin"));
-    /// assert_eq!(pp.for_player(4), None);
+    /// assert_eq!(pp.for_player(0).copied(), Some("frodo"));
+    /// assert_eq!(pp.for_player(1).copied(), Some("sam"));
+    /// assert_eq!(pp.for_player(2).copied(), Some("merry"));
+    /// assert_eq!(pp.for_player(3).copied(), Some("pippin"));
+    /// assert_eq!(pp.for_player(4).copied(), None);
     /// ```
     pub fn for_player(&self, i: usize) -> Option<&T> {
         if i < N {
@@ -139,11 +139,11 @@ impl<T, const N: usize> PerPlayer<T, N> {
     /// *pp.for_player_mut(1).unwrap() = "samwise";
     /// *pp.for_player_mut(2).unwrap() = "meriadoc";
     /// *pp.for_player_mut(3).unwrap() = "peregrin";
-    /// assert_eq!(pp.for_player(0), Some(&"frodo"));
-    /// assert_eq!(pp.for_player(1), Some(&"samwise"));
-    /// assert_eq!(pp.for_player(2), Some(&"meriadoc"));
-    /// assert_eq!(pp.for_player(3), Some(&"peregrin"));
-    /// assert_eq!(pp.for_player(4), None);
+    /// assert_eq!(pp.for_player(0).copied(), Some("frodo"));
+    /// assert_eq!(pp.for_player(1).copied(), Some("samwise"));
+    /// assert_eq!(pp.for_player(2).copied(), Some("meriadoc"));
+    /// assert_eq!(pp.for_player(3).copied(), Some("peregrin"));
+    /// assert_eq!(pp.for_player(4).copied(), None);
     /// ```
     pub fn for_player_mut(&mut self, i: usize) -> Option<&mut T> {
         if i < N {
