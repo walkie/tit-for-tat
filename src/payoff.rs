@@ -4,7 +4,7 @@ use derive_more::{AsMut, AsRef, Index, IndexMut};
 use num::{FromPrimitive, Num};
 use std::ops::{Add, Mul, Sub};
 
-use crate::per_player::{PerPlayer, PlayerIdx};
+use crate::per_player::{PerPlayer, PlayerIndex};
 
 /// A wrapper around a [`PerPlayer`] collection that contains the (typically numerical) values
 /// awarded to each player at the end of a game.
@@ -13,7 +13,7 @@ use crate::per_player::{PerPlayer, PlayerIdx};
 ///
 /// The value for a single player can be obtained by indexing into the payoff using either a
 /// dynamically checked `usize` index via the [`for_player`](Payoff::for_player) and
-/// [`for_player_mut`](Payoff::for_player_mut) methods, or using a statically checked [`PlayerIdx`]
+/// [`for_player_mut`](Payoff::for_player_mut) methods, or using a statically checked [`PlayerIndex`]
 /// index, as described in the documentation for the [`PerPlayer`] type.
 #[derive(Clone, Debug, Eq, PartialEq, AsMut, AsRef, Index, IndexMut)]
 pub struct Payoff<T, const N: usize> {
@@ -47,9 +47,12 @@ impl<T, const N: usize> Payoff<T, N> {
     /// use game_theory::per_player::{for4, for6};
     ///
     /// assert_eq!(Payoff::from([1, 2, 3, 4]).except(for4::P2, -1), Payoff::from([1, 2, -1, 4]));
-    /// assert_eq!(Payoff::flat(0).except(for6::P4, 3), Payoff::from([0, 0, 0, 0, 3, 0]));
+    /// assert_eq!(
+    ///     Payoff::flat(0).except(for6::P2, -3).except(for6::P4, 3),
+    ///     Payoff::from([0, 0, -3, 0, 3, 0])
+    /// );
     /// ```
-    pub fn except(mut self, player: PlayerIdx<N>, score: T) -> Self {
+    pub fn except(mut self, player: PlayerIndex<N>, score: T) -> Self {
         self.values[player] = score;
         self
     }
@@ -130,21 +133,15 @@ impl<T: Copy, const N: usize> Payoff<T, N> {
     }
 }
 
-impl<T: Copy + FromPrimitive + Num, const N: usize> Payoff<T, N> {
-    pub fn zero_sum_loser(loser: PlayerIdx<N>) -> Self {
-        let reward = T::one();
-        let penalty = T::one().sub(T::from_usize(N).unwrap());
-        Payoff::flat(reward).except(loser, penalty)
-    }
-
-    pub fn zero_sum_winner(winner: PlayerIdx<N>) -> Self {
-        let penalty = T::zero().sub(T::one());
-        let reward = T::from_usize(N).unwrap().sub(T::one());
-        Payoff::flat(penalty).except(winner, reward)
-    }
-}
-
 impl<T: Copy + Num, const N: usize> Payoff<T, N> {
+    pub fn is_zero_sum(&self) -> bool {
+        let mut sum = T::zero();
+        for v in &self.values {
+            sum = sum.add(*v);
+        }
+        sum == T::zero()
+    }
+
     fn map(self, f: impl Fn(T) -> T) -> Self {
         let mut result = [T::zero(); N];
         for (r, v) in result.iter_mut().zip(self) {
@@ -161,6 +158,21 @@ impl<T: Copy + Num, const N: usize> Payoff<T, N> {
         Payoff::from(result)
     }
 }
+
+impl<T: Copy + FromPrimitive + Num, const N: usize> Payoff<T, N> {
+    pub fn zero_sum_loser(loser: PlayerIndex<N>) -> Self {
+        let reward = T::one();
+        let penalty = T::one().sub(T::from_usize(N).unwrap());
+        Payoff::flat(reward).except(loser, penalty)
+    }
+
+    pub fn zero_sum_winner(winner: PlayerIndex<N>) -> Self {
+        let penalty = T::zero().sub(T::one());
+        let reward = T::from_usize(N).unwrap().sub(T::one());
+        Payoff::flat(penalty).except(winner, reward)
+    }
+}
+
 
 impl<T, const N: usize> From<[T; N]> for Payoff<T, N> {
     fn from(values: [T; N]) -> Self {

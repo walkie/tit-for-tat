@@ -39,33 +39,33 @@ use std::ops::{Index, IndexMut};
 /// # Statically checked indexes into a `PerPlayer` collection
 ///
 /// The [`Index`] and [`IndexMut`] traits are implemented for `PerPlayer` collections with indexes
-/// of type [`PlayerIdx`]. An index of type `PlayerIdx<N>` is guaranteed to be in-range for a
+/// of type [`PlayerIndex`]. An index of type `PlayerIndex<N>` is guaranteed to be in-range for a
 /// collection of type `PerPlayer<T, N>`, that is, indexing operations into a `PerPlayer`
 /// collection are guaranteed not to fail due to an index out-of-bounds error.
 ///
-/// Indexes can be constructed dynamically using the [`PlayerIdx::new`] constructor. Although the
+/// Indexes can be constructed dynamically using the [`PlayerIndex::new`] constructor. Although the
 /// *indexing operation* cannot fail, *constructing an index* may fail if the index is out of
 /// bounds, in which case the constructor will return `None`.
 ///
 /// ```
-/// use game_theory::per_player::PlayerIdx;
+/// use game_theory::per_player::PlayerIndex;
 ///
-/// assert!(PlayerIdx::<3>::new(0).is_some());
-/// assert!(PlayerIdx::<3>::new(1).is_some());
-/// assert!(PlayerIdx::<3>::new(2).is_some());
-/// assert!(PlayerIdx::<3>::new(3).is_none());
+/// assert!(PlayerIndex::<3>::new(0).is_some());
+/// assert!(PlayerIndex::<3>::new(1).is_some());
+/// assert!(PlayerIndex::<3>::new(2).is_some());
+/// assert!(PlayerIndex::<3>::new(3).is_none());
 /// ```
 ///
 /// When constructing indexes, often the value of `N` can be inferred from the type of the
 /// `PerPlayer` collection it is used to index into.
 ///
 /// ```
-/// use game_theory::per_player::{PerPlayer, PlayerIdx};
+/// use game_theory::per_player::{PerPlayer, PlayerIndex};
 ///
 /// let mut pp = PerPlayer::new(["klaatu", "barada", "nikto"]);
-/// let p0 = PlayerIdx::new(0).unwrap();
-/// let p1 = PlayerIdx::new(1).unwrap();
-/// let p2 = PlayerIdx::new(2).unwrap();
+/// let p0 = PlayerIndex::new(0).unwrap();
+/// let p1 = PlayerIndex::new(1).unwrap();
+/// let p2 = PlayerIndex::new(2).unwrap();
 /// assert_eq!(pp[p0], "klaatu");
 /// assert_eq!(pp[p1], "barada");
 /// assert_eq!(pp[p2], "nikto");
@@ -184,9 +184,9 @@ impl<'a, T, const N: usize> IntoIterator for &'a mut PerPlayer<T, N> {
 /// This type is used in the implementations of the [`Index`] and [`IndexMut`] traits and ensures
 /// that their operations will not fail.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct PlayerIdx<const N: usize>(usize);
+pub struct PlayerIndex<const N: usize>(usize);
 
-impl<const N: usize> PlayerIdx<N> {
+impl<const N: usize> PlayerIndex<N> {
     /// Construct a new index into a [`PerPlayer`] collection. Returns `None` if the provided index
     /// value is out-of-range for the number of players in the game.
     ///
@@ -194,11 +194,11 @@ impl<const N: usize> PlayerIdx<N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::per_player::{for2, for8, PlayerIdx};
+    /// use game_theory::per_player::{for2, for8, PlayerIndex};
     ///
-    /// let p0_opt = PlayerIdx::<2>::new(0);
-    /// let p1_opt = PlayerIdx::<2>::new(1);
-    /// let p2_opt = PlayerIdx::<2>::new(2);
+    /// let p0_opt = PlayerIndex::<2>::new(0);
+    /// let p1_opt = PlayerIndex::<2>::new(1);
+    /// let p2_opt = PlayerIndex::<2>::new(2);
     ///
     /// assert!(p0_opt.is_some());
     /// assert!(p1_opt.is_some());
@@ -207,19 +207,37 @@ impl<const N: usize> PlayerIdx<N> {
     /// assert_eq!(p0_opt.unwrap(), for2::P0);
     /// assert_eq!(p1_opt.unwrap(), for2::P1);
     ///
-    /// assert_eq!(PlayerIdx::<8>::new(3).unwrap(), for8::P3);
-    /// assert_eq!(PlayerIdx::<8>::new(5).unwrap(), for8::P5);
+    /// assert_eq!(PlayerIndex::<8>::new(3).unwrap(), for8::P3);
+    /// assert_eq!(PlayerIndex::<8>::new(5).unwrap(), for8::P5);
     /// ```
     pub fn new(index: usize) -> Option<Self> {
         if index < N {
-            Some(PlayerIdx(index))
+            Some(PlayerIndex(index))
         } else {
             None
         }
     }
+
+    /// Get an iterator that iterates over all player indexes of a given type.
+    ///
+    /// # Examples
+    /// ```
+    /// use game_theory::per_player::{for3, for5, PlayerIndex};
+    ///
+    /// assert_eq!(
+    ///     PlayerIndex::all_indexes().collect::<Vec<PlayerIndex<3>>>(),
+    ///     vec![for3::P0, for3::P1, for3::P2]
+    /// );
+    /// assert_eq!(
+    ///     PlayerIndex::all_indexes().collect::<Vec<PlayerIndex<5>>>(),
+    ///     vec![for5::P0, for5::P1, for5::P2, for5::P3, for5::P4]
+    /// );
+    pub fn all_indexes() -> PlayerIndexes<N> {
+        PlayerIndexes { next: 0 }
+    }
 }
 
-impl<T, const N: usize> Index<PlayerIdx<N>> for PerPlayer<T, N> {
+impl<T, const N: usize> Index<PlayerIndex<N>> for PerPlayer<T, N> {
     type Output = T;
     /// Index into a `PerPlayer` collection. This operation is statically guaranteed not to fail.
     ///
@@ -233,12 +251,12 @@ impl<T, const N: usize> Index<PlayerIdx<N>> for PerPlayer<T, N> {
     /// assert_eq!(pp[for4::P2], "merry");
     /// assert_eq!(pp[for4::P3], "pippin");
     /// ```
-    fn index(&self, idx: PlayerIdx<N>) -> &T {
+    fn index(&self, idx: PlayerIndex<N>) -> &T {
         unsafe { self.data.get_unchecked(idx.0) }
     }
 }
 
-impl<T, const N: usize> IndexMut<PlayerIdx<N>> for PerPlayer<T, N> {
+impl<T, const N: usize> IndexMut<PlayerIndex<N>> for PerPlayer<T, N> {
     /// Index into a `PerPlayer` collection in a mutable context. This operation is statically
     /// guaranteed not to fail.
     ///
@@ -255,223 +273,241 @@ impl<T, const N: usize> IndexMut<PlayerIdx<N>> for PerPlayer<T, N> {
     /// assert_eq!(pp[for4::P2], "meriadoc");
     /// assert_eq!(pp[for4::P3], "peregrin");
     /// ```
-    fn index_mut(&mut self, idx: PlayerIdx<N>) -> &mut T {
+    fn index_mut(&mut self, idx: PlayerIndex<N>) -> &mut T {
         unsafe { self.data.get_unchecked_mut(idx.0) }
+    }
+}
+
+/// An iterator that produces all of the player indexes for a given index type.
+pub struct PlayerIndexes<const N: usize> {
+    next: usize,
+}
+
+impl<const N: usize> Iterator for PlayerIndexes<N> {
+    type Item = PlayerIndex<N>;
+    fn next(&mut self) -> Option<PlayerIndex<N>> {
+        if self.next < N {
+            let index = PlayerIndex(self.next);
+            self.next += 1;
+            Some(index)
+        } else {
+            None
+        }
     }
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 1>`.
 pub mod for1 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<1> = PlayerIdx(0);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<1> = PlayerIndex(0);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 2>`.
 pub mod for2 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<2> = PlayerIdx(0);
-    pub const P1: PlayerIdx<2> = PlayerIdx(1);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<2> = PlayerIndex(0);
+    pub const P1: PlayerIndex<2> = PlayerIndex(1);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 3>`.
 pub mod for3 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<3> = PlayerIdx(0);
-    pub const P1: PlayerIdx<3> = PlayerIdx(1);
-    pub const P2: PlayerIdx<3> = PlayerIdx(2);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<3> = PlayerIndex(0);
+    pub const P1: PlayerIndex<3> = PlayerIndex(1);
+    pub const P2: PlayerIndex<3> = PlayerIndex(2);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 4>`.
 pub mod for4 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<4> = PlayerIdx(0);
-    pub const P1: PlayerIdx<4> = PlayerIdx(1);
-    pub const P2: PlayerIdx<4> = PlayerIdx(2);
-    pub const P3: PlayerIdx<4> = PlayerIdx(3);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<4> = PlayerIndex(0);
+    pub const P1: PlayerIndex<4> = PlayerIndex(1);
+    pub const P2: PlayerIndex<4> = PlayerIndex(2);
+    pub const P3: PlayerIndex<4> = PlayerIndex(3);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 5>`.
 pub mod for5 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<5> = PlayerIdx(0);
-    pub const P1: PlayerIdx<5> = PlayerIdx(1);
-    pub const P2: PlayerIdx<5> = PlayerIdx(2);
-    pub const P3: PlayerIdx<5> = PlayerIdx(3);
-    pub const P4: PlayerIdx<5> = PlayerIdx(4);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<5> = PlayerIndex(0);
+    pub const P1: PlayerIndex<5> = PlayerIndex(1);
+    pub const P2: PlayerIndex<5> = PlayerIndex(2);
+    pub const P3: PlayerIndex<5> = PlayerIndex(3);
+    pub const P4: PlayerIndex<5> = PlayerIndex(4);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 6>`.
 pub mod for6 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<6> = PlayerIdx(0);
-    pub const P1: PlayerIdx<6> = PlayerIdx(1);
-    pub const P2: PlayerIdx<6> = PlayerIdx(2);
-    pub const P3: PlayerIdx<6> = PlayerIdx(3);
-    pub const P4: PlayerIdx<6> = PlayerIdx(4);
-    pub const P5: PlayerIdx<6> = PlayerIdx(5);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<6> = PlayerIndex(0);
+    pub const P1: PlayerIndex<6> = PlayerIndex(1);
+    pub const P2: PlayerIndex<6> = PlayerIndex(2);
+    pub const P3: PlayerIndex<6> = PlayerIndex(3);
+    pub const P4: PlayerIndex<6> = PlayerIndex(4);
+    pub const P5: PlayerIndex<6> = PlayerIndex(5);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 7>`.
 pub mod for7 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<7> = PlayerIdx(0);
-    pub const P1: PlayerIdx<7> = PlayerIdx(1);
-    pub const P2: PlayerIdx<7> = PlayerIdx(2);
-    pub const P3: PlayerIdx<7> = PlayerIdx(3);
-    pub const P4: PlayerIdx<7> = PlayerIdx(4);
-    pub const P5: PlayerIdx<7> = PlayerIdx(5);
-    pub const P6: PlayerIdx<7> = PlayerIdx(6);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<7> = PlayerIndex(0);
+    pub const P1: PlayerIndex<7> = PlayerIndex(1);
+    pub const P2: PlayerIndex<7> = PlayerIndex(2);
+    pub const P3: PlayerIndex<7> = PlayerIndex(3);
+    pub const P4: PlayerIndex<7> = PlayerIndex(4);
+    pub const P5: PlayerIndex<7> = PlayerIndex(5);
+    pub const P6: PlayerIndex<7> = PlayerIndex(6);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 8>`.
 pub mod for8 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<8> = PlayerIdx(0);
-    pub const P1: PlayerIdx<8> = PlayerIdx(1);
-    pub const P2: PlayerIdx<8> = PlayerIdx(2);
-    pub const P3: PlayerIdx<8> = PlayerIdx(3);
-    pub const P4: PlayerIdx<8> = PlayerIdx(4);
-    pub const P5: PlayerIdx<8> = PlayerIdx(5);
-    pub const P6: PlayerIdx<8> = PlayerIdx(6);
-    pub const P7: PlayerIdx<8> = PlayerIdx(7);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<8> = PlayerIndex(0);
+    pub const P1: PlayerIndex<8> = PlayerIndex(1);
+    pub const P2: PlayerIndex<8> = PlayerIndex(2);
+    pub const P3: PlayerIndex<8> = PlayerIndex(3);
+    pub const P4: PlayerIndex<8> = PlayerIndex(4);
+    pub const P5: PlayerIndex<8> = PlayerIndex(5);
+    pub const P6: PlayerIndex<8> = PlayerIndex(6);
+    pub const P7: PlayerIndex<8> = PlayerIndex(7);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 9>`.
 pub mod for9 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<9> = PlayerIdx(0);
-    pub const P1: PlayerIdx<9> = PlayerIdx(1);
-    pub const P2: PlayerIdx<9> = PlayerIdx(2);
-    pub const P3: PlayerIdx<9> = PlayerIdx(3);
-    pub const P4: PlayerIdx<9> = PlayerIdx(4);
-    pub const P5: PlayerIdx<9> = PlayerIdx(5);
-    pub const P6: PlayerIdx<9> = PlayerIdx(6);
-    pub const P7: PlayerIdx<9> = PlayerIdx(7);
-    pub const P8: PlayerIdx<9> = PlayerIdx(8);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<9> = PlayerIndex(0);
+    pub const P1: PlayerIndex<9> = PlayerIndex(1);
+    pub const P2: PlayerIndex<9> = PlayerIndex(2);
+    pub const P3: PlayerIndex<9> = PlayerIndex(3);
+    pub const P4: PlayerIndex<9> = PlayerIndex(4);
+    pub const P5: PlayerIndex<9> = PlayerIndex(5);
+    pub const P6: PlayerIndex<9> = PlayerIndex(6);
+    pub const P7: PlayerIndex<9> = PlayerIndex(7);
+    pub const P8: PlayerIndex<9> = PlayerIndex(8);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 10>`.
 pub mod for10 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<10> = PlayerIdx(0);
-    pub const P1: PlayerIdx<10> = PlayerIdx(1);
-    pub const P2: PlayerIdx<10> = PlayerIdx(2);
-    pub const P3: PlayerIdx<10> = PlayerIdx(3);
-    pub const P4: PlayerIdx<10> = PlayerIdx(4);
-    pub const P5: PlayerIdx<10> = PlayerIdx(5);
-    pub const P6: PlayerIdx<10> = PlayerIdx(6);
-    pub const P7: PlayerIdx<10> = PlayerIdx(7);
-    pub const P8: PlayerIdx<10> = PlayerIdx(8);
-    pub const P9: PlayerIdx<10> = PlayerIdx(9);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<10> = PlayerIndex(0);
+    pub const P1: PlayerIndex<10> = PlayerIndex(1);
+    pub const P2: PlayerIndex<10> = PlayerIndex(2);
+    pub const P3: PlayerIndex<10> = PlayerIndex(3);
+    pub const P4: PlayerIndex<10> = PlayerIndex(4);
+    pub const P5: PlayerIndex<10> = PlayerIndex(5);
+    pub const P6: PlayerIndex<10> = PlayerIndex(6);
+    pub const P7: PlayerIndex<10> = PlayerIndex(7);
+    pub const P8: PlayerIndex<10> = PlayerIndex(8);
+    pub const P9: PlayerIndex<10> = PlayerIndex(9);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 11>`.
 pub mod for11 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<11> = PlayerIdx(0);
-    pub const P1: PlayerIdx<11> = PlayerIdx(1);
-    pub const P2: PlayerIdx<11> = PlayerIdx(2);
-    pub const P3: PlayerIdx<11> = PlayerIdx(3);
-    pub const P4: PlayerIdx<11> = PlayerIdx(4);
-    pub const P5: PlayerIdx<11> = PlayerIdx(5);
-    pub const P6: PlayerIdx<11> = PlayerIdx(6);
-    pub const P7: PlayerIdx<11> = PlayerIdx(7);
-    pub const P8: PlayerIdx<11> = PlayerIdx(8);
-    pub const P9: PlayerIdx<11> = PlayerIdx(9);
-    pub const P10: PlayerIdx<11> = PlayerIdx(10);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<11> = PlayerIndex(0);
+    pub const P1: PlayerIndex<11> = PlayerIndex(1);
+    pub const P2: PlayerIndex<11> = PlayerIndex(2);
+    pub const P3: PlayerIndex<11> = PlayerIndex(3);
+    pub const P4: PlayerIndex<11> = PlayerIndex(4);
+    pub const P5: PlayerIndex<11> = PlayerIndex(5);
+    pub const P6: PlayerIndex<11> = PlayerIndex(6);
+    pub const P7: PlayerIndex<11> = PlayerIndex(7);
+    pub const P8: PlayerIndex<11> = PlayerIndex(8);
+    pub const P9: PlayerIndex<11> = PlayerIndex(9);
+    pub const P10: PlayerIndex<11> = PlayerIndex(10);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 12>`.
 pub mod for12 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<12> = PlayerIdx(0);
-    pub const P1: PlayerIdx<12> = PlayerIdx(1);
-    pub const P2: PlayerIdx<12> = PlayerIdx(2);
-    pub const P3: PlayerIdx<12> = PlayerIdx(3);
-    pub const P4: PlayerIdx<12> = PlayerIdx(4);
-    pub const P5: PlayerIdx<12> = PlayerIdx(5);
-    pub const P6: PlayerIdx<12> = PlayerIdx(6);
-    pub const P7: PlayerIdx<12> = PlayerIdx(7);
-    pub const P8: PlayerIdx<12> = PlayerIdx(8);
-    pub const P9: PlayerIdx<12> = PlayerIdx(9);
-    pub const P10: PlayerIdx<12> = PlayerIdx(10);
-    pub const P11: PlayerIdx<12> = PlayerIdx(11);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<12> = PlayerIndex(0);
+    pub const P1: PlayerIndex<12> = PlayerIndex(1);
+    pub const P2: PlayerIndex<12> = PlayerIndex(2);
+    pub const P3: PlayerIndex<12> = PlayerIndex(3);
+    pub const P4: PlayerIndex<12> = PlayerIndex(4);
+    pub const P5: PlayerIndex<12> = PlayerIndex(5);
+    pub const P6: PlayerIndex<12> = PlayerIndex(6);
+    pub const P7: PlayerIndex<12> = PlayerIndex(7);
+    pub const P8: PlayerIndex<12> = PlayerIndex(8);
+    pub const P9: PlayerIndex<12> = PlayerIndex(9);
+    pub const P10: PlayerIndex<12> = PlayerIndex(10);
+    pub const P11: PlayerIndex<12> = PlayerIndex(11);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 13>`.
 pub mod for13 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<13> = PlayerIdx(0);
-    pub const P1: PlayerIdx<13> = PlayerIdx(1);
-    pub const P2: PlayerIdx<13> = PlayerIdx(2);
-    pub const P3: PlayerIdx<13> = PlayerIdx(3);
-    pub const P4: PlayerIdx<13> = PlayerIdx(4);
-    pub const P5: PlayerIdx<13> = PlayerIdx(5);
-    pub const P6: PlayerIdx<13> = PlayerIdx(6);
-    pub const P7: PlayerIdx<13> = PlayerIdx(7);
-    pub const P8: PlayerIdx<13> = PlayerIdx(8);
-    pub const P9: PlayerIdx<13> = PlayerIdx(9);
-    pub const P10: PlayerIdx<13> = PlayerIdx(10);
-    pub const P11: PlayerIdx<13> = PlayerIdx(11);
-    pub const P12: PlayerIdx<13> = PlayerIdx(12);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<13> = PlayerIndex(0);
+    pub const P1: PlayerIndex<13> = PlayerIndex(1);
+    pub const P2: PlayerIndex<13> = PlayerIndex(2);
+    pub const P3: PlayerIndex<13> = PlayerIndex(3);
+    pub const P4: PlayerIndex<13> = PlayerIndex(4);
+    pub const P5: PlayerIndex<13> = PlayerIndex(5);
+    pub const P6: PlayerIndex<13> = PlayerIndex(6);
+    pub const P7: PlayerIndex<13> = PlayerIndex(7);
+    pub const P8: PlayerIndex<13> = PlayerIndex(8);
+    pub const P9: PlayerIndex<13> = PlayerIndex(9);
+    pub const P10: PlayerIndex<13> = PlayerIndex(10);
+    pub const P11: PlayerIndex<13> = PlayerIndex(11);
+    pub const P12: PlayerIndex<13> = PlayerIndex(12);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 14>`.
 pub mod for14 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<14> = PlayerIdx(0);
-    pub const P1: PlayerIdx<14> = PlayerIdx(1);
-    pub const P2: PlayerIdx<14> = PlayerIdx(2);
-    pub const P3: PlayerIdx<14> = PlayerIdx(3);
-    pub const P4: PlayerIdx<14> = PlayerIdx(4);
-    pub const P5: PlayerIdx<14> = PlayerIdx(5);
-    pub const P6: PlayerIdx<14> = PlayerIdx(6);
-    pub const P7: PlayerIdx<14> = PlayerIdx(7);
-    pub const P8: PlayerIdx<14> = PlayerIdx(8);
-    pub const P9: PlayerIdx<14> = PlayerIdx(9);
-    pub const P10: PlayerIdx<14> = PlayerIdx(10);
-    pub const P11: PlayerIdx<14> = PlayerIdx(11);
-    pub const P12: PlayerIdx<14> = PlayerIdx(12);
-    pub const P13: PlayerIdx<14> = PlayerIdx(13);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<14> = PlayerIndex(0);
+    pub const P1: PlayerIndex<14> = PlayerIndex(1);
+    pub const P2: PlayerIndex<14> = PlayerIndex(2);
+    pub const P3: PlayerIndex<14> = PlayerIndex(3);
+    pub const P4: PlayerIndex<14> = PlayerIndex(4);
+    pub const P5: PlayerIndex<14> = PlayerIndex(5);
+    pub const P6: PlayerIndex<14> = PlayerIndex(6);
+    pub const P7: PlayerIndex<14> = PlayerIndex(7);
+    pub const P8: PlayerIndex<14> = PlayerIndex(8);
+    pub const P9: PlayerIndex<14> = PlayerIndex(9);
+    pub const P10: PlayerIndex<14> = PlayerIndex(10);
+    pub const P11: PlayerIndex<14> = PlayerIndex(11);
+    pub const P12: PlayerIndex<14> = PlayerIndex(12);
+    pub const P13: PlayerIndex<14> = PlayerIndex(13);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 15>`.
 pub mod for15 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<15> = PlayerIdx(0);
-    pub const P1: PlayerIdx<15> = PlayerIdx(1);
-    pub const P2: PlayerIdx<15> = PlayerIdx(2);
-    pub const P3: PlayerIdx<15> = PlayerIdx(3);
-    pub const P4: PlayerIdx<15> = PlayerIdx(4);
-    pub const P5: PlayerIdx<15> = PlayerIdx(5);
-    pub const P6: PlayerIdx<15> = PlayerIdx(6);
-    pub const P7: PlayerIdx<15> = PlayerIdx(7);
-    pub const P8: PlayerIdx<15> = PlayerIdx(8);
-    pub const P9: PlayerIdx<15> = PlayerIdx(9);
-    pub const P10: PlayerIdx<15> = PlayerIdx(10);
-    pub const P11: PlayerIdx<15> = PlayerIdx(11);
-    pub const P12: PlayerIdx<15> = PlayerIdx(12);
-    pub const P13: PlayerIdx<15> = PlayerIdx(13);
-    pub const P14: PlayerIdx<15> = PlayerIdx(14);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<15> = PlayerIndex(0);
+    pub const P1: PlayerIndex<15> = PlayerIndex(1);
+    pub const P2: PlayerIndex<15> = PlayerIndex(2);
+    pub const P3: PlayerIndex<15> = PlayerIndex(3);
+    pub const P4: PlayerIndex<15> = PlayerIndex(4);
+    pub const P5: PlayerIndex<15> = PlayerIndex(5);
+    pub const P6: PlayerIndex<15> = PlayerIndex(6);
+    pub const P7: PlayerIndex<15> = PlayerIndex(7);
+    pub const P8: PlayerIndex<15> = PlayerIndex(8);
+    pub const P9: PlayerIndex<15> = PlayerIndex(9);
+    pub const P10: PlayerIndex<15> = PlayerIndex(10);
+    pub const P11: PlayerIndex<15> = PlayerIndex(11);
+    pub const P12: PlayerIndex<15> = PlayerIndex(12);
+    pub const P13: PlayerIndex<15> = PlayerIndex(13);
+    pub const P14: PlayerIndex<15> = PlayerIndex(14);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 16>`.
 pub mod for16 {
-    use super::PlayerIdx;
-    pub const P0: PlayerIdx<16> = PlayerIdx(0);
-    pub const P1: PlayerIdx<16> = PlayerIdx(1);
-    pub const P2: PlayerIdx<16> = PlayerIdx(2);
-    pub const P3: PlayerIdx<16> = PlayerIdx(3);
-    pub const P4: PlayerIdx<16> = PlayerIdx(4);
-    pub const P5: PlayerIdx<16> = PlayerIdx(5);
-    pub const P6: PlayerIdx<16> = PlayerIdx(6);
-    pub const P7: PlayerIdx<16> = PlayerIdx(7);
-    pub const P8: PlayerIdx<16> = PlayerIdx(8);
-    pub const P9: PlayerIdx<16> = PlayerIdx(9);
-    pub const P10: PlayerIdx<16> = PlayerIdx(10);
-    pub const P11: PlayerIdx<16> = PlayerIdx(11);
-    pub const P12: PlayerIdx<16> = PlayerIdx(12);
-    pub const P13: PlayerIdx<16> = PlayerIdx(13);
-    pub const P14: PlayerIdx<16> = PlayerIdx(14);
-    pub const P15: PlayerIdx<16> = PlayerIdx(15);
+    use super::PlayerIndex;
+    pub const P0: PlayerIndex<16> = PlayerIndex(0);
+    pub const P1: PlayerIndex<16> = PlayerIndex(1);
+    pub const P2: PlayerIndex<16> = PlayerIndex(2);
+    pub const P3: PlayerIndex<16> = PlayerIndex(3);
+    pub const P4: PlayerIndex<16> = PlayerIndex(4);
+    pub const P5: PlayerIndex<16> = PlayerIndex(5);
+    pub const P6: PlayerIndex<16> = PlayerIndex(6);
+    pub const P7: PlayerIndex<16> = PlayerIndex(7);
+    pub const P8: PlayerIndex<16> = PlayerIndex(8);
+    pub const P9: PlayerIndex<16> = PlayerIndex(9);
+    pub const P10: PlayerIndex<16> = PlayerIndex(10);
+    pub const P11: PlayerIndex<16> = PlayerIndex(11);
+    pub const P12: PlayerIndex<16> = PlayerIndex(12);
+    pub const P13: PlayerIndex<16> = PlayerIndex(13);
+    pub const P14: PlayerIndex<16> = PlayerIndex(14);
+    pub const P15: PlayerIndex<16> = PlayerIndex(15);
 }
