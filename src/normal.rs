@@ -1,6 +1,5 @@
+use crate::core::{Payoff, PerPlayer, PlayerIndex};
 use crate::game::Game;
-use crate::payoff::Payoff;
-use crate::per_player::{PerPlayer, PlayerIndex};
 
 /// A pure strategy profile: one move played by each player.
 pub type Profile<Move, const N: usize> = PerPlayer<Move, N>;
@@ -21,4 +20,4 @@ pub trait Normal<const N: usize>: Game {
 }
 
 /// A finite normal-form game is one with a finite number of valid moves for each player.
-pub trait Finite<const N: usize>: Game<N> {}
+pub trait Finite<const N: usize>: Game {}

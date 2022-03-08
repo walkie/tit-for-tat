@@ -1,5 +1,3 @@
-use crate::collections::{PerPlayer, PlayerIndex};
-
 pub trait Game {
     /// The type of moves in this game.
     type Move;

@@ -4,7 +4,7 @@ use derive_more::{AsMut, AsRef, Index, IndexMut};
 use num::{FromPrimitive, Num};
 use std::ops::{Add, Mul, Sub};
 
-use crate::per_player::{PerPlayer, PlayerIndex};
+use crate::core::{PerPlayer, PlayerIndex};
 
 /// A wrapper around a [`PerPlayer`] collection that contains the (typically numerical) utility
 /// values awarded to each player at the end of a game. A payoff of type `Payoff<U, N>` represents
@@ -15,7 +15,7 @@ use crate::per_player::{PerPlayer, PlayerIndex};
 /// The simplest way to construct a payoff is to build it directly from an array of utility values.
 ///
 /// ```
-/// use game_theory::payoff::Payoff;
+/// use tft::core::Payoff;
 ///
 /// let p = Payoff::from([2, 3, 0, -1]);
 /// ```
@@ -26,7 +26,7 @@ use crate::per_player::{PerPlayer, PlayerIndex};
 /// argument `N`, which can often be inferred from the context in which the payoff is used.
 ///
 /// ```
-/// use game_theory::payoff::Payoff;
+/// use tft::core::Payoff;
 ///
 /// assert_eq!(Payoff::flat(0), Payoff::from([0, 0]));
 /// assert_eq!(Payoff::flat(5), Payoff::from([5, 5, 5, 5]));
@@ -36,8 +36,7 @@ use crate::per_player::{PerPlayer, PlayerIndex};
 /// designed to be chained with payoff constructors, like [`Payoff::flat`].
 ///
 /// ```
-/// use game_theory::payoff::Payoff;
-/// use game_theory::per_player::{for4, for6};
+/// use tft::core::{for4, for6, Payoff};
 ///
 /// assert_eq!(Payoff::flat(-2).except(for4::P1, 5), Payoff::from([-2, 5, -2, -2]));
 /// assert_eq!(
@@ -51,8 +50,7 @@ use crate::per_player::{PerPlayer, PlayerIndex};
 /// or loses (and all other players draw), respectively.
 ///
 /// ```
-/// use game_theory::payoff::Payoff;
-/// use game_theory::per_player::{for3, for5};
+/// use tft::core::{for3, for5, Payoff};
 ///
 /// assert_eq!(Payoff::zero_sum_winner(for3::P2), Payoff::from([-1, -1, 2]));
 /// assert_eq!(Payoff::zero_sum_loser(for5::P1), Payoff::from([1, -4, 1, 1, 1]));
@@ -65,8 +63,7 @@ use crate::per_player::{PerPlayer, PlayerIndex};
 /// from each utility in the payoff.
 ///
 /// ```
-/// use game_theory::payoff::Payoff;
-/// use game_theory::per_player::{for3, for5};
+/// use tft::core::{for3, for5, Payoff};
 ///
 /// assert_eq!(
 ///     Payoff::from([10, 20, 30]) + Payoff::from([5, 6, 7]),
@@ -101,8 +98,7 @@ impl<U, const N: usize> Payoff<U, N> {
     ///
     /// # Example
     /// ```
-    /// use game_theory::payoff::Payoff;
-    /// use game_theory::per_player::PerPlayer;
+    /// use tft::core::{Payoff, PerPlayer};
     ///
     /// assert_eq!(Payoff::new(PerPlayer::new([2, 0, -2])), Payoff::from([2, 0, -2]));
     /// ```
@@ -117,8 +113,7 @@ impl<U, const N: usize> Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
-    /// use game_theory::per_player::{for4, for6};
+    /// use tft::core::{for4, for6, Payoff};
     ///
     /// assert_eq!(Payoff::from([1, 2, 3, 4]).except(for4::P2, -1), Payoff::from([1, 2, -1, 4]));
     /// assert_eq!(
@@ -136,7 +131,7 @@ impl<U, const N: usize> Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
+    /// use tft::core::Payoff;
     ///
     /// assert_eq!(Payoff::from([2, 0, -2]).num_players(), 3);
     /// assert_eq!(Payoff::from([1, 1, 1, -3, 1]).num_players(), 5);
@@ -151,7 +146,7 @@ impl<U, const N: usize> Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
+    /// use tft::core::Payoff;
     ///
     /// let p = Payoff::from([1, -2, 3]);
     ///
@@ -167,7 +162,7 @@ impl<U, const N: usize> Payoff<U, N> {
     /// Get a mutable reference to the utility for the `i`th player in the game. Returns `None` if
     /// the index is out of range.
     /// ```
-    /// use game_theory::payoff::Payoff;
+    /// use tft::core::Payoff;
     ///
     /// let mut p = Payoff::from([1, -2, 3]);
     /// *p.for_player_mut(1).unwrap() = 4;
@@ -193,8 +188,7 @@ impl<U: Copy, const N: usize> Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
-    /// use game_theory::per_player::for8;
+    /// use tft::core::{for8, Payoff};
     ///
     /// assert_eq!(Payoff::flat(2), Payoff::from([2, 2, 2]));
     /// assert_eq!(
@@ -212,8 +206,7 @@ impl<U: Copy + Num, const N: usize> Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
-    /// use game_theory::per_player::PlayerIndex;
+    /// use tft::core::{Payoff, PlayerIndex};
     ///
     /// assert!(Payoff::<i64, 3>::from([-3, 2, 1]).is_zero_sum());
     /// assert!(Payoff::<i64, 6>::from([0, -10, 3, 0, -1, 8]).is_zero_sum());
@@ -250,8 +243,7 @@ impl<U: Copy + FromPrimitive + Num, const N: usize> Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
-    /// use game_theory::per_player::{for4, for7};
+    /// use tft::core::{for4, for7, Payoff};
     ///
     /// assert_eq!(
     ///     Payoff::zero_sum_loser(for4::P2),
@@ -274,8 +266,7 @@ impl<U: Copy + FromPrimitive + Num, const N: usize> Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
-    /// use game_theory::per_player::{for1, for4, for7};
+    /// use tft::core::{for1, for4, for7, Payoff};
     ///
     /// assert_eq!(
     ///     Payoff::zero_sum_winner(for4::P3),
@@ -294,7 +285,6 @@ impl<U: Copy + FromPrimitive + Num, const N: usize> Payoff<U, N> {
     }
 }
 
-
 impl<U, const N: usize> From<[U; N]> for Payoff<U, N> {
     fn from(utilities: [U; N]) -> Self {
         Payoff::new(PerPlayer::new(utilities))
@@ -308,7 +298,7 @@ impl<U: Copy + Num, const N: usize> Add<U> for Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
+    /// use tft::core::Payoff;
     ///
     /// assert_eq!(Payoff::from([2, -3, 4]) + 10, Payoff::from([12, 7, 14]));
     /// assert_eq!(Payoff::from([0, 12]) + -6, Payoff::from([-6, 6]));
@@ -325,7 +315,7 @@ impl<U: Copy + Num, const N: usize> Sub<U> for Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
+    /// use tft::core::Payoff;
     ///
     /// assert_eq!(Payoff::from([15, 6, 12]) - 10, Payoff::from([5, -4, 2]));
     /// assert_eq!(Payoff::from([-3, 3]) - -6, Payoff::from([3, 9]));
@@ -342,7 +332,7 @@ impl<U: Copy + Num, const N: usize> Mul<U> for Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
+    /// use tft::core::Payoff;
     ///
     /// assert_eq!(Payoff::from([3, -4, 5]) * 3, Payoff::from([9, -12, 15]));
     /// assert_eq!(Payoff::from([0, 3]) * -2, Payoff::from([0, -6]));
@@ -359,7 +349,7 @@ impl<U: Copy + Num, const N: usize> Add<Self> for Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
+    /// use tft::core::Payoff;
     ///
     /// assert_eq!(
     ///     Payoff::from([10, -20, 30]) + Payoff::from([2, 3, -4]),
@@ -379,7 +369,7 @@ impl<U: Copy + Num, const N: usize> Sub<Self> for Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
+    /// use tft::core::Payoff;
     ///
     /// assert_eq!(
     ///     Payoff::from([10, -20, 30]) - Payoff::from([2, 3, -4]),
@@ -398,7 +388,7 @@ impl<U: Copy + Num, const N: usize> Mul<Self> for Payoff<U, N> {
     ///
     /// # Examples
     /// ```
-    /// use game_theory::payoff::Payoff;
+    /// use tft::core::Payoff;
     ///
     /// assert_eq!(
     ///     Payoff::from([10, -20, 30]) * Payoff::from([2, 3, -4]),
@@ -437,7 +427,7 @@ impl<'a, U, const N: usize> IntoIterator for &'a mut Payoff<U, N> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::per_player::{for1, for2, for3, for4};
+    use crate::core::{for1, for2, for3, for4};
 
     #[test]
     fn zero_sum_loser_correct() {
