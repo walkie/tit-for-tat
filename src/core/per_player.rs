@@ -89,7 +89,7 @@ use std::ops::{Index, IndexMut};
 /// pp[for3::P0] = "gort";
 /// assert_eq!(pp[for3::P0], "gort");
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq, AsMut, AsRef)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, AsMut, AsRef)]
 pub struct PerPlayer<T, const N: usize> {
     data: [T; N],
 }
@@ -183,7 +183,7 @@ impl<'a, T, const N: usize> IntoIterator for &'a mut PerPlayer<T, N> {
 ///
 /// This type is used in the implementations of the [`Index`] and [`IndexMut`] traits and ensures
 /// that their operations will not fail.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct PlayerIndex<const N: usize>(usize);
 
 impl<const N: usize> PlayerIndex<N> {

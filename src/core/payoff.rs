@@ -86,7 +86,7 @@ use crate::core::{PerPlayer, PlayerIndex};
 ///   syntax `p[i]` provided via the [`Index`] and [`IndexMut`] traits.
 ///
 /// For more information, see the documentation for the [`PerPlayer`] type.
-#[derive(Clone, Debug, Eq, PartialEq, AsMut, AsRef, Index, IndexMut)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, AsMut, AsRef, Index, IndexMut)]
 pub struct Payoff<U, const N: usize> {
     utilities: PerPlayer<U, N>,
 }
