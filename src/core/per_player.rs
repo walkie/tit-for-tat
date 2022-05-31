@@ -7,14 +7,14 @@ use std::ops::{Index, IndexMut};
 
 /// A collection that stores one element corresponding to each player in a game.
 ///
-/// The type is parameterized by the type of elements `T` and the number of players in the game `N`.
-/// For example, the type `PerPlayer<f64, 3>` contains exactly three `f64` values, one for each
-/// player in a three-player game.
+/// The type is parameterized by the type of elements `T` and the number of players in the game
+/// `NUM_PLAYERS`. For example, the type `PerPlayer<f64, 3>` contains exactly three `f64` values,
+/// one for each player in a three-player game.
 ///
 /// The ["const generic"](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html)
-/// argument `N` is used to statically ensure that a [`PerPlayer`] collection contains the correct
-/// number of elements for a given game, and to provide statically checked indexing into
-/// `PerPlayer` collections.
+/// argument `NUM_PLAYERS` is used to statically ensure that a [`PerPlayer`] collection contains
+/// the correct number of elements for a given game, and to provide statically checked indexing
+/// into `PerPlayer` collections.
 ///
 /// # Dynamically checked indexing operations
 ///
@@ -39,9 +39,9 @@ use std::ops::{Index, IndexMut};
 /// # Statically checked indexing operations
 ///
 /// The [`Index`] and [`IndexMut`] traits are implemented for `PerPlayer` collections with indexes
-/// of type [`PlayerIndex`]. An index of type `PlayerIndex<N>` is guaranteed to be in-range for a
-/// collection of type `PerPlayer<T, N>`, that is, indexing operations into a `PerPlayer`
-/// collection are guaranteed not to fail due to an index out-of-bounds error.
+/// of type [`PlayerIndex`]. An index of type `PlayerIndex<NUM_PLAYERS>` is guaranteed to be
+/// in-range for a collection of type `PerPlayer<T, NUM_PLAYERS>`, that is, indexing operations
+/// into a `PerPlayer` collection are guaranteed not to fail due to an index out-of-bounds error.
 ///
 /// Indexes can be constructed dynamically using the [`PlayerIndex::new`] constructor. Although the
 /// *indexing operation* cannot fail, *constructing an index* may fail if the index is out of
@@ -56,7 +56,7 @@ use std::ops::{Index, IndexMut};
 /// assert!(PlayerIndex::<3>::new(3).is_none());
 /// ```
 ///
-/// When constructing indexes, often the value of `N` can be inferred from the type of the
+/// When constructing indexes, often the value of `NUM_PLAYERS` can be inferred from the type of the
 /// `PerPlayer` collection it is used to index into.
 ///
 /// ```
@@ -90,20 +90,20 @@ use std::ops::{Index, IndexMut};
 /// assert_eq!(pp[for3::P0], "gort");
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq, Hash, AsMut, AsRef)]
-pub struct PerPlayer<T, const N: usize> {
-    data: [T; N],
+pub struct PerPlayer<T, const NUM_PLAYERS: usize> {
+    data: [T; NUM_PLAYERS],
 }
 
-impl<T, const N: usize> PerPlayer<T, N> {
+impl<T, const NUM_PLAYERS: usize> PerPlayer<T, NUM_PLAYERS> {
     /// Create a new [`PerPlayer`] collection from the given array.
-    pub fn new(data: [T; N]) -> Self {
+    pub fn new(data: [T; NUM_PLAYERS]) -> Self {
         PerPlayer { data }
     }
 
     /// Get the number of players in the game, which corresponds to the number of elements in this
     /// collection.
     pub fn num_players(&self) -> usize {
-        N
+        NUM_PLAYERS
     }
 
     /// Get a reference to the element corresponding to the `i`th player in the game. Returns
@@ -121,7 +121,7 @@ impl<T, const N: usize> PerPlayer<T, N> {
     /// assert_eq!(pp.for_player(4), None);
     /// ```
     pub fn for_player(&self, i: usize) -> Option<&T> {
-        if i < N {
+        if i < NUM_PLAYERS {
             Some(&self.data[i])
         } else {
             None
@@ -146,7 +146,7 @@ impl<T, const N: usize> PerPlayer<T, N> {
     /// assert_eq!(pp.for_player(4), None);
     /// ```
     pub fn for_player_mut(&mut self, i: usize) -> Option<&mut T> {
-        if i < N {
+        if i < NUM_PLAYERS {
             Some(&mut self.data[i])
         } else {
             None
@@ -154,39 +154,39 @@ impl<T, const N: usize> PerPlayer<T, N> {
     }
 }
 
-impl<T, const N: usize> IntoIterator for PerPlayer<T, N> {
-    type Item = <[T; N] as IntoIterator>::Item;
-    type IntoIter = <[T; N] as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <[T; N] as IntoIterator>::IntoIter {
+impl<T, const NUM_PLAYERS: usize> IntoIterator for PerPlayer<T, NUM_PLAYERS> {
+    type Item = <[T; NUM_PLAYERS] as IntoIterator>::Item;
+    type IntoIter = <[T; NUM_PLAYERS] as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <[T; NUM_PLAYERS] as IntoIterator>::IntoIter {
         self.data.into_iter()
     }
 }
 
-impl<'a, T, const N: usize> IntoIterator for &'a PerPlayer<T, N> {
-    type Item = <&'a [T; N] as IntoIterator>::Item;
-    type IntoIter = <&'a [T; N] as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <&'a [T; N] as IntoIterator>::IntoIter {
+impl<'a, T, const NUM_PLAYERS: usize> IntoIterator for &'a PerPlayer<T, NUM_PLAYERS> {
+    type Item = <&'a [T; NUM_PLAYERS] as IntoIterator>::Item;
+    type IntoIter = <&'a [T; NUM_PLAYERS] as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a [T; NUM_PLAYERS] as IntoIterator>::IntoIter {
         (&self.data).iter()
     }
 }
 
-impl<'a, T, const N: usize> IntoIterator for &'a mut PerPlayer<T, N> {
-    type Item = <&'a mut [T; N] as IntoIterator>::Item;
-    type IntoIter = <&'a mut [T; N] as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <&'a mut [T; N] as IntoIterator>::IntoIter {
+impl<'a, T, const NUM_PLAYERS: usize> IntoIterator for &'a mut PerPlayer<T, NUM_PLAYERS> {
+    type Item = <&'a mut [T; NUM_PLAYERS] as IntoIterator>::Item;
+    type IntoIter = <&'a mut [T; NUM_PLAYERS] as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a mut [T; NUM_PLAYERS] as IntoIterator>::IntoIter {
         (&mut self.data).iter_mut()
     }
 }
 
-/// An index into a [`PerPlayer`] collection that is guaranteed to be in-range for a game with `N`
-/// players.
+/// An index into a [`PerPlayer`] collection that is guaranteed to be in-range for a game with
+/// `NUM_PLAYERS` players.
 ///
 /// This type is used in the implementations of the [`Index`] and [`IndexMut`] traits and ensures
 /// that their operations will not fail.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct PlayerIndex<const N: usize>(usize);
+pub struct PlayerIndex<const NUM_PLAYERS: usize>(usize);
 
-impl<const N: usize> PlayerIndex<N> {
+impl<const NUM_PLAYERS: usize> PlayerIndex<NUM_PLAYERS> {
     /// Construct a new index into a [`PerPlayer`] collection. Returns `None` if the provided index
     /// value is out-of-range for the number of players in the game.
     ///
@@ -211,7 +211,7 @@ impl<const N: usize> PlayerIndex<N> {
     /// assert_eq!(PlayerIndex::<8>::new(5).unwrap(), for8::P5);
     /// ```
     pub fn new(index: usize) -> Option<Self> {
-        if index < N {
+        if index < NUM_PLAYERS {
             Some(PlayerIndex(index))
         } else {
             None
@@ -232,12 +232,12 @@ impl<const N: usize> PlayerIndex<N> {
     ///     PlayerIndex::all_indexes().collect::<Vec<PlayerIndex<5>>>(),
     ///     vec![for5::P0, for5::P1, for5::P2, for5::P3, for5::P4]
     /// );
-    pub fn all_indexes() -> PlayerIndexes<N> {
+    pub fn all_indexes() -> PlayerIndexes<NUM_PLAYERS> {
         PlayerIndexes { next: 0 }
     }
 }
 
-impl<T, const N: usize> Index<PlayerIndex<N>> for PerPlayer<T, N> {
+impl<T, const NUM_PLAYERS: usize> Index<PlayerIndex<NUM_PLAYERS>> for PerPlayer<T, NUM_PLAYERS> {
     type Output = T;
     /// Index into a `PerPlayer` collection. This operation is statically guaranteed not to fail.
     ///
@@ -251,12 +251,12 @@ impl<T, const N: usize> Index<PlayerIndex<N>> for PerPlayer<T, N> {
     /// assert_eq!(pp[for4::P2], "merry");
     /// assert_eq!(pp[for4::P3], "pippin");
     /// ```
-    fn index(&self, idx: PlayerIndex<N>) -> &T {
+    fn index(&self, idx: PlayerIndex<NUM_PLAYERS>) -> &T {
         unsafe { self.data.get_unchecked(idx.0) }
     }
 }
 
-impl<T, const N: usize> IndexMut<PlayerIndex<N>> for PerPlayer<T, N> {
+impl<T, const NUM_PLAYERS: usize> IndexMut<PlayerIndex<NUM_PLAYERS>> for PerPlayer<T, NUM_PLAYERS> {
     /// Index into a `PerPlayer` collection in a mutable context. This operation is statically
     /// guaranteed not to fail.
     ///
@@ -273,20 +273,20 @@ impl<T, const N: usize> IndexMut<PlayerIndex<N>> for PerPlayer<T, N> {
     /// assert_eq!(pp[for4::P2], "meriadoc");
     /// assert_eq!(pp[for4::P3], "peregrin");
     /// ```
-    fn index_mut(&mut self, idx: PlayerIndex<N>) -> &mut T {
+    fn index_mut(&mut self, idx: PlayerIndex<NUM_PLAYERS>) -> &mut T {
         unsafe { self.data.get_unchecked_mut(idx.0) }
     }
 }
 
 /// An iterator that produces all of the player indexes of a given index type.
-pub struct PlayerIndexes<const N: usize> {
+pub struct PlayerIndexes<const NUM_PLAYERS: usize> {
     next: usize,
 }
 
-impl<const N: usize> Iterator for PlayerIndexes<N> {
-    type Item = PlayerIndex<N>;
-    fn next(&mut self) -> Option<PlayerIndex<N>> {
-        if self.next < N {
+impl<const NUM_PLAYERS: usize> Iterator for PlayerIndexes<NUM_PLAYERS> {
+    type Item = PlayerIndex<NUM_PLAYERS>;
+    fn next(&mut self) -> Option<PlayerIndex<NUM_PLAYERS>> {
+        if self.next < NUM_PLAYERS {
             let index = PlayerIndex(self.next);
             self.next += 1;
             Some(index)
