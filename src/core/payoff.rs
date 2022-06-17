@@ -6,10 +6,11 @@ use std::ops::{Add, Mul, Sub};
 
 use crate::core::{PerPlayer, PlayerIndex};
 
-/// A wrapper around a [`PerPlayer`] collection that contains the (typically numerical) utility
-/// values awarded to each player at the end of a game. A payoff of type
-/// `Payoff<Utility, NUM_PLAYERS>` awards a utility value of type `Utility` to each player in a
-/// game with with `NUM_PLAYERS` players.
+/// A collection containing the utility values awarded to each player at the end of a game.
+///
+/// This struct is a wrapper around a [`PerPlayer`] collection. A payoff of type `Payoff<Util, N>`
+/// awards a (typically numeric) utility value of type `Util` to each player in a game among `N`
+/// players.
 ///
 /// # Constructing payoffs
 ///
@@ -24,7 +25,7 @@ use crate::core::{PerPlayer, PlayerIndex};
 /// The [`Payoff::flat`] function constructs a payoff in which every player receives the same
 /// utility (i.e. a "flat" distribution of utilities). Note that the the size of the payoff will be
 /// determined by the ["const generic"](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html)
-/// argument `NUM_PLAYERS`, which can often be inferred from the context in which the payoff is
+/// argument `N`, which can often be inferred from the context in which the payoff is
 /// used.
 ///
 /// ```
@@ -85,15 +86,16 @@ use crate::core::{PerPlayer, PlayerIndex};
 ///   and [`for_player_mut`](Payoff::for_player_mut) methods.
 ///
 /// - Using a *statically checked* index of type [`PlayerIndex`] and the special Rust indexing
-///   syntax `p[i]` provided via the [`Index`] and [`IndexMut`] traits.
+///   syntax `p[i]` provided via the [`Index`](std::ops::Index) and
+///   [`IndexMut`](std::ops::IndexMut) traits.
 ///
 /// For more information, see the documentation for the [`PerPlayer`] type.
 #[derive(Clone, Debug, Eq, PartialEq, Hash, AsMut, AsRef, Index, IndexMut)]
-pub struct Payoff<Utility, const NUM_PLAYERS: usize> {
-    utilities: PerPlayer<Utility, NUM_PLAYERS>,
+pub struct Payoff<Util, const N: usize> {
+    utilities: PerPlayer<Util, N>,
 }
 
-impl<Utility, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS> {
+impl<Util, const N: usize> Payoff<Util, N> {
     /// Construct a new payoff from a `PerPlayer` collection of utilities.
     ///
     /// Use [`Payoff::from`] to construct a payoff from a simple array of utilities.
@@ -104,7 +106,7 @@ impl<Utility, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS> {
     ///
     /// assert_eq!(Payoff::new(PerPlayer::new([2, 0, -2])), Payoff::from([2, 0, -2]));
     /// ```
-    pub fn new(utilities: PerPlayer<Utility, NUM_PLAYERS>) -> Self {
+    pub fn new(utilities: PerPlayer<Util, N>) -> Self {
         Payoff { utilities }
     }
 
@@ -123,7 +125,7 @@ impl<Utility, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS> {
     ///     Payoff::from([0, 0, -3, 0, 3, 0])
     /// );
     /// ```
-    pub fn except(mut self, player: PlayerIndex<NUM_PLAYERS>, utility: Utility) -> Self {
+    pub fn except(mut self, player: PlayerIndex<N>, utility: Util) -> Self {
         self.utilities[player] = utility;
         self
     }
@@ -140,7 +142,7 @@ impl<Utility, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS> {
     ///
     /// ```
     pub fn num_players(&self) -> usize {
-        NUM_PLAYERS
+        N
     }
 
     /// Get a reference to the utility for the `i`th player in the game. Returns `None` if the
@@ -157,7 +159,7 @@ impl<Utility, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS> {
     /// assert_eq!(p.for_player(2), Some(&3));
     /// assert_eq!(p.for_player(3), None);
     /// ```
-    pub fn for_player(&self, i: usize) -> Option<&Utility> {
+    pub fn for_player(&self, i: usize) -> Option<&Util> {
         self.utilities.for_player(i)
     }
 
@@ -174,15 +176,15 @@ impl<Utility, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS> {
     /// assert_eq!(p.for_player(2), Some(&3));
     /// assert_eq!(p.for_player(3), None);
     /// ```
-    pub fn for_player_mut(&mut self, i: usize) -> Option<&mut Utility> {
+    pub fn for_player_mut(&mut self, i: usize) -> Option<&mut Util> {
         self.utilities.for_player_mut(i)
     }
 }
 
-impl<Utility: Copy, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS> {
+impl<Util: Copy, const N: usize> Payoff<Util, N> {
     /// Construct a payoff where every player's utility is identical.
     ///
-    /// Note that the size of the payoff is determined by the type parameter `NUM_PLAYERS`, which
+    /// Note that the size of the payoff is determined by the type parameter `N`, which
     /// can often be inferred by context.
     ///
     /// It is often useful to chain one or more applications of the [`Payoff::except`] method after
@@ -198,12 +200,12 @@ impl<Utility: Copy, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS> {
     ///     Payoff::from([0, 0, 5, 0, 0, -7, 0, 0])
     /// );
     /// ```
-    pub fn flat(utility: Utility) -> Self {
-        Payoff::from([utility; NUM_PLAYERS])
+    pub fn flat(utility: Util) -> Self {
+        Payoff::from([utility; N])
     }
 }
 
-impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS> {
+impl<Util: Copy + Num, const N: usize> Payoff<Util, N> {
     /// Is this a zero-sum payoff? That is, do each of the utility values it contains sum to zero?
     ///
     /// # Examples
@@ -215,23 +217,23 @@ impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS>
     ///
     /// assert!(!Payoff::<i64, 3>::from([-3, 3, 1]).is_zero_sum());
     pub fn is_zero_sum(&self) -> bool {
-        let mut sum = Utility::zero();
+        let mut sum = Util::zero();
         for v in &self.utilities {
             sum = sum.add(*v);
         }
-        sum == Utility::zero()
+        sum == Util::zero()
     }
 
-    fn map(self, f: impl Fn(Utility) -> Utility) -> Self {
-        let mut result = [Utility::zero(); NUM_PLAYERS];
+    fn map(self, f: impl Fn(Util) -> Util) -> Self {
+        let mut result = [Util::zero(); N];
         for (r, v) in result.iter_mut().zip(self) {
             *r = f(v);
         }
         Payoff::from(result)
     }
 
-    fn zip_with(self, other: Self, combine: impl Fn(Utility, Utility) -> Utility) -> Self {
-        let mut result = [Utility::zero(); NUM_PLAYERS];
+    fn zip_with(self, other: Self, combine: impl Fn(Util, Util) -> Util) -> Self {
+        let mut result = [Util::zero(); N];
         for ((r, a), b) in result.iter_mut().zip(self).zip(other) {
             *r = combine(a, b);
         }
@@ -239,9 +241,9 @@ impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS>
     }
 }
 
-impl<Utility: Copy + FromPrimitive + Num, const NUM_PLAYERS: usize> Payoff<Utility, NUM_PLAYERS> {
+impl<Util: Copy + FromPrimitive + Num, const N: usize> Payoff<Util, N> {
     /// Construct a zero-sum payoff in which one player "loses" by receiving a utility of
-    /// `1-NUM_PLAYERS` while all other players receive a utility of `1`.
+    /// `1-N` while all other players receive a utility of `1`.
     ///
     /// # Examples
     /// ```
@@ -257,14 +259,14 @@ impl<Utility: Copy + FromPrimitive + Num, const NUM_PLAYERS: usize> Payoff<Utili
     /// );
     ///
     /// ```
-    pub fn zero_sum_loser(loser: PlayerIndex<NUM_PLAYERS>) -> Self {
-        let reward = Utility::one();
-        let penalty = Utility::one().sub(Utility::from_usize(NUM_PLAYERS).unwrap());
+    pub fn zero_sum_loser(loser: PlayerIndex<N>) -> Self {
+        let reward = Util::one();
+        let penalty = Util::one().sub(Util::from_usize(N).unwrap());
         Payoff::flat(reward).except(loser, penalty)
     }
 
     /// Construct a zero-sum payoff in which one player "wins" by receiving a utility of
-    /// `NUM_PLAYERS-1` while all other players receive a utility `-1`.
+    /// `N-1` while all other players receive a utility `-1`.
     ///
     /// # Examples
     /// ```
@@ -280,24 +282,20 @@ impl<Utility: Copy + FromPrimitive + Num, const NUM_PLAYERS: usize> Payoff<Utili
     /// );
     ///
     /// ```
-    pub fn zero_sum_winner(winner: PlayerIndex<NUM_PLAYERS>) -> Self {
-        let penalty = Utility::zero().sub(Utility::one());
-        let reward = Utility::from_usize(NUM_PLAYERS)
-            .unwrap()
-            .sub(Utility::one());
+    pub fn zero_sum_winner(winner: PlayerIndex<N>) -> Self {
+        let penalty = Util::zero().sub(Util::one());
+        let reward = Util::from_usize(N).unwrap().sub(Util::one());
         Payoff::flat(penalty).except(winner, reward)
     }
 }
 
-impl<Utility, const NUM_PLAYERS: usize> From<[Utility; NUM_PLAYERS]>
-    for Payoff<Utility, NUM_PLAYERS>
-{
-    fn from(utilities: [Utility; NUM_PLAYERS]) -> Self {
+impl<Util, const N: usize> From<[Util; N]> for Payoff<Util, N> {
+    fn from(utilities: [Util; N]) -> Self {
         Payoff::new(PerPlayer::new(utilities))
     }
 }
 
-impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Add<Utility> for Payoff<Utility, NUM_PLAYERS> {
+impl<Util: Copy + Num, const N: usize> Add<Util> for Payoff<Util, N> {
     type Output = Self;
 
     /// Add a constant value to each utility in a payoff.
@@ -309,12 +307,12 @@ impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Add<Utility> for Payoff<Util
     /// assert_eq!(Payoff::from([2, -3, 4]) + 10, Payoff::from([12, 7, 14]));
     /// assert_eq!(Payoff::from([0, 12]) + -6, Payoff::from([-6, 6]));
     /// ```
-    fn add(self, constant: Utility) -> Self {
+    fn add(self, constant: Util) -> Self {
         self.map(|v| v + constant)
     }
 }
 
-impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Sub<Utility> for Payoff<Utility, NUM_PLAYERS> {
+impl<Util: Copy + Num, const N: usize> Sub<Util> for Payoff<Util, N> {
     type Output = Self;
 
     /// Subtract a constant value from each utility in a payoff.
@@ -326,12 +324,12 @@ impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Sub<Utility> for Payoff<Util
     /// assert_eq!(Payoff::from([15, 6, 12]) - 10, Payoff::from([5, -4, 2]));
     /// assert_eq!(Payoff::from([-3, 3]) - -6, Payoff::from([3, 9]));
     /// ```
-    fn sub(self, constant: Utility) -> Self {
+    fn sub(self, constant: Util) -> Self {
         self.map(|v| v - constant)
     }
 }
 
-impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Mul<Utility> for Payoff<Utility, NUM_PLAYERS> {
+impl<Util: Copy + Num, const N: usize> Mul<Util> for Payoff<Util, N> {
     type Output = Self;
 
     /// Multiply a constant value to each utility in a payoff.
@@ -343,12 +341,12 @@ impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Mul<Utility> for Payoff<Util
     /// assert_eq!(Payoff::from([3, -4, 5]) * 3, Payoff::from([9, -12, 15]));
     /// assert_eq!(Payoff::from([0, 3]) * -2, Payoff::from([0, -6]));
     /// ```
-    fn mul(self, constant: Utility) -> Self {
+    fn mul(self, constant: Util) -> Self {
         self.map(|v| v * constant)
     }
 }
 
-impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Add<Self> for Payoff<Utility, NUM_PLAYERS> {
+impl<Util: Copy + Num, const N: usize> Add<Self> for Payoff<Util, N> {
     type Output = Self;
 
     /// Combine two payoffs by adding the corresponding utilities in each.
@@ -367,7 +365,7 @@ impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Add<Self> for Payoff<Utility
     }
 }
 
-impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Sub<Self> for Payoff<Utility, NUM_PLAYERS> {
+impl<Util: Copy + Num, const N: usize> Sub<Self> for Payoff<Util, N> {
     type Output = Self;
 
     /// Combine two payoffs by subtracting the corresponding utilities in the second payoff from
@@ -387,7 +385,7 @@ impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Sub<Self> for Payoff<Utility
     }
 }
 
-impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Mul<Self> for Payoff<Utility, NUM_PLAYERS> {
+impl<Util: Copy + Num, const N: usize> Mul<Self> for Payoff<Util, N> {
     type Output = Self;
 
     /// Combine two payoffs by multiplying the corresponding utilities in each.
@@ -406,26 +404,26 @@ impl<Utility: Copy + Num, const NUM_PLAYERS: usize> Mul<Self> for Payoff<Utility
     }
 }
 
-impl<Utility, const NUM_PLAYERS: usize> IntoIterator for Payoff<Utility, NUM_PLAYERS> {
-    type Item = <PerPlayer<Utility, NUM_PLAYERS> as IntoIterator>::Item;
-    type IntoIter = <PerPlayer<Utility, NUM_PLAYERS> as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <PerPlayer<Utility, NUM_PLAYERS> as IntoIterator>::IntoIter {
+impl<Util, const N: usize> IntoIterator for Payoff<Util, N> {
+    type Item = <PerPlayer<Util, N> as IntoIterator>::Item;
+    type IntoIter = <PerPlayer<Util, N> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <PerPlayer<Util, N> as IntoIterator>::IntoIter {
         self.utilities.into_iter()
     }
 }
 
-impl<'a, Utility, const NUM_PLAYERS: usize> IntoIterator for &'a Payoff<Utility, NUM_PLAYERS> {
-    type Item = <&'a PerPlayer<Utility, NUM_PLAYERS> as IntoIterator>::Item;
-    type IntoIter = <&'a PerPlayer<Utility, NUM_PLAYERS> as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <&'a PerPlayer<Utility, NUM_PLAYERS> as IntoIterator>::IntoIter {
+impl<'a, Util, const N: usize> IntoIterator for &'a Payoff<Util, N> {
+    type Item = <&'a PerPlayer<Util, N> as IntoIterator>::Item;
+    type IntoIter = <&'a PerPlayer<Util, N> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a PerPlayer<Util, N> as IntoIterator>::IntoIter {
         (&self.utilities).into_iter()
     }
 }
 
-impl<'a, Utility, const NUM_PLAYERS: usize> IntoIterator for &'a mut Payoff<Utility, NUM_PLAYERS> {
-    type Item = <&'a mut PerPlayer<Utility, NUM_PLAYERS> as IntoIterator>::Item;
-    type IntoIter = <&'a mut PerPlayer<Utility, NUM_PLAYERS> as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <&'a mut PerPlayer<Utility, NUM_PLAYERS> as IntoIterator>::IntoIter {
+impl<'a, Util, const N: usize> IntoIterator for &'a mut Payoff<Util, N> {
+    type Item = <&'a mut PerPlayer<Util, N> as IntoIterator>::Item;
+    type IntoIter = <&'a mut PerPlayer<Util, N> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a mut PerPlayer<Util, N> as IntoIterator>::IntoIter {
         (&mut self.utilities).into_iter()
     }
 }

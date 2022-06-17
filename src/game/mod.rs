@@ -1,3 +1,5 @@
+//! This module defines several different game representations.
+
 mod extensive;
 mod normal;
 mod simultaneous;
