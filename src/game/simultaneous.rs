@@ -5,8 +5,8 @@ use crate::core::{Payoff, PerPlayer, PlayerIndex};
 /// A pure strategy profile: one move played by each player.
 pub type Profile<Move, const N: usize> = PerPlayer<Move, N>;
 
-/// A simultaneous move game represented by a predicate that recognizes valid moves and a simple
-/// payoff function.
+/// A simultaneous move game represented by a predicate that recognizes valid moves and an
+/// arbitrary payoff function.
 ///
 /// This is the most general form of simultaneous move game. This representation is best used for
 /// games with non-finite domains of moves. For games with finite domains of moves, use

@@ -290,6 +290,17 @@ impl<Util: Copy + FromPrimitive + Num, const N: usize> Payoff<Util, N> {
 }
 
 impl<Util, const N: usize> From<[Util; N]> for Payoff<Util, N> {
+    /// Construct a payoff from an array of utility values.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{Payoff, PerPlayer};
+    ///
+    /// assert_eq!(
+    ///   Payoff::from([1, 2, 3, 4]),
+    ///   Payoff::new(PerPlayer::new([1, 2, 3, 4]))
+    /// );
+    /// ```
     fn from(utilities: [Util; N]) -> Self {
         Payoff::new(PerPlayer::new(utilities))
     }

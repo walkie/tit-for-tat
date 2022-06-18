@@ -95,7 +95,7 @@ pub struct PerPlayer<T, const N: usize> {
 }
 
 impl<T, const N: usize> PerPlayer<T, N> {
-    /// Create a new [`PerPlayer`] collection from the given array.
+    /// Create a new per-player collection from the given array.
     pub fn new(data: [T; N]) -> Self {
         PerPlayer { data }
     }

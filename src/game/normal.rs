@@ -1,6 +1,8 @@
 //! Games represented in normal form. Simultaneous move games with finite move sets.
 
+use itertools::Itertools;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::hash::Hash;
 
 use crate::core::{Payoff, PerPlayer, PlayerIndex};
@@ -8,8 +10,7 @@ use crate::game::simultaneous::Profile;
 
 /// A simultaneous move game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
-/// The normal form representation is essentially a table in which the game's payoff is looked up
-/// in a table indexed by each player's move.
+/// The normal form representation is essentially a table of payoffs indexed by each player's move.
 ///
 /// Since the payoff table is represented directly, normal-form games must have a finite move set
 /// for each player. For games with non-finite move sets, use
@@ -23,22 +24,89 @@ use crate::game::simultaneous::Profile;
 /// # Examples
 pub struct Normal<Move, Util, const N: usize> {
     moves: PerPlayer<Vec<Move>, N>,
+    profiles: Vec<PerPlayer<Move, N>>,
     payoffs: HashMap<Profile<Move, N>, Payoff<Util, N>>,
 }
 
 impl<Move, Util, const N: usize> Normal<Move, Util, N>
 where
-    Move: Eq + Hash,
+    Move: Clone + Debug + Eq + Hash,
 {
+    /// Construct a new normal-form game given the list of moves available to each player and a
+    /// table of payoffs.
+    ///
+    /// The payoff table is given as a vector of payoffs in which all payoffs where player `P0`
+    /// played a given move are contiguous, all payoffs where `P0` and `P1` played a given pair of
+    /// moves are contiguous, and so on. In other words, the payoff table is given in
+    /// ["row major" order](https://en.wikipedia.org/wiki/Matrix_representation).
+    ///
+    /// This operation may fail if the number of provided payoffs is fewer than the number of
+    /// unique pure strategy profiles. If too many payoffs are provided, the excess payoffs will be
+    /// ignored.
+    ///
+    /// # Examples
+    pub fn new(moves: PerPlayer<Vec<Move>, N>, table: Vec<Payoff<Util, N>>) -> Option<Self> {
+        let profiles: Vec<PerPlayer<Move, N>> = moves
+            .clone()
+            .into_iter()
+            .multi_cartesian_product()
+            .map(|vec| PerPlayer::new(vec.try_into().unwrap()))
+            .collect();
+
+        let mut payoffs = HashMap::with_capacity(profiles.len());
+        for (profile, payoff) in profiles.iter().zip(table) {
+            payoffs.insert(profile.clone(), payoff);
+        }
+
+        if payoffs.len() == profiles.len() {
+            Some(Normal {
+                moves,
+                profiles,
+                payoffs,
+            })
+        } else {
+            None
+        }
+    }
+
+    /// Get the available moves for the indicated player.
     pub fn available_moves(&self, player: PlayerIndex<N>) -> &[Move] {
         &self.moves[player]
     }
 
+    /// Is this a valid move for the given player?
     pub fn is_valid_move(&self, player: PlayerIndex<N>, the_move: &Move) -> bool {
         self.moves[player].contains(the_move)
     }
 
+    /// Is the given strategy profile valid? A profile is valid if each move is valid for the
+    /// corresponding player.
+    pub fn is_valid_profile(&self, profile: &Profile<Move, N>) -> bool {
+        PlayerIndex::all_indexes().all(|pi| self.is_valid_move(pi, &profile[pi]))
+    }
+
+    /// A list of all pure strategy profiles for this game.
+    pub fn profiles(&self) -> &[Profile<Move, N>] {
+        &self.profiles
+    }
+
+    /// Get the payoff for a given strategy profile. May return `None` if the profile contains an
+    /// invalid move for some player.
     pub fn payoff(&self, profile: &Profile<Move, N>) -> Option<&Payoff<Util, N>> {
         self.payoffs.get(profile)
+    }
+
+    /// The payoff method should yield a payoff for every valid profile. This function checks
+    /// whether this property holds for a given profile.
+    ///
+    /// It is OK if the payoff method returns a (meaningless) payoff for an invalid profile.
+    ///
+    /// This function is intended for use in tests.
+    pub fn law_valid_profile_yields_payoff(&self, profile: &Profile<Move, N>) -> bool {
+        if self.is_valid_profile(profile) {
+            self.payoff(profile).is_some()
+        } else {
+            true // ok to return a meaningless payoff for an invalid profile
+        }
     }
 }
