@@ -31,9 +31,10 @@ pub struct Normal<Move, Util, const N: usize> {
 impl<Move, Util, const N: usize> Normal<Move, Util, N>
 where
     Move: Clone + Debug + Eq + Hash,
+    Util: Clone,
 {
-    /// Construct a new normal-form game given the list of moves available to each player and a
-    /// table of payoffs.
+    /// Construct a normal-form game given the list of moves available to each player and a table
+    /// of payoffs.
     ///
     /// The payoff table is given as a vector of payoffs in which all payoffs where player `P0`
     /// played a given move are contiguous, all payoffs where `P0` and `P1` played a given pair of
@@ -67,6 +68,49 @@ where
         } else {
             None
         }
+    }
+
+    /// Construct a [bimatrix game](https://en.wikipedia.org/wiki/Bimatrix_game), a two-player
+    /// normal-form game. Constructed from the list of moves and a table of utility values for each
+    /// player.
+    ///
+    /// # Examples
+    pub fn bimatrix(
+        &self,
+        p0_moves: Vec<Move>,
+        p1_moves: Vec<Move>,
+        p0_utils: Vec<Util>,
+        p1_utils: Vec<Util>,
+    ) -> Option<Normal<Move, Util, 2>> {
+        let moves = PerPlayer::new([p0_moves, p1_moves]);
+        let mut payoffs = Vec::with_capacity(p0_utils.len());
+        for (u0, u1) in p0_utils.into_iter().zip(p1_utils) {
+            payoffs.push(Payoff::from([u0, u1]));
+        }
+        Normal::new(moves, payoffs)
+    }
+
+    /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) two-player
+    /// normal-form game. Constructed from a list of moves available to each player and the payoffs
+    /// for player `P0`.
+    ///
+    /// # Examples
+    pub fn symmetric_for2(&self, moves: Vec<Move>, utils: Vec<Util>) -> Option<Normal<Move, Util, 2>> {
+        let side = moves.len();
+        let size = side * side;
+        if utils.len() < size {
+            return None;
+        }
+
+        let mut payoffs = Vec::with_capacity(size);
+        for row in 0..side {
+            for col in 0..side {
+                let u0 = utils[row * side + col].clone();
+                let u1 = utils[col * side + row].clone();
+                payoffs.push(Payoff::from([u0, u1]));
+            }
+        }
+        Normal::new(PerPlayer::new([moves.clone(), moves]), payoffs)
     }
 
     /// Get the available moves for the indicated player.
