@@ -70,25 +70,6 @@ where
         }
     }
 
-    /// Construct a [bimatrix game](https://en.wikipedia.org/wiki/Bimatrix_game), a two-player
-    /// normal-form game. Constructed from the list of moves and a table of utility values for each
-    /// player.
-    ///
-    /// # Examples
-    pub fn bimatrix(
-        p0_moves: Vec<Move>,
-        p1_moves: Vec<Move>,
-        p0_utils: Vec<Util>,
-        p1_utils: Vec<Util>,
-    ) -> Option<Normal<Move, Util, 2>> {
-        let moves = PerPlayer::new([p0_moves, p1_moves]);
-        let mut payoffs = Vec::with_capacity(p0_utils.len());
-        for (u0, u1) in p0_utils.into_iter().zip(p1_utils) {
-            payoffs.push(Payoff::from([u0, u1]));
-        }
-        Normal::new(moves, payoffs)
-    }
-
     /// Get the available moves for the indicated player.
     pub fn available_moves(&self, player: PlayerIndex<N>) -> &[Move] {
         &self.moves[player]
@@ -136,6 +117,43 @@ where
     Move: Clone + Debug + Eq + Hash,
     Util: Clone,
 {
+    /// Construct a [bimatrix game](https://en.wikipedia.org/wiki/Bimatrix_game), a two-player
+    /// normal-form game. Constructed from the list of moves and a table (matrix) of utility values
+    /// for each player.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{Payoff, PerPlayer};
+    /// use tft::game::Normal;
+    ///
+    /// let g = Normal::bimatrix(
+    ///     Vec::from(['A', 'B', 'C']),
+    ///     Vec::from(['D', 'E']),
+    ///     Vec::from([0, 5, 4, 3, 2, 1]),
+    ///     Vec::from([5, 0, 1, 2, 4, 3]),
+    /// ).unwrap();
+    ///
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'D'])).unwrap(), Payoff::from([0, 5]));
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'E'])).unwrap(), Payoff::from([5, 0]));
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['B', 'D'])).unwrap(), Payoff::from([4, 1]));
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['B', 'E'])).unwrap(), Payoff::from([3, 2]));
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['C', 'D'])).unwrap(), Payoff::from([2, 4]));
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['C', 'E'])).unwrap(), Payoff::from([1, 3]));
+    /// ```
+    pub fn bimatrix(
+        p0_moves: Vec<Move>,
+        p1_moves: Vec<Move>,
+        p0_utils: Vec<Util>,
+        p1_utils: Vec<Util>,
+    ) -> Option<Normal<Move, Util, 2>> {
+        let moves = PerPlayer::new([p0_moves, p1_moves]);
+        let mut payoffs = Vec::with_capacity(p0_utils.len());
+        for (u0, u1) in p0_utils.into_iter().zip(p1_utils) {
+            payoffs.push(Payoff::from([u0, u1]));
+        }
+        Normal::new(moves, payoffs)
+    }
+
     /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) two-player
     /// normal-form game. Constructed from a list of moves available to both players and the
     /// payoffs for player `P0`.
