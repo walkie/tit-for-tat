@@ -1,6 +1,7 @@
 //! Games represented in normal form. Simultaneous move games with finite move sets.
 
 use itertools::Itertools;
+use num::Num;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -44,8 +45,6 @@ where
     /// This operation may fail if the number of provided payoffs is fewer than the number of
     /// unique pure strategy profiles. If too many payoffs are provided, the excess payoffs will be
     /// ignored.
-    ///
-    /// # Examples
     pub fn new(moves: PerPlayer<Vec<Move>, N>, table: Vec<Payoff<Util, N>>) -> Option<Self> {
         let profiles: Vec<PerPlayer<Move, N>> = moves
             .clone()
@@ -91,6 +90,48 @@ where
         &self.profiles
     }
 
+    /// Generate a list of all pure strategy profiles that differ from the given profile only in
+    /// the move of the given player.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for2, Payoff, PerPlayer};
+    /// use tft::game::Normal;
+    ///
+    /// let g = Normal::new(
+    ///     PerPlayer::new([
+    ///         Vec::from(['A', 'B']),
+    ///         Vec::from(['C', 'D', 'E']),
+    ///     ]),
+    ///     std::iter::repeat(Payoff::flat(0)).take(6).collect(),
+    /// ).unwrap();
+    ///
+    /// assert_eq!(
+    ///     g.adjacent_profiles_for(for2::P0, &PerPlayer::new(['A', 'D'])),
+    ///     Vec::from([PerPlayer::new(['B', 'D'])]),
+    /// );
+    /// assert_eq!(
+    ///     g.adjacent_profiles_for(for2::P1, &PerPlayer::new(['A', 'D'])),
+    ///     Vec::from([PerPlayer::new(['A', 'C']), PerPlayer::new(['A', 'E'])]),
+    /// );
+    /// ```
+    pub fn adjacent_profiles_for(
+        &self,
+        player: PlayerIndex<N>,
+        profile: &Profile<Move, N>,
+    ) -> Vec<Profile<Move, N>> {
+        let player_moves = self.available_moves(player);
+        let mut adjacent = Vec::with_capacity(player_moves.len() - 1);
+        for m in player_moves {
+            if *m != profile[player] {
+                let mut new_profile = profile.clone();
+                new_profile[player] = m.clone();
+                adjacent.push(new_profile);
+            }
+        }
+        adjacent
+    }
+
     /// Get the payoff for a given strategy profile. May return `None` if the profile contains an
     /// invalid move for some player.
     pub fn payoff(&self, profile: &Profile<Move, N>) -> Option<&Payoff<Util, N>> {
@@ -115,10 +156,55 @@ where
 impl<Move, Util> Normal<Move, Util, 2>
 where
     Move: Clone + Debug + Eq + Hash,
+    Util: Copy + Num,
+{
+    /// Construct a matrix game, a two-player zero-sum game where the payoffs are defined by a
+    /// single matrix of utility values.
+    ///
+    /// Constructed from the list of moves for each player and the matrix (in row major order) of
+    /// utility values for player `P0`.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{Payoff, PerPlayer};
+    /// use tft::game::Normal;
+    ///
+    /// let g = Normal::matrix(
+    ///     Vec::from(['A', 'B', 'C']),
+    ///     Vec::from(['D', 'E']),
+    ///     Vec::from([-3, -1, 0, 2, 4, 6]),
+    /// ).unwrap();
+    ///
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'D'])).unwrap(), Payoff::from([-3, 3]));
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'E'])).unwrap(), Payoff::from([-1, 1]));
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['B', 'D'])).unwrap(), Payoff::from([0, 0]));
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['B', 'E'])).unwrap(), Payoff::from([2, -2]));
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['C', 'D'])).unwrap(), Payoff::from([4, -4]));
+    /// assert_eq!(*g.payoff(&PerPlayer::new(['C', 'E'])).unwrap(), Payoff::from([6, -6]));
+    /// ```
+    pub fn matrix(
+        p0_moves: Vec<Move>,
+        p1_moves: Vec<Move>,
+        p0_utils: Vec<Util>,
+    ) -> Option<Normal<Move, Util, 2>> {
+        let moves = PerPlayer::new([p0_moves, p1_moves]);
+        let mut payoffs = Vec::with_capacity(p0_utils.len());
+        for u0 in p0_utils.into_iter() {
+            payoffs.push(Payoff::from([u0, Util::zero().sub(u0)]));
+        }
+        Normal::new(moves, payoffs)
+    }
+}
+
+impl<Move, Util> Normal<Move, Util, 2>
+where
+    Move: Clone + Debug + Eq + Hash,
     Util: Clone,
 {
     /// Construct a [bimatrix game](https://en.wikipedia.org/wiki/Bimatrix_game), a two-player
-    /// normal-form game. Constructed from the list of moves and a table (matrix) of utility values
+    /// game where the payoffs are defined by two matrices of utilities, one for each player.
+    ///
+    /// Constructed from the list of moves and the matrix (in row major order) of utility values
     /// for each player.
     ///
     /// # Examples
@@ -239,7 +325,10 @@ where
                 }
             }
         }
-        Normal::new(PerPlayer::new([moves.clone(), moves.clone(), moves]), payoffs)
+        Normal::new(
+            PerPlayer::new([moves.clone(), moves.clone(), moves]),
+            payoffs,
+        )
     }
 }
 
@@ -302,6 +391,90 @@ where
                 }
             }
         }
-        Normal::new(PerPlayer::new([moves.clone(), moves.clone(), moves.clone(), moves]), payoffs)
+        Normal::new(
+            PerPlayer::new([moves.clone(), moves.clone(), moves.clone(), moves]),
+            payoffs,
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{for3, Payoff, PerPlayer};
+
+    #[test]
+    fn adjacent_profiles_for3_correct() {
+        let g = Normal::new(
+            PerPlayer::new([
+                Vec::from(['A', 'B']),
+                Vec::from(['C', 'D', 'E']),
+                Vec::from(['F', 'G', 'H', 'I']),
+            ]),
+            std::iter::repeat(Payoff::flat(0)).take(24).collect(),
+        )
+        .unwrap();
+
+        let profile1 = PerPlayer::new(['A', 'C', 'F']);
+        let profile2 = PerPlayer::new(['B', 'D', 'I']);
+        let profile3 = PerPlayer::new(['A', 'E', 'G']);
+
+        assert_eq!(
+            g.adjacent_profiles_for(for3::P0, &profile1),
+            Vec::from([PerPlayer::new(['B', 'C', 'F'])]),
+        );
+        assert_eq!(
+            g.adjacent_profiles_for(for3::P0, &profile2),
+            Vec::from([PerPlayer::new(['A', 'D', 'I'])]),
+        );
+        assert_eq!(
+            g.adjacent_profiles_for(for3::P0, &profile3),
+            Vec::from([PerPlayer::new(['B', 'E', 'G'])]),
+        );
+        assert_eq!(
+            g.adjacent_profiles_for(for3::P1, &profile1),
+            Vec::from([
+                PerPlayer::new(['A', 'D', 'F']),
+                PerPlayer::new(['A', 'E', 'F'])
+            ]),
+        );
+        assert_eq!(
+            g.adjacent_profiles_for(for3::P1, &profile2),
+            Vec::from([
+                PerPlayer::new(['B', 'C', 'I']),
+                PerPlayer::new(['B', 'E', 'I'])
+            ]),
+        );
+        assert_eq!(
+            g.adjacent_profiles_for(for3::P1, &profile3),
+            Vec::from([
+                PerPlayer::new(['A', 'C', 'G']),
+                PerPlayer::new(['A', 'D', 'G'])
+            ]),
+        );
+        assert_eq!(
+            g.adjacent_profiles_for(for3::P2, &profile1),
+            Vec::from([
+                PerPlayer::new(['A', 'C', 'G']),
+                PerPlayer::new(['A', 'C', 'H']),
+                PerPlayer::new(['A', 'C', 'I']),
+            ]),
+        );
+        assert_eq!(
+            g.adjacent_profiles_for(for3::P2, &profile2),
+            Vec::from([
+                PerPlayer::new(['B', 'D', 'F']),
+                PerPlayer::new(['B', 'D', 'G']),
+                PerPlayer::new(['B', 'D', 'H']),
+            ]),
+        );
+        assert_eq!(
+            g.adjacent_profiles_for(for3::P2, &profile3),
+            Vec::from([
+                PerPlayer::new(['A', 'E', 'F']),
+                PerPlayer::new(['A', 'E', 'H']),
+                PerPlayer::new(['A', 'E', 'I']),
+            ]),
+        );
     }
 }

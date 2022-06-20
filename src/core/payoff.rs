@@ -90,7 +90,7 @@ use crate::core::{PerPlayer, PlayerIndex};
 ///   [`IndexMut`](std::ops::IndexMut) traits.
 ///
 /// For more information, see the documentation for the [`PerPlayer`] type.
-#[derive(Clone, Debug, Eq, PartialEq, Hash, AsMut, AsRef, Index, IndexMut)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, AsMut, AsRef, Index, IndexMut)]
 pub struct Payoff<Util, const N: usize> {
     utilities: PerPlayer<Util, N>,
 }
