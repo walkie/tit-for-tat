@@ -100,6 +100,32 @@ impl<T, const N: usize> PerPlayer<T, N> {
         PerPlayer { data }
     }
 
+    /// Create a new per-player collection by calling the given function with each player index,
+    /// collecting the results.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for5, PerPlayer, PlayerIndex};
+    ///
+    /// let squared = |index: PlayerIndex<5>| {
+    ///     let val: usize = index.into();
+    ///     val * val
+    /// };
+    /// let squares = PerPlayer::generate(squared);
+    /// assert_eq!(squares[for5::P0], 0);
+    /// assert_eq!(squares[for5::P1], 1);
+    /// assert_eq!(squares[for5::P2], 4);
+    /// assert_eq!(squares[for5::P3], 9);
+    /// assert_eq!(squares[for5::P4], 16);
+    /// ```
+    pub fn generate(gen_elem: impl Fn(PlayerIndex<N>) -> T) -> Self {
+        let indexes: [PlayerIndex<N>; N] = PlayerIndex::all_indexes()
+            .collect::<Vec<PlayerIndex<N>>>()
+            .try_into()
+            .unwrap();
+        PerPlayer::new(indexes.map(gen_elem))
+    }
+
     /// Get the number of players in the game, which corresponds to the number of elements in this
     /// collection.
     pub fn num_players(&self) -> usize {
@@ -234,6 +260,12 @@ impl<const N: usize> PlayerIndex<N> {
     /// );
     pub fn all_indexes() -> PlayerIndexes<N> {
         PlayerIndexes { next: 0 }
+    }
+}
+
+impl<const N: usize> From<PlayerIndex<N>> for usize {
+    fn from(index: PlayerIndex<N>) -> usize {
+        index.0
     }
 }
 

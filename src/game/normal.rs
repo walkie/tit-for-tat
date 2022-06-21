@@ -153,6 +153,82 @@ where
     }
 }
 
+/// Captures a domination relationship among moves. A move `m1` is dominated by another move `m2`
+/// for player `p` if, for any possible moves played by other players, changing from `m1` to `m2`
+/// increases `p`'s utility.
+pub struct Dominated<Move> {
+    pub dominated: Move,
+    pub dominator: Move,
+}
+
+impl<Move, Util, const N: usize> Normal<Move, Util, N>
+where
+    Move: Clone + Debug + Eq + Hash,
+    Util: Copy + Ord,
+{
+    /// Return a move that unilaterally improves the given player's utility, if such a move exists.
+    ///
+    /// A unilateral improvement assumes that all other player's moves will be unchanged.
+    ///
+    /// # Examples
+    /// TODO
+    pub fn unilaterally_improve(
+        &self,
+        player: PlayerIndex<N>,
+        profile: &Profile<Move, N>,
+    ) -> Option<Move> {
+        let mut best_move = None;
+        let mut best_util = match self.payoff(profile) {
+            Some(payoff) => payoff[player],
+            None => return best_move, // TODO log warning
+        };
+        for adjacent in self.adjacent_profiles_for(player, profile) {
+            let util = self.payoff(&adjacent).unwrap()[player];
+            if util > best_util {
+                best_move = Some(adjacent[player].clone());
+                best_util = util;
+            }
+        }
+        best_move
+    }
+
+    /// Is the given strategy profile stable? A profile is stable if no player can unilaterally
+    /// improve their utility.
+    ///
+    /// A stable profile is a pure Nash equilibrium of the game.
+    pub fn is_stable(&self, profile: &Profile<Move, N>) -> bool {
+        PlayerIndex::all_indexes()
+            .all(|player| self.unilaterally_improve(player, profile).is_none())
+    }
+
+    /// All pure Nash equilibrium solutions.
+    pub fn pure_nash_equilibria(&self) -> Vec<Profile<Move, N>> {
+        let mut nash = Vec::new();
+        for profile in self.profiles() {
+            if self.is_stable(profile) {
+                nash.push(profile.clone());
+            }
+        }
+        nash
+    }
+
+    /// Get the dominated moves for the given player. A move `m1` is dominated by another move `m2`
+    /// for player `p` if, for any possible moves played by other players, changing from `m1` to
+    /// `m2` increases `p`'s utility.
+    pub fn dominated_moves_for(&self, player: PlayerIndex<N>) -> Vec<Dominated<Move>> {
+        let mut dominated = Vec::new();
+        // TODO
+        dominated
+    }
+
+    /// Get the dominated moves for each player. A move `m1` is dominated by another move `m2`
+    /// for player `p` if, for any possible moves played by other players, changing from `m1`
+    /// to `m2` increases `p`'s utility.
+    pub fn dominated_moves(&self) -> PerPlayer<Vec<Dominated<Move>>, N> {
+        PerPlayer::generate(|index| self.dominated_moves_for(index))
+    }
+}
+
 impl<Move, Util> Normal<Move, Util, 2>
 where
     Move: Clone + Debug + Eq + Hash,
