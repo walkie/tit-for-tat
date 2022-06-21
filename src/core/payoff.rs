@@ -443,6 +443,7 @@ impl<'a, Util, const N: usize> IntoIterator for &'a mut Payoff<Util, N> {
 mod tests {
     use super::*;
     use crate::core::{for1, for2, for3, for4};
+    use test_log::test;
 
     #[test]
     fn zero_sum_loser_correct() {

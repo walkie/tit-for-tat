@@ -53,20 +53,24 @@ where
             .map(|vec| PerPlayer::new(vec.try_into().unwrap()))
             .collect();
 
+        if profiles.len() > table.len() {
+            log::warn!(
+                "Normal::new(): expected a table of {} payoffs, got only {}",
+                profiles.len(),
+                table.len()
+            );
+            return None;
+        }
+
         let mut payoffs = HashMap::with_capacity(profiles.len());
         for (profile, payoff) in profiles.iter().zip(table) {
             payoffs.insert(profile.clone(), payoff);
         }
-
-        if payoffs.len() == profiles.len() {
-            Some(Normal {
-                moves,
-                profiles,
-                payoffs,
-            })
-        } else {
-            None
-        }
+        Some(Normal {
+            moves,
+            profiles,
+            payoffs,
+        })
     }
 
     /// Get the available moves for the indicated player.
@@ -180,7 +184,13 @@ where
         let mut best_move = None;
         let mut best_util = match self.payoff(profile) {
             Some(payoff) => payoff[player],
-            None => return best_move, // TODO log warning
+            None => {
+                log::warn!(
+                    "Normal::unilaterally_improve(): invalid initial profile: {:?}",
+                    profile,
+                );
+                return best_move;
+            }
         };
         for adjacent in self.adjacent_profiles_for(player, profile) {
             let util = self.payoff(&adjacent).unwrap()[player];
@@ -339,6 +349,11 @@ where
         let side = moves.len();
         let size = side * side;
         if utils.len() < size {
+            log::warn!(
+                "Normal::symmetric_for2(): expected {} utility values, got only {}",
+                size,
+                utils.len(),
+            );
             return None;
         }
 
@@ -387,6 +402,11 @@ where
         let side_pow2 = side.pow(2);
         let size = side.pow(3);
         if utils.len() < size {
+            log::warn!(
+                "Normal::symmetric_for3(): expected {} utility values, got only {}",
+                size,
+                utils.len(),
+            );
             return None;
         }
 
@@ -450,6 +470,11 @@ where
         let side_pow3 = side.pow(3);
         let size = side.pow(4);
         if utils.len() < size {
+            log::warn!(
+                "Normal::symmetric_for4(): expected {} utility values, got only {}",
+                size,
+                utils.len(),
+            );
             return None;
         }
 
@@ -478,6 +503,7 @@ where
 mod tests {
     use super::*;
     use crate::core::{for3, Payoff, PerPlayer};
+    use test_log::test;
 
     #[test]
     fn adjacent_profiles_for3_correct() {

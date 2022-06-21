@@ -150,6 +150,7 @@ impl<T, const N: usize> PerPlayer<T, N> {
         if i < N {
             Some(&self.data[i])
         } else {
+            log::warn!("PerPlayer<{}>::for_player({}): index out of range", N, i);
             None
         }
     }
@@ -175,6 +176,11 @@ impl<T, const N: usize> PerPlayer<T, N> {
         if i < N {
             Some(&mut self.data[i])
         } else {
+            log::warn!(
+                "PerPlayer<{}>::for_player_mut({}): index out of range",
+                N,
+                i
+            );
             None
         }
     }
@@ -240,6 +246,7 @@ impl<const N: usize> PlayerIndex<N> {
         if index < N {
             Some(PlayerIndex(index))
         } else {
+            log::warn!("PlayerIndex<{}>::new({}): index out of range", N, index);
             None
         }
     }
