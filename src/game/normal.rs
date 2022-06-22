@@ -10,6 +10,39 @@ use std::hash::Hash;
 use crate::core::{Payoff, PerPlayer, PlayerIndex};
 use crate::game::simultaneous::Profile;
 
+/// Captures a domination relationship between moves.
+///
+/// A move `m1` is *strictly dominated* by another move `m2` for player `p` if, for any possible
+/// moves played by other players, changing from `m1` to `m2` increases `p`'s utility.
+///
+/// A move `m1` is *weakly dominated* by another move `m2` for player `p` if, for any possible
+/// moves played by other players, changing from `m1` to `m2` does not decrease `p`'s utility.
+///
+/// Note that `m1` and `m2` may weakly dominate each other if the two moves are equivalent, that
+/// is, if they always yield the same utility in otherwise identical profiles.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct Dominated<Move> {
+    /// The move that is dominated, i.e. yields a worse utility.
+    pub dominated: Move,
+    /// The move that is dominates the dominated move, i.e. yields a better utility.
+    pub dominator: Move,
+    /// Is the domination relationship strict? If `true`, the `dominator` always yields a greater
+    /// utility. If `false`, the `dominator` always yields a greater or equal utility.
+    pub is_strict: bool,
+}
+
+impl<Move> Dominated<Move> {
+    /// Construct a strict domination relationship.
+    pub fn strict(dominated: Move, dominator: Move) -> Self {
+        Dominated { dominated, dominator, is_strict: true }
+    }
+
+    /// Construct a weak domination relationship.
+    pub fn weak(dominated: Move, dominator: Move) -> Self {
+        Dominated { dominated, dominator, is_strict: false }
+    }
+}
+
 /// A simultaneous move game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
 /// The normal form representation is essentially a table of payoffs indexed by each player's move.
@@ -197,26 +230,6 @@ where
     }
 }
 
-/// Captures a domination relationship among moves.
-///
-/// A move `m1` is *strictly* dominated by another move `m2` for player `p` if, for any possible
-/// moves played by other players, changing from `m1` to `m2` increases `p`'s utility.
-///
-/// A move `m1` is *weakly* dominated by another move `m2` for player `p` if, for any possible
-/// moves played by other players, changing from `m1` to `m2` does not decrease `p`'s utility.
-///
-/// Note that `m1` and `m2` may weakly dominate each other if the two moves are equivalent, that
-/// is, if they always yield the same utility in otherwise identical profiles.
-pub struct Dominated<Move> {
-    /// The move that is dominated, i.e. yields a worse utility.
-    pub dominated: Move,
-    /// The move that is dominates the dominated move, i.e. yields a better utility.
-    pub dominator: Move,
-    /// Is the domination relationship strict? If `true`, the `dominator` always yields a greater
-    /// utility. If `false`, the `dominator` always yields a greater or equal utility.
-    pub is_strict: bool,
-}
-
 impl<Move, Util, const N: usize> Normal<Move, Util, N>
 where
     Move: Clone + Debug + Eq + Hash,
@@ -361,7 +374,25 @@ where
     /// See the documentation for [`Dominated`] for more info.
     ///
     /// # Examples
-    /// TODO
+    /// ```
+    /// use tft::core::{for2, Payoff, PerPlayer};
+    /// use tft::game::{Dominated, Normal};
+    ///
+    /// let g = Normal::new(
+    ///     PerPlayer::new([
+    ///         Vec::from(['A', 'B', 'C']),
+    ///         Vec::from(['D', 'E']),
+    ///     ]),
+    ///     Vec::from([
+    ///         Payoff::from([3, 3]), Payoff::from([3, 5]),
+    ///         Payoff::from([2, 0]), Payoff::from([3, 1]),
+    ///         Payoff::from([4, 0]), Payoff::from([2, 1]),
+    ///     ]),
+    /// ).unwrap();
+    ///
+    /// assert_eq!(g.dominated_moves_for(for2::P0), vec![Dominated::weak('B', 'A')]);
+    /// assert_eq!(g.dominated_moves_for(for2::P1), vec![Dominated::strict('D', 'E')]);
+    /// ```
     pub fn dominated_moves_for(&self, player: PlayerIndex<N>) -> Vec<Dominated<Move>> {
         let mut dominated = Vec::new();
 
