@@ -2,6 +2,7 @@
 
 use itertools::Itertools;
 use num::Num;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -94,6 +95,45 @@ where
         &self.profiles
     }
 
+    /// Generate a list of all pure strategy profiles that contain a particular move played by the
+    /// given player.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for2, Payoff, PerPlayer};
+    /// use tft::game::Normal;
+    ///
+    /// let g = Normal::new(
+    ///     PerPlayer::new([
+    ///         Vec::from(['A', 'B']),
+    ///         Vec::from(['C', 'D', 'E']),
+    ///     ]),
+    ///     std::iter::repeat(Payoff::flat(0)).take(6).collect(),
+    /// ).unwrap();
+    ///
+    /// assert_eq!(
+    ///     g.profiles_with_move_for(for2::P0, &'A'),
+    ///     Vec::from([
+    ///         PerPlayer::new(['A', 'C']),
+    ///         PerPlayer::new(['A', 'D']),
+    ///         PerPlayer::new(['A', 'E'])]
+    ///     ),
+    /// );
+    /// assert_eq!(
+    ///     g.profiles_with_move_for(for2::P1, &'D'),
+    ///     Vec::from([PerPlayer::new(['A', 'D']), PerPlayer::new(['B', 'D'])]),
+    /// );
+    /// ```
+    pub fn profiles_with_move_for(&self, player: PlayerIndex<N>, the_move: &Move) -> Vec<Profile<Move, N>> {
+        let mut profiles = Vec::new();
+        for profile in self.profiles() {
+            if profile[player] == *the_move {
+                profiles.push(profile.clone())
+            }
+        }
+        profiles
+    }
+
     /// Generate a list of all pure strategy profiles that differ from the given profile only in
     /// the move of the given player.
     ///
@@ -157,12 +197,24 @@ where
     }
 }
 
-/// Captures a domination relationship among moves. A move `m1` is dominated by another move `m2`
-/// for player `p` if, for any possible moves played by other players, changing from `m1` to `m2`
-/// increases `p`'s utility.
+/// Captures a domination relationship among moves.
+///
+/// A move `m1` is *strictly* dominated by another move `m2` for player `p` if, for any possible
+/// moves played by other players, changing from `m1` to `m2` increases `p`'s utility.
+///
+/// A move `m1` is *weakly* dominated by another move `m2` for player `p` if, for any possible
+/// moves played by other players, changing from `m1` to `m2` does not decrease `p`'s utility.
+///
+/// Note that `m1` and `m2` may weakly dominate each other if the two moves are equivalent, that
+/// is, if they always yield the same utility in otherwise identical profiles.
 pub struct Dominated<Move> {
+    /// The move that is dominated, i.e. yields a worse utility.
     pub dominated: Move,
+    /// The move that is dominates the dominated move, i.e. yields a better utility.
     pub dominator: Move,
+    /// Is the domination relationship strict? If `true`, the `dominator` always yields a greater
+    /// utility. If `false`, the `dominator` always yields a greater or equal utility.
+    pub is_strict: bool,
 }
 
 impl<Move, Util, const N: usize> Normal<Move, Util, N>
@@ -303,18 +355,53 @@ where
         nash
     }
 
-    /// Get the dominated moves for the given player. A move `m1` is dominated by another move `m2`
-    /// for player `p` if, for any possible moves played by other players, changing from `m1` to
-    /// `m2` increases `p`'s utility.
+    /// Get all dominated move relationships for the given player. If a move is dominated by
+    /// multiple different moves, it will contain multiple entries in the returned vector.
+    ///
+    /// See the documentation for [`Dominated`] for more info.
+    ///
+    /// # Examples
+    /// TODO
     pub fn dominated_moves_for(&self, player: PlayerIndex<N>) -> Vec<Dominated<Move>> {
         let mut dominated = Vec::new();
-        // TODO
+
+        for maybe_ted in self.available_moves(player) {
+            let ted_profiles = self.profiles_with_move_for(player, maybe_ted);
+
+            for maybe_tor in self.available_moves(player) {
+                if maybe_ted == maybe_tor {
+                    continue;
+                }
+
+                let tor_profiles = self.profiles_with_move_for(player, maybe_tor);
+
+                let mut is_dominated = true;
+                let mut is_strict = true;
+                for (ted_profile, tor_profile) in ted_profiles.iter().zip(tor_profiles.iter()) {
+                    let ted_payoff = self.payoff(ted_profile).unwrap();
+                    let tor_payoff = self.payoff(tor_profile).unwrap();
+                    match ted_payoff[player].cmp(&tor_payoff[player]) {
+                        Ordering::Less => {},
+                        Ordering::Equal => is_strict = false,
+                        Ordering::Greater => {
+                            is_dominated = false;
+                            break;
+                        }
+                    }
+                }
+                if is_dominated {
+                    dominated.push(Dominated {
+                        dominated: maybe_ted.clone(),
+                        dominator: maybe_tor.clone(),
+                        is_strict,
+                    });
+                }
+            }
+        }
         dominated
     }
 
-    /// Get the dominated moves for each player. A move `m1` is dominated by another move `m2`
-    /// for player `p` if, for any possible moves played by other players, changing from `m1`
-    /// to `m2` increases `p`'s utility.
+    /// Get all dominated move relationships for each player.
     pub fn dominated_moves(&self) -> PerPlayer<Vec<Dominated<Move>>, N> {
         PerPlayer::generate(|index| self.dominated_moves_for(index))
     }
