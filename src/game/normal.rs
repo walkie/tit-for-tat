@@ -175,7 +175,32 @@ where
     /// A unilateral improvement assumes that all other player's moves will be unchanged.
     ///
     /// # Examples
-    /// TODO
+    /// ```
+    /// use tft::core::{for2, PerPlayer};
+    /// use tft::game::Normal;
+    ///
+    /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+    /// enum RPS { Rock, Paper, Scissors };
+    ///
+    /// let rps = Normal::symmetric_for2(
+    ///     Vec::from([RPS::Rock, RPS::Paper, RPS::Scissors]),
+    ///     Vec::from([ 0, -1,  1,
+    ///                 1,  0, -1,
+    ///                -1,  1,  0]),
+    /// ).unwrap();
+    ///
+    /// let rock_rock = &PerPlayer::new([RPS::Rock, RPS::Rock]);
+    /// assert_eq!(rps.unilaterally_improve(for2::P0, &rock_rock), Some(RPS::Paper));
+    /// assert_eq!(rps.unilaterally_improve(for2::P1, &rock_rock), Some(RPS::Paper));
+    ///
+    /// let paper_scissors = &PerPlayer::new([RPS::Paper, RPS::Scissors]);
+    /// assert_eq!(rps.unilaterally_improve(for2::P0, &paper_scissors), Some(RPS::Rock));
+    /// assert_eq!(rps.unilaterally_improve(for2::P1, &paper_scissors), None);
+    ///
+    /// let paper_rock = &PerPlayer::new([RPS::Paper, RPS::Rock]);
+    /// assert_eq!(rps.unilaterally_improve(for2::P0, &paper_rock), None);
+    /// assert_eq!(rps.unilaterally_improve(for2::P1, &paper_rock), Some(RPS::Scissors));
+    /// ```
     pub fn unilaterally_improve(
         &self,
         player: PlayerIndex<N>,
@@ -206,12 +231,68 @@ where
     /// improve their utility.
     ///
     /// A stable profile is a pure Nash equilibrium of the game.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::PerPlayer;
+    /// use tft::game::Normal;
+    ///
+    /// let dilemma = Normal::symmetric_for2(
+    ///     Vec::from(['C', 'D']),
+    ///     Vec::from([2, 0, 3, 1]),
+    /// ).unwrap();
+    ///
+    /// let hunt = Normal::symmetric_for2(
+    ///     Vec::from(['C', 'D']),
+    ///     Vec::from([3, 0, 2, 1]),
+    /// ).unwrap();
+    ///
+    /// let cc = PerPlayer::new(['C', 'C']);
+    /// let cd = PerPlayer::new(['C', 'D']);
+    /// let dc = PerPlayer::new(['D', 'C']);
+    /// let dd = PerPlayer::new(['D', 'D']);
+    ///
+    /// assert!(!dilemma.is_stable(&cc));
+    /// assert!(!dilemma.is_stable(&cd));
+    /// assert!(!dilemma.is_stable(&dc));
+    /// assert!(dilemma.is_stable(&dd));
+    ///
+    /// assert!(hunt.is_stable(&cc));
+    /// assert!(!hunt.is_stable(&cd));
+    /// assert!(!hunt.is_stable(&dc));
+    /// assert!(hunt.is_stable(&dd));
+    /// ```
     pub fn is_stable(&self, profile: &Profile<Move, N>) -> bool {
         PlayerIndex::all_indexes()
             .all(|player| self.unilaterally_improve(player, profile).is_none())
     }
 
     /// All pure Nash equilibrium solutions.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::PerPlayer;
+    /// use tft::game::Normal;
+    ///
+    /// let dilemma = Normal::symmetric_for2(
+    ///     Vec::from(['C', 'D']),
+    ///     Vec::from([2, 0, 3, 1]),
+    /// ).unwrap();
+    ///
+    /// let hunt = Normal::symmetric_for2(
+    ///     Vec::from(['C', 'D']),
+    ///     Vec::from([3, 0, 2, 1]),
+    /// ).unwrap();
+    ///
+    /// assert_eq!(
+    ///     dilemma.pure_nash_equilibria(),
+    ///     Vec::from([PerPlayer::new(['D', 'D'])]),
+    /// );
+    /// assert_eq!(
+    ///     hunt.pure_nash_equilibria(),
+    ///     Vec::from([PerPlayer::new(['C', 'C']), PerPlayer::new(['D', 'D'])]),
+    /// );
+    /// ```
     pub fn pure_nash_equilibria(&self) -> Vec<Profile<Move, N>> {
         let mut nash = Vec::new();
         for profile in self.profiles() {
