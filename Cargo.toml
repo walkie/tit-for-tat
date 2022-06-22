@@ -1,18 +1,5 @@
-[package]
-name = "tft"
-version = "0.1.0"
-authors = ["Eric Walkingshaw <eric@walkingshaw.net>"]
-edition = "2021"
-description = "Tit-for-tat: a game theory toolbox."
-repository = "https://github.com/walkie/tit-for-tat/"
-
-[dependencies]
-derive_more = "0.99"
-itertools = "0.10"
-log = "0.4"
-num = "0.4"
-probability = "0.18"
-
-[dev-dependencies]
-env_logger = "0.9"
-test-log = "0.2"
+[workspace]
+members = [
+    "tft",
+    "tft-games",
+]
