@@ -28,7 +28,7 @@ pub struct Dilemma {
 impl Dilemma {
     /// Create a new social dilemma game from the utility values for player `P0`.
     pub fn new(utils: [i32; 4]) -> Self {
-        let game = Normal::symmetric_for2(Vec::from([C, D]), Vec::from(utils)).unwrap();
+        let game = Normal::symmetric_for2(vec![C, D], Vec::from(utils)).unwrap();
         Dilemma { game, utils }
     }
 
@@ -56,7 +56,7 @@ impl Dilemma {
     /// let g = Dilemma::prisoners_dilemma();
     /// assert_eq!(
     ///     g.as_normal().pure_nash_equilibria(),
-    ///     Vec::from([PerPlayer::new([D, D])]),
+    ///     vec![PerPlayer::new([D, D])],
     /// );
     /// ```
     pub fn prisoners_dilemma() -> Self {
@@ -87,7 +87,7 @@ impl Dilemma {
     /// let g = Dilemma::stag_hunt();
     /// assert_eq!(
     ///     g.as_normal().pure_nash_equilibria(),
-    ///     Vec::from([PerPlayer::new([C, C]), PerPlayer::new([D, D])]),
+    ///     vec![PerPlayer::new([C, C]), PerPlayer::new([D, D])],
     /// );
     /// ```
     pub fn stag_hunt() -> Self {
@@ -107,7 +107,7 @@ impl Dilemma {
     /// let g = Dilemma::assurance_game();
     /// assert_eq!(
     ///     g.as_normal().pure_nash_equilibria(),
-    ///     Vec::from([PerPlayer::new([C, C]), PerPlayer::new([D, D])]),
+    ///     vec![PerPlayer::new([C, C]), PerPlayer::new([D, D])],
     /// );
     /// ```
     pub fn assurance_game() -> Self {
@@ -151,11 +151,11 @@ impl Dilemma {
     ///
     /// assert_eq!(
     ///     more_dove.as_normal().pure_nash_equilibria(),
-    ///     Vec::from([PerPlayer::new([C, D]), PerPlayer::new([D, C])]),
+    ///     vec![PerPlayer::new([C, D]), PerPlayer::new([D, C])],
     /// );
     /// assert_eq!(
     ///     more_hawk.as_normal().pure_nash_equilibria(),
-    ///     Vec::from([PerPlayer::new([D, D])]),
+    ///     vec![PerPlayer::new([D, D])],
     /// );
     /// ```
     pub fn hawk_dove(half_value: i32, half_cost: i32) -> Self {
@@ -181,7 +181,7 @@ impl Dilemma {
     ///
     /// assert_eq!(
     ///     g.as_normal().pure_nash_equilibria(),
-    ///     Vec::from([PerPlayer::new([C, D]), PerPlayer::new([D, C])]),
+    ///     vec![PerPlayer::new([C, D]), PerPlayer::new([D, C])],
     /// );
     /// ```
     pub fn chicken(crash: i32) -> Self {

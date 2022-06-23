@@ -147,23 +147,23 @@ where
     ///
     /// let g = Normal::new(
     ///     PerPlayer::new([
-    ///         Vec::from(['A', 'B']),
-    ///         Vec::from(['C', 'D', 'E']),
+    ///         vec!['A', 'B'],
+    ///         vec!['C', 'D', 'E'],
     ///     ]),
     ///     std::iter::repeat(Payoff::flat(0)).take(6).collect(),
     /// ).unwrap();
     ///
     /// assert_eq!(
     ///     g.profiles_with_move_for(for2::P0, &'A'),
-    ///     Vec::from([
+    ///     vec![
     ///         PerPlayer::new(['A', 'C']),
     ///         PerPlayer::new(['A', 'D']),
-    ///         PerPlayer::new(['A', 'E'])]
-    ///     ),
+    ///         PerPlayer::new(['A', 'E']),
+    ///     ],
     /// );
     /// assert_eq!(
     ///     g.profiles_with_move_for(for2::P1, &'D'),
-    ///     Vec::from([PerPlayer::new(['A', 'D']), PerPlayer::new(['B', 'D'])]),
+    ///     vec![PerPlayer::new(['A', 'D']), PerPlayer::new(['B', 'D'])],
     /// );
     /// ```
     pub fn profiles_with_move_for(
@@ -190,19 +190,19 @@ where
     ///
     /// let g = Normal::new(
     ///     PerPlayer::new([
-    ///         Vec::from(['A', 'B']),
-    ///         Vec::from(['C', 'D', 'E']),
+    ///         vec!['A', 'B'],
+    ///         vec!['C', 'D', 'E'],
     ///     ]),
     ///     std::iter::repeat(Payoff::flat(0)).take(6).collect(),
     /// ).unwrap();
     ///
     /// assert_eq!(
     ///     g.adjacent_profiles_for(for2::P0, &PerPlayer::new(['A', 'D'])),
-    ///     Vec::from([PerPlayer::new(['B', 'D'])]),
+    ///     vec![PerPlayer::new(['B', 'D'])],
     /// );
     /// assert_eq!(
     ///     g.adjacent_profiles_for(for2::P1, &PerPlayer::new(['A', 'D'])),
-    ///     Vec::from([PerPlayer::new(['A', 'C']), PerPlayer::new(['A', 'E'])]),
+    ///     vec![PerPlayer::new(['A', 'C']), PerPlayer::new(['A', 'E'])],
     /// );
     /// ```
     pub fn adjacent_profiles_for(
@@ -261,10 +261,11 @@ where
     /// enum RPS { Rock, Paper, Scissors };
     ///
     /// let rps = Normal::symmetric_for2(
-    ///     Vec::from([RPS::Rock, RPS::Paper, RPS::Scissors]),
-    ///     Vec::from([ 0, -1,  1,
-    ///                 1,  0, -1,
-    ///                -1,  1,  0]),
+    ///     vec![RPS::Rock, RPS::Paper, RPS::Scissors],
+    ///     vec![ 0, -1,  1,
+    ///           1,  0, -1,
+    ///          -1,  1,  0,
+    ///     ],
     /// ).unwrap();
     ///
     /// let rock_rock = &PerPlayer::new([RPS::Rock, RPS::Rock]);
@@ -316,13 +317,13 @@ where
     /// use tft::game::Normal;
     ///
     /// let dilemma = Normal::symmetric_for2(
-    ///     Vec::from(['C', 'D']),
-    ///     Vec::from([2, 0, 3, 1]),
+    ///     vec!['C', 'D'],
+    ///     vec![2, 0, 3, 1],
     /// ).unwrap();
     ///
     /// let hunt = Normal::symmetric_for2(
-    ///     Vec::from(['C', 'D']),
-    ///     Vec::from([3, 0, 2, 1]),
+    ///     vec!['C', 'D'],
+    ///     vec![3, 0, 2, 1],
     /// ).unwrap();
     ///
     /// let cc = PerPlayer::new(['C', 'C']);
@@ -353,22 +354,22 @@ where
     /// use tft::game::Normal;
     ///
     /// let dilemma = Normal::symmetric_for2(
-    ///     Vec::from(['C', 'D']),
-    ///     Vec::from([2, 0, 3, 1]),
+    ///     vec!['C', 'D'],
+    ///     vec![2, 0, 3, 1],
     /// ).unwrap();
     ///
     /// let hunt = Normal::symmetric_for2(
-    ///     Vec::from(['C', 'D']),
-    ///     Vec::from([3, 0, 2, 1]),
+    ///     vec!['C', 'D'],
+    ///     vec![3, 0, 2, 1],
     /// ).unwrap();
     ///
     /// assert_eq!(
     ///     dilemma.pure_nash_equilibria(),
-    ///     Vec::from([PerPlayer::new(['D', 'D'])]),
+    ///     vec![PerPlayer::new(['D', 'D'])],
     /// );
     /// assert_eq!(
     ///     hunt.pure_nash_equilibria(),
-    ///     Vec::from([PerPlayer::new(['C', 'C']), PerPlayer::new(['D', 'D'])]),
+    ///     vec![PerPlayer::new(['C', 'C']), PerPlayer::new(['D', 'D'])],
     /// );
     /// ```
     pub fn pure_nash_equilibria(&self) -> Vec<Profile<Move, N>> {
@@ -393,14 +394,14 @@ where
     ///
     /// let g = Normal::new(
     ///     PerPlayer::new([
-    ///         Vec::from(['A', 'B', 'C']),
-    ///         Vec::from(['D', 'E']),
+    ///         vec!['A', 'B', 'C'],
+    ///         vec!['D', 'E'],
     ///     ]),
-    ///     Vec::from([
+    ///     vec![
     ///         Payoff::from([3, 3]), Payoff::from([3, 5]),
     ///         Payoff::from([2, 0]), Payoff::from([3, 1]),
     ///         Payoff::from([4, 0]), Payoff::from([2, 1]),
-    ///     ]),
+    ///     ],
     /// ).unwrap();
     ///
     /// assert_eq!(g.dominated_moves_for(for2::P0), vec![Dominated::weak('B', 'A')]);
@@ -468,11 +469,12 @@ where
     /// use tft::game::Normal;
     ///
     /// let g = Normal::matrix(
-    ///     Vec::from(['A', 'B', 'C']),
-    ///     Vec::from(['D', 'E']),
-    ///     Vec::from([-3, -1, 0, 2, 4, 6]),
+    ///     vec!['A', 'B', 'C'],
+    ///     vec!['D', 'E'],
+    ///     vec![-3, -1, 0, 2, 4, 6],
     /// ).unwrap();
     ///
+    /// assert!(g.is_zero_sum());
     /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'D'])).unwrap(), Payoff::from([-3, 3]));
     /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'E'])).unwrap(), Payoff::from([-1, 1]));
     /// assert_eq!(*g.payoff(&PerPlayer::new(['B', 'D'])).unwrap(), Payoff::from([0, 0]));
@@ -511,10 +513,10 @@ where
     /// use tft::game::Normal;
     ///
     /// let g = Normal::bimatrix(
-    ///     Vec::from(['A', 'B', 'C']),
-    ///     Vec::from(['D', 'E']),
-    ///     Vec::from([0, 5, 4, 3, 2, 1]),
-    ///     Vec::from([5, 0, 1, 2, 4, 3]),
+    ///     vec!['A', 'B', 'C'],
+    ///     vec!['D', 'E'],
+    ///     vec![0, 5, 4, 3, 2, 1],
+    ///     vec![5, 0, 1, 2, 4, 3],
     /// ).unwrap();
     ///
     /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'D'])).unwrap(), Payoff::from([0, 5]));
@@ -548,8 +550,8 @@ where
     /// use tft::game::Normal;
     ///
     /// let pd = Normal::symmetric_for2(
-    ///     Vec::from(['C', 'D']),
-    ///     Vec::from([2, 0, 3, 1]),
+    ///     vec!['C', 'D'],
+    ///     vec![2, 0, 3, 1],
     /// ).unwrap();
     ///
     /// assert_eq!(*pd.payoff(&PerPlayer::new(['C', 'C'])).unwrap(), Payoff::from([2, 2]));
@@ -596,8 +598,8 @@ where
     /// use tft::game::Normal;
     ///
     /// let pd3 = Normal::symmetric_for3(
-    ///     Vec::from(['C', 'D']),
-    ///     Vec::from([4, 1, 1, 0, 5, 3, 3, 2]),
+    ///     vec!['C', 'D'],
+    ///     vec![4, 1, 1, 0, 5, 3, 3, 2],
     /// ).unwrap();
     ///
     /// assert_eq!(*pd3.payoff(&PerPlayer::new(['C', 'C', 'C'])).unwrap(), Payoff::from([4, 4, 4]));
@@ -655,8 +657,8 @@ where
     /// use tft::game::Normal;
     ///
     /// let pd4 = Normal::symmetric_for4(
-    ///     Vec::from(['C', 'D']),
-    ///     Vec::from([6, 2, 2, 1, 2, 1, 1, 0, 7, 5, 5, 4, 5, 4, 4, 3]),
+    ///     vec!['C', 'D'],
+    ///     vec![6, 2, 2, 1, 2, 1, 1, 0, 7, 5, 5, 4, 5, 4, 4, 3],
     /// ).unwrap();
     ///
     /// assert_eq!(*pd4.payoff(&PerPlayer::new(['C', 'C', 'C', 'C'])).unwrap(), Payoff::from([6, 6, 6, 6]));
@@ -721,9 +723,9 @@ mod tests {
     fn adjacent_profiles_for3_correct() {
         let g = Normal::new(
             PerPlayer::new([
-                Vec::from(['A', 'B']),
-                Vec::from(['C', 'D', 'E']),
-                Vec::from(['F', 'G', 'H', 'I']),
+                vec!['A', 'B'],
+                vec!['C', 'D', 'E'],
+                vec!['F', 'G', 'H', 'I'],
             ]),
             std::iter::repeat(Payoff::flat(0)).take(24).collect(),
         )
@@ -735,60 +737,60 @@ mod tests {
 
         assert_eq!(
             g.adjacent_profiles_for(for3::P0, &profile1),
-            Vec::from([PerPlayer::new(['B', 'C', 'F'])]),
+            vec![PerPlayer::new(['B', 'C', 'F'])],
         );
         assert_eq!(
             g.adjacent_profiles_for(for3::P0, &profile2),
-            Vec::from([PerPlayer::new(['A', 'D', 'I'])]),
+            vec![PerPlayer::new(['A', 'D', 'I'])],
         );
         assert_eq!(
             g.adjacent_profiles_for(for3::P0, &profile3),
-            Vec::from([PerPlayer::new(['B', 'E', 'G'])]),
+            vec![PerPlayer::new(['B', 'E', 'G'])],
         );
         assert_eq!(
             g.adjacent_profiles_for(for3::P1, &profile1),
-            Vec::from([
+            vec![
                 PerPlayer::new(['A', 'D', 'F']),
                 PerPlayer::new(['A', 'E', 'F'])
-            ]),
+            ],
         );
         assert_eq!(
             g.adjacent_profiles_for(for3::P1, &profile2),
-            Vec::from([
+            vec![
                 PerPlayer::new(['B', 'C', 'I']),
                 PerPlayer::new(['B', 'E', 'I'])
-            ]),
+            ],
         );
         assert_eq!(
             g.adjacent_profiles_for(for3::P1, &profile3),
-            Vec::from([
+            vec![
                 PerPlayer::new(['A', 'C', 'G']),
                 PerPlayer::new(['A', 'D', 'G'])
-            ]),
+            ],
         );
         assert_eq!(
             g.adjacent_profiles_for(for3::P2, &profile1),
-            Vec::from([
+            vec![
                 PerPlayer::new(['A', 'C', 'G']),
                 PerPlayer::new(['A', 'C', 'H']),
                 PerPlayer::new(['A', 'C', 'I']),
-            ]),
+            ],
         );
         assert_eq!(
             g.adjacent_profiles_for(for3::P2, &profile2),
-            Vec::from([
+            vec![
                 PerPlayer::new(['B', 'D', 'F']),
                 PerPlayer::new(['B', 'D', 'G']),
                 PerPlayer::new(['B', 'D', 'H']),
-            ]),
+            ],
         );
         assert_eq!(
             g.adjacent_profiles_for(for3::P2, &profile3),
-            Vec::from([
+            vec![
                 PerPlayer::new(['A', 'E', 'F']),
                 PerPlayer::new(['A', 'E', 'H']),
                 PerPlayer::new(['A', 'E', 'I']),
-            ]),
+            ],
         );
     }
 }
