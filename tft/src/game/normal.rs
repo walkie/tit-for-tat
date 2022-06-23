@@ -34,12 +34,20 @@ pub struct Dominated<Move> {
 impl<Move> Dominated<Move> {
     /// Construct a strict domination relationship.
     pub fn strict(dominated: Move, dominator: Move) -> Self {
-        Dominated { dominated, dominator, is_strict: true }
+        Dominated {
+            dominated,
+            dominator,
+            is_strict: true,
+        }
     }
 
     /// Construct a weak domination relationship.
     pub fn weak(dominated: Move, dominator: Move) -> Self {
-        Dominated { dominated, dominator, is_strict: false }
+        Dominated {
+            dominated,
+            dominator,
+            is_strict: false,
+        }
     }
 }
 
@@ -57,6 +65,7 @@ impl<Move> Dominated<Move> {
 /// - `N` -- The number of players that play the game.
 ///
 /// # Examples
+#[derive(Clone, Debug)]
 pub struct Normal<Move, Util, const N: usize> {
     moves: PerPlayer<Vec<Move>, N>,
     profiles: Vec<PerPlayer<Move, N>>,
@@ -157,7 +166,11 @@ where
     ///     Vec::from([PerPlayer::new(['A', 'D']), PerPlayer::new(['B', 'D'])]),
     /// );
     /// ```
-    pub fn profiles_with_move_for(&self, player: PlayerIndex<N>, the_move: &Move) -> Vec<Profile<Move, N>> {
+    pub fn profiles_with_move_for(
+        &self,
+        player: PlayerIndex<N>,
+        the_move: &Move,
+    ) -> Vec<Profile<Move, N>> {
         let mut profiles = Vec::new();
         for profile in self.profiles() {
             if profile[player] == *the_move {
@@ -412,7 +425,7 @@ where
                     let ted_payoff = self.payoff(ted_profile).unwrap();
                     let tor_payoff = self.payoff(tor_profile).unwrap();
                     match ted_payoff[player].cmp(&tor_payoff[player]) {
-                        Ordering::Less => {},
+                        Ordering::Less => {}
                         Ordering::Equal => is_strict = false,
                         Ordering::Greater => {
                             is_dominated = false;
@@ -527,7 +540,7 @@ where
 
     /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) two-player
     /// normal-form game. Constructed from a list of moves available to both players and the
-    /// payoffs for player `P0`.
+    /// utility values for player `P0`.
     ///
     /// # Examples
     /// ```
@@ -574,8 +587,8 @@ where
     Util: Clone,
 {
     /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) three-player
-    /// normal-form game. Constructed from a list of moves available to all players and the payoffs
-    /// for player `P0`.
+    /// normal-form game. Constructed from a list of moves available to all players and the utility
+    /// values for player `P0`.
     ///
     /// # Examples
     /// ```
@@ -633,8 +646,8 @@ where
     Util: Clone,
 {
     /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) four-player
-    /// normal-form game. Constructed from a list of moves available to all players and the payoffs
-    /// for player `P0`.
+    /// normal-form game. Constructed from a list of moves available to all players and the utility
+    /// values for player `P0`.
     ///
     /// # Examples
     /// ```
