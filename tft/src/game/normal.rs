@@ -452,6 +452,36 @@ where
     }
 }
 
+impl<Move, Util, const N: usize> Normal<Move, Util, N>
+where
+    Move: Clone + Debug + Eq + Hash,
+    Util: Copy + Num,
+{
+    /// Is this game zero-sum? In a zero-sum game, the utility values of each payoff sum to zero.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::game::Normal;
+    ///
+    /// let rps = Normal::symmetric_for2(
+    ///     vec!["Rock", "Paper", "Scissors"],
+    ///     vec![0, -1, 1, 1, 0, -1, -1, 1, 0],
+    /// ).unwrap();
+    ///
+    /// assert!(rps.is_zero_sum());
+    ///
+    /// let pd = Normal::symmetric_for2(
+    ///     vec!["Cooperate", "Defect"],
+    ///     vec![2, 0, 3, 1],
+    /// ).unwrap();
+    ///
+    /// assert!(!pd.is_zero_sum());
+    /// ```
+    pub fn is_zero_sum(&self) -> bool {
+        self.payoffs.values().all(|payoff| payoff.is_zero_sum())
+    }
+}
+
 impl<Move, Util> Normal<Move, Util, 2>
 where
     Move: Clone + Debug + Eq + Hash,

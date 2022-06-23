@@ -195,6 +195,21 @@ impl Dilemma {
     /// swapping the defect-defect and cooperate-defect utilities from the prisoner's dilemma. It
     /// reflects scenarios where cooperating yields benefits for both players, even when one player
     /// defects (e.g. when attempting to collaborate to clear a snowdrift blocking a path).
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::PerPlayer;
+    /// use tft_games::dilemma::{C, D, Dilemma};
+    ///
+    /// let g = Dilemma::snowdrift();
+    ///
+    /// assert!(g.is_chicken());
+    /// assert!(!g.is_prisoners_dilemma());
+    /// assert_eq!(
+    ///     g.as_normal().pure_nash_equilibria(),
+    ///     vec![PerPlayer::new([C, D]), PerPlayer::new([D, C])],
+    /// );
+    /// ```
     pub fn snowdrift() -> Self {
         Dilemma::new([2, 1, 3, 0])
     }
