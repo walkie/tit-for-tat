@@ -266,7 +266,7 @@ impl<const N: usize> PlayerIndex<N> {
     ///     vec![for5::P0, for5::P1, for5::P2, for5::P3, for5::P4]
     /// );
     pub fn all_indexes() -> PlayerIndexes<N> {
-        PlayerIndexes { next: 0 }
+        PlayerIndexes::new()
     }
 }
 
@@ -320,15 +320,33 @@ impl<T, const N: usize> IndexMut<PlayerIndex<N>> for PerPlayer<T, N> {
 /// An iterator that produces all of the player indexes of a given index type.
 pub struct PlayerIndexes<const N: usize> {
     next: usize,
+    back: usize,
+}
+
+impl<const N: usize> PlayerIndexes<N> {
+    fn new() -> Self {
+        PlayerIndexes { next: 0, back: N }
+    }
 }
 
 impl<const N: usize> Iterator for PlayerIndexes<N> {
     type Item = PlayerIndex<N>;
     fn next(&mut self) -> Option<PlayerIndex<N>> {
-        if self.next < N {
+        if self.next < self.back {
             let index = PlayerIndex(self.next);
             self.next += 1;
             Some(index)
+        } else {
+            None
+        }
+    }
+}
+
+impl<const N: usize> DoubleEndedIterator for PlayerIndexes<N> {
+    fn next_back(&mut self) -> Option<PlayerIndex<N>> {
+        if self.next < self.back {
+            self.back -= 1;
+            Some(PlayerIndex(self.back))
         } else {
             None
         }
