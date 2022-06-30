@@ -8,6 +8,7 @@ repository = "https://github.com/walkie/tit-for-tat/"
 
 [dependencies]
 derive_more = "0.99"
+either = "1.6"
 itertools = "0.10"
 log = "0.4"
 num = "0.4"

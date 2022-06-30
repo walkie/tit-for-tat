@@ -8,61 +8,32 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use crate::core::{Payoff, PerPlayer, PlayerIndex};
-use crate::game::simultaneous::Profile;
+use crate::game::{Game, Finite, FiniteSimultaneous, Profile, Simultaneous};
+use crate::solution::Dominated;
 
-/// Captures a domination relationship between moves.
+/// A finite simultaneous-move game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
-/// A move `m1` is *strictly dominated* by another move `m2` for player `p` if, for any possible
-/// moves played by other players, changing from `m1` to `m2` increases `p`'s utility.
-///
-/// A move `m1` is *weakly dominated* by another move `m2` for player `p` if, for any possible
-/// moves played by other players, changing from `m1` to `m2` does not decrease `p`'s utility.
-///
-/// Note that `m1` and `m2` may weakly dominate each other if the two moves are equivalent, that
-/// is, if they always yield the same utility in otherwise identical profiles.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct Dominated<Move> {
-    /// The move that is dominated, i.e. yields a worse utility.
-    pub dominated: Move,
-    /// The move that is dominates the dominated move, i.e. yields a better utility.
-    pub dominator: Move,
-    /// Is the domination relationship strict? If `true`, the `dominator` always yields a greater
-    /// utility. If `false`, the `dominator` always yields a greater or equal utility.
-    pub is_strict: bool,
-}
-
-impl<Move> Dominated<Move> {
-    /// Construct a strict domination relationship.
-    pub fn strict(dominated: Move, dominator: Move) -> Self {
-        Dominated {
-            dominated,
-            dominator,
-            is_strict: true,
-        }
-    }
-
-    /// Construct a weak domination relationship.
-    pub fn weak(dominated: Move, dominator: Move) -> Self {
-        Dominated {
-            dominated,
-            dominator,
-            is_strict: false,
-        }
-    }
-}
-
-/// A simultaneous move game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
-///
-/// The normal form representation is essentially a table of payoffs indexed by each player's move.
+/// The normal-form representation is essentially a table of payoffs indexed by each player's move.
 ///
 /// Since the payoff table is represented directly, normal-form games must have a finite move set
-/// for each player. For games with non-finite move sets, use
-/// [`Simultaneous`](crate::game::Simultaneous).
+/// for each player. For games with non-finite move sets, see
+/// [`PayoffFn`](crate::game::Simultaneous).
 ///
 /// # Type variables
 /// - `Move` -- The type of moves played during the game.
 /// - `Util` -- The type of utility value awarded to each player in a payoff.
 /// - `N` -- The number of players that play the game.
+///
+/// # Other normal-form game representations
+///
+/// This type is the most general normal-form game representation. There are more specific
+/// normal-form representations available that should usually be preferred if your game fits their
+/// constraints:
+/// - [`Bimatrix`] -- 2-players
+/// - [`Matrix`] -- 2-players, [zero-sum](https://en.wikipedia.org/wiki/Zero-sum_game)
+/// - [`Symmetric`] -- 2-players, [symmetric](https://en.wikipedia.org/wiki/Symmetric_game)
+/// - [`Symmetric3`] -- 3-players, symmetric
+/// - [`Symmetric4`] -- 4-players, symmetric
 ///
 /// # Examples
 #[derive(Clone, Debug)]
@@ -74,20 +45,19 @@ pub struct Normal<Move, Util, const N: usize> {
 
 impl<Move, Util, const N: usize> Normal<Move, Util, N>
 where
-    Move: Clone + Debug + Eq + Hash,
-    Util: Clone,
+    Move: Copy + Debug + Eq + Hash,
+    Util: Copy + Debug + Num + Ord,
 {
     /// Construct a normal-form game given the list of moves available to each player and a table
     /// of payoffs.
     ///
-    /// The payoff table is given as a vector of payoffs in which all payoffs where player `P0`
-    /// played a given move are contiguous, all payoffs where `P0` and `P1` played a given pair of
-    /// moves are contiguous, and so on. In other words, the payoff table is given in
-    /// ["row major" order](https://en.wikipedia.org/wiki/Matrix_representation).
+    /// The payoff table is given as a vector of payoffs in
+    /// [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
     ///
-    /// This operation may fail if the number of provided payoffs is fewer than the number of
-    /// unique pure strategy profiles. If too many payoffs are provided, the excess payoffs will be
-    /// ignored.
+    /// # Errors
+    /// Logs a warning and returns `None` if the number of provided payoffs is fewer than the
+    /// number of unique pure strategy profiles. If too many payoffs are provided, the excess
+    /// payoffs will be ignored.
     pub fn new(moves: PerPlayer<Vec<Move>, N>, table: Vec<Payoff<Util, N>>) -> Option<Self> {
         let profiles: Vec<PerPlayer<Move, N>> = moves
             .clone()
@@ -115,340 +85,68 @@ where
             payoffs,
         })
     }
+}
 
-    /// Get the available moves for the indicated player.
-    pub fn available_moves(&self, player: PlayerIndex<N>) -> &[Move] {
-        &self.moves[player]
-    }
+impl<Move, Util, const N: usize> Game<N> for Normal<Move, Util, N>
+where
+    Move: Copy + Debug + Eq + Hash,
+    Util: Copy + Debug + Num + Ord,
+{
+    type Move = Move;
+    type Utility = Util;
+    type State = ();
 
-    /// Is this a valid move for the given player?
-    pub fn is_valid_move(&self, player: PlayerIndex<N>, the_move: &Move) -> bool {
+    fn initial_state(&self) {}
+
+    fn is_valid_move_for_player_at_state(
+        &self,
+        player: PlayerIndex<N>,
+        _state: &(),
+        the_move: Move,
+    ) -> bool {
         self.moves[player].contains(the_move)
-    }
-
-    /// Is the given strategy profile valid? A profile is valid if each move is valid for the
-    /// corresponding player.
-    pub fn is_valid_profile(&self, profile: &Profile<Move, N>) -> bool {
-        PlayerIndex::all_indexes().all(|pi| self.is_valid_move(pi, &profile[pi]))
-    }
-
-    /// A list of all pure strategy profiles for this game.
-    pub fn profiles(&self) -> &[Profile<Move, N>] {
-        &self.profiles
-    }
-
-    /// Generate a list of all pure strategy profiles that contain a particular move played by the
-    /// given player.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::{for2, Payoff, PerPlayer};
-    /// use tft::game::Normal;
-    ///
-    /// let g = Normal::new(
-    ///     PerPlayer::new([
-    ///         vec!['A', 'B'],
-    ///         vec!['C', 'D', 'E'],
-    ///     ]),
-    ///     std::iter::repeat(Payoff::flat(0)).take(6).collect(),
-    /// ).unwrap();
-    ///
-    /// assert_eq!(
-    ///     g.profiles_with_move_for(for2::P0, &'A'),
-    ///     vec![
-    ///         PerPlayer::new(['A', 'C']),
-    ///         PerPlayer::new(['A', 'D']),
-    ///         PerPlayer::new(['A', 'E']),
-    ///     ],
-    /// );
-    /// assert_eq!(
-    ///     g.profiles_with_move_for(for2::P1, &'D'),
-    ///     vec![PerPlayer::new(['A', 'D']), PerPlayer::new(['B', 'D'])],
-    /// );
-    /// ```
-    pub fn profiles_with_move_for(
-        &self,
-        player: PlayerIndex<N>,
-        the_move: &Move,
-    ) -> Vec<Profile<Move, N>> {
-        let mut profiles = Vec::new();
-        for profile in self.profiles() {
-            if profile[player] == *the_move {
-                profiles.push(profile.clone())
-            }
-        }
-        profiles
-    }
-
-    /// Generate a list of all pure strategy profiles that differ from the given profile only in
-    /// the move of the given player.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::{for2, Payoff, PerPlayer};
-    /// use tft::game::Normal;
-    ///
-    /// let g = Normal::new(
-    ///     PerPlayer::new([
-    ///         vec!['A', 'B'],
-    ///         vec!['C', 'D', 'E'],
-    ///     ]),
-    ///     std::iter::repeat(Payoff::flat(0)).take(6).collect(),
-    /// ).unwrap();
-    ///
-    /// assert_eq!(
-    ///     g.adjacent_profiles_for(for2::P0, &PerPlayer::new(['A', 'D'])),
-    ///     vec![PerPlayer::new(['B', 'D'])],
-    /// );
-    /// assert_eq!(
-    ///     g.adjacent_profiles_for(for2::P1, &PerPlayer::new(['A', 'D'])),
-    ///     vec![PerPlayer::new(['A', 'C']), PerPlayer::new(['A', 'E'])],
-    /// );
-    /// ```
-    pub fn adjacent_profiles_for(
-        &self,
-        player: PlayerIndex<N>,
-        profile: &Profile<Move, N>,
-    ) -> Vec<Profile<Move, N>> {
-        let player_moves = self.available_moves(player);
-        let mut adjacent = Vec::with_capacity(player_moves.len() - 1);
-        for m in player_moves {
-            if *m != profile[player] {
-                let mut new_profile = profile.clone();
-                new_profile[player] = m.clone();
-                adjacent.push(new_profile);
-            }
-        }
-        adjacent
-    }
-
-    /// Get the payoff for a given strategy profile. May return `None` if the profile contains an
-    /// invalid move for some player.
-    pub fn payoff(&self, profile: &Profile<Move, N>) -> Option<&Payoff<Util, N>> {
-        self.payoffs.get(profile)
-    }
-
-    /// The payoff method should yield a payoff for every valid profile. This function checks
-    /// whether this property holds for a given profile.
-    ///
-    /// It is OK if the payoff method returns a (meaningless) payoff for an invalid profile.
-    ///
-    /// This function is intended for use in tests.
-    pub fn law_valid_profile_yields_payoff(&self, profile: &Profile<Move, N>) -> bool {
-        if self.is_valid_profile(profile) {
-            self.payoff(profile).is_some()
-        } else {
-            true // ok to return a meaningless payoff for an invalid profile
-        }
     }
 }
 
-impl<Move, Util, const N: usize> Normal<Move, Util, N>
+impl<Move, Util, const N: usize> Finite<N> for Normal<Move, Util, N>
 where
-    Move: Clone + Debug + Eq + Hash,
-    Util: Copy + Ord,
+    Move: Copy + Debug + Eq + Hash,
+    Util: Copy + Debug + Num + Ord,
 {
-    /// Return a move that unilaterally improves the given player's utility, if such a move exists.
-    ///
-    /// A unilateral improvement assumes that all other player's moves will be unchanged.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::{for2, PerPlayer};
-    /// use tft::game::Normal;
-    ///
-    /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-    /// enum RPS { Rock, Paper, Scissors };
-    ///
-    /// let rps = Normal::symmetric_for2(
-    ///     vec![RPS::Rock, RPS::Paper, RPS::Scissors],
-    ///     vec![ 0, -1,  1,
-    ///           1,  0, -1,
-    ///          -1,  1,  0,
-    ///     ],
-    /// ).unwrap();
-    ///
-    /// let rock_rock = &PerPlayer::new([RPS::Rock, RPS::Rock]);
-    /// assert_eq!(rps.unilaterally_improve(for2::P0, &rock_rock), Some(RPS::Paper));
-    /// assert_eq!(rps.unilaterally_improve(for2::P1, &rock_rock), Some(RPS::Paper));
-    ///
-    /// let paper_scissors = &PerPlayer::new([RPS::Paper, RPS::Scissors]);
-    /// assert_eq!(rps.unilaterally_improve(for2::P0, &paper_scissors), Some(RPS::Rock));
-    /// assert_eq!(rps.unilaterally_improve(for2::P1, &paper_scissors), None);
-    ///
-    /// let paper_rock = &PerPlayer::new([RPS::Paper, RPS::Rock]);
-    /// assert_eq!(rps.unilaterally_improve(for2::P0, &paper_rock), None);
-    /// assert_eq!(rps.unilaterally_improve(for2::P1, &paper_rock), Some(RPS::Scissors));
-    /// ```
-    pub fn unilaterally_improve(
+    type MoveIter = std::slice::Iter<Move>;
+
+    fn available_moves_for_player_at_state(
         &self,
         player: PlayerIndex<N>,
-        profile: &Profile<Move, N>,
-    ) -> Option<Move> {
-        let mut best_move = None;
-        let mut best_util = match self.payoff(profile) {
-            Some(payoff) => payoff[player],
-            None => {
-                log::warn!(
-                    "Normal::unilaterally_improve(): invalid initial profile: {:?}",
-                    profile,
-                );
-                return best_move;
-            }
-        };
-        for adjacent in self.adjacent_profiles_for(player, profile) {
-            let util = self.payoff(&adjacent).unwrap()[player];
-            if util > best_util {
-                best_move = Some(adjacent[player].clone());
-                best_util = util;
-            }
-        }
-        best_move
+        _state: &(),
+    ) -> Self::MoveIter {
+        self.moves[player].iter()
+    }
+}
+
+impl<Move, Util, const N: usize> Simultaneous<N> for Normal<Move, Util, N>
+where
+    Move: Copy + Debug + Eq + Hash,
+    Util: Copy + Debug + Num + Ord,
+{
+    fn payoff(&self, profile: Profile<Move, N>) -> Option<Payoff<Util, N>> {
+        self.payoffs.get(&profile)
+    }
+}
+
+impl<Move, Util, const N: usize> FiniteSimultaneous<N> for Normal<Move, Util, N>
+where
+    Move: Copy + Debug + Eq + Hash,
+    Util: Copy + Debug + Num + Ord,
+{
+    type ProfileIter = std::slice::Iter<Profile<Move, N>>;
+
+    fn profiles(&self) -> Self::ProfileIter {
+        self.profiles
     }
 
-    /// Is the given strategy profile stable? A profile is stable if no player can unilaterally
-    /// improve their utility.
-    ///
-    /// A stable profile is a pure Nash equilibrium of the game.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::PerPlayer;
-    /// use tft::game::Normal;
-    ///
-    /// let dilemma = Normal::symmetric_for2(
-    ///     vec!['C', 'D'],
-    ///     vec![2, 0, 3, 1],
-    /// ).unwrap();
-    ///
-    /// let hunt = Normal::symmetric_for2(
-    ///     vec!['C', 'D'],
-    ///     vec![3, 0, 2, 1],
-    /// ).unwrap();
-    ///
-    /// let cc = PerPlayer::new(['C', 'C']);
-    /// let cd = PerPlayer::new(['C', 'D']);
-    /// let dc = PerPlayer::new(['D', 'C']);
-    /// let dd = PerPlayer::new(['D', 'D']);
-    ///
-    /// assert!(!dilemma.is_stable(&cc));
-    /// assert!(!dilemma.is_stable(&cd));
-    /// assert!(!dilemma.is_stable(&dc));
-    /// assert!(dilemma.is_stable(&dd));
-    ///
-    /// assert!(hunt.is_stable(&cc));
-    /// assert!(!hunt.is_stable(&cd));
-    /// assert!(!hunt.is_stable(&dc));
-    /// assert!(hunt.is_stable(&dd));
-    /// ```
-    pub fn is_stable(&self, profile: &Profile<Move, N>) -> bool {
-        PlayerIndex::all_indexes()
-            .all(|player| self.unilaterally_improve(player, profile).is_none())
-    }
-
-    /// All pure Nash equilibrium solutions.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::PerPlayer;
-    /// use tft::game::Normal;
-    ///
-    /// let dilemma = Normal::symmetric_for2(
-    ///     vec!['C', 'D'],
-    ///     vec![2, 0, 3, 1],
-    /// ).unwrap();
-    ///
-    /// let hunt = Normal::symmetric_for2(
-    ///     vec!['C', 'D'],
-    ///     vec![3, 0, 2, 1],
-    /// ).unwrap();
-    ///
-    /// assert_eq!(
-    ///     dilemma.pure_nash_equilibria(),
-    ///     vec![PerPlayer::new(['D', 'D'])],
-    /// );
-    /// assert_eq!(
-    ///     hunt.pure_nash_equilibria(),
-    ///     vec![PerPlayer::new(['C', 'C']), PerPlayer::new(['D', 'D'])],
-    /// );
-    /// ```
-    pub fn pure_nash_equilibria(&self) -> Vec<Profile<Move, N>> {
-        let mut nash = Vec::new();
-        for profile in self.profiles() {
-            if self.is_stable(profile) {
-                nash.push(profile.clone());
-            }
-        }
-        nash
-    }
-
-    /// Get all dominated move relationships for the given player. If a move is dominated by
-    /// multiple different moves, it will contain multiple entries in the returned vector.
-    ///
-    /// See the documentation for [`Dominated`] for more info.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::{for2, Payoff, PerPlayer};
-    /// use tft::game::{Dominated, Normal};
-    ///
-    /// let g = Normal::new(
-    ///     PerPlayer::new([
-    ///         vec!['A', 'B', 'C'],
-    ///         vec!['D', 'E'],
-    ///     ]),
-    ///     vec![
-    ///         Payoff::from([3, 3]), Payoff::from([3, 5]),
-    ///         Payoff::from([2, 0]), Payoff::from([3, 1]),
-    ///         Payoff::from([4, 0]), Payoff::from([2, 1]),
-    ///     ],
-    /// ).unwrap();
-    ///
-    /// assert_eq!(g.dominated_moves_for(for2::P0), vec![Dominated::weak('B', 'A')]);
-    /// assert_eq!(g.dominated_moves_for(for2::P1), vec![Dominated::strict('D', 'E')]);
-    /// ```
-    pub fn dominated_moves_for(&self, player: PlayerIndex<N>) -> Vec<Dominated<Move>> {
-        let mut dominated = Vec::new();
-
-        for maybe_ted in self.available_moves(player) {
-            let ted_profiles = self.profiles_with_move_for(player, maybe_ted);
-
-            for maybe_tor in self.available_moves(player) {
-                if maybe_ted == maybe_tor {
-                    continue;
-                }
-
-                let tor_profiles = self.profiles_with_move_for(player, maybe_tor);
-
-                let mut is_dominated = true;
-                let mut is_strict = true;
-                for (ted_profile, tor_profile) in ted_profiles.iter().zip(tor_profiles.iter()) {
-                    let ted_payoff = self.payoff(ted_profile).unwrap();
-                    let tor_payoff = self.payoff(tor_profile).unwrap();
-                    match ted_payoff[player].cmp(&tor_payoff[player]) {
-                        Ordering::Less => {}
-                        Ordering::Equal => is_strict = false,
-                        Ordering::Greater => {
-                            is_dominated = false;
-                            break;
-                        }
-                    }
-                }
-                if is_dominated {
-                    dominated.push(Dominated {
-                        dominated: maybe_ted.clone(),
-                        dominator: maybe_tor.clone(),
-                        is_strict,
-                    });
-                }
-            }
-        }
-        dominated
-    }
-
-    /// Get all dominated move relationships for each player.
-    pub fn dominated_moves(&self) -> PerPlayer<Vec<Dominated<Move>>, N> {
-        PerPlayer::generate(|index| self.dominated_moves_for(index))
+    fn available_moves(&self) -> PerPlayer<Vec<Move>, N> {
+        self.moves
     }
 }
 
