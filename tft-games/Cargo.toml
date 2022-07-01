@@ -7,9 +7,9 @@ description = "A library of games and strategies built with tft."
 repository = "https://github.com/walkie/tit-for-tat/"
 
 [dependencies]
-log = "0.4"
+log = "0.4.17"
 tft = { path = "../tft" }
 
 [dev-dependencies]
-env_logger = "0.9"
-test-log = "0.2"
+env_logger = "0.9.0"
+test-log = "0.2.10"

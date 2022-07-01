@@ -7,13 +7,13 @@ description = "Tit-for-tat: a game theory toolbox."
 repository = "https://github.com/walkie/tit-for-tat/"
 
 [dependencies]
-derive_more = "0.99"
-either = "1.6"
-itertools = "0.10"
-log = "0.4"
-num = "0.4"
-probability = "0.18"
+derive_more = "0.99.17"
+either = "1.7.0"
+itertools = "0.10.3"
+log = "0.4.17"
+num = "0.4.0"
+probability = "0.18.0"
 
 [dev-dependencies]
-env_logger = "0.9"
-test-log = "0.2"
+env_logger = "0.9.0"
+test-log = "0.2.10"
