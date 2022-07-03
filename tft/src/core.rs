@@ -2,6 +2,8 @@
 
 mod payoff;
 mod per_player;
+mod profile;
 
 pub use payoff::*;
 pub use per_player::*;
+pub use profile::*;

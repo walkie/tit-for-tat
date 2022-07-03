@@ -118,7 +118,7 @@ impl<T, const N: usize> PerPlayer<T, N> {
     /// assert_eq!(squares[for5::P3], 9);
     /// assert_eq!(squares[for5::P4], 16);
     /// ```
-    pub fn generate(gen_elem: impl Fn(PlayerIndex<N>) -> T) -> Self {
+    pub fn generate(gen_elem: impl FnMut(PlayerIndex<N>) -> T) -> Self {
         let indexes: [PlayerIndex<N>; N] = PlayerIndex::all_indexes()
             .collect::<Vec<PlayerIndex<N>>>()
             .try_into()
@@ -186,6 +186,56 @@ impl<T, const N: usize> PerPlayer<T, N> {
     }
 }
 
+impl<T, const N: usize> PerPlayer<T, N>
+where
+    T: Clone,
+{
+    /// Map a function over all of the elements in a per-player collection, producing a new
+    /// per-player collection.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::PerPlayer;
+    ///
+    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    ///
+    /// let mut lengths = pp.map(|s| s.len());
+    /// assert_eq!(lengths, PerPlayer::new([5, 3, 5, 6]));
+    ///
+    /// let mut firsts = pp.map(|s| s.chars().next().unwrap());
+    /// assert_eq!(firsts, PerPlayer::new(['f', 's', 'm', 'p']));
+    /// ```
+    pub fn map<U>(&self, f: impl FnMut(T) -> U) -> PerPlayer<U, N> {
+        PerPlayer::new(self.data.clone().map(f))
+    }
+
+    /// Map a function over all of the elements in a per-player collection, producing a new
+    /// per-player collection.
+    ///
+    /// This variant of map provides each element's index along with the element to the mapped
+    /// function.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::PerPlayer;
+    ///
+    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    ///
+    /// let mut pairs = pp.map_with_index(|i, s| (i.as_usize(), s.len()));
+    /// assert_eq!(pairs, PerPlayer::new([(0, 5), (1, 3), (2, 5), (3, 6)]));
+    ///
+    /// let mut nths = pp.map_with_index(|i, s| s.chars().nth(i.as_usize()).unwrap());
+    /// assert_eq!(nths, PerPlayer::new(['f', 'a', 'r', 'p']));
+    /// ```
+    pub fn map_with_index<U>(&self, f: impl Fn(PlayerIndex<N>, T) -> U) -> PerPlayer<U, N> {
+        let mut indexes = PlayerIndex::all_indexes();
+        PerPlayer::new(self.data.clone().map(move |elem| {
+            let index = indexes.next().unwrap();
+            f(index, elem)
+        }))
+    }
+}
+
 impl<T, const N: usize> IntoIterator for PerPlayer<T, N> {
     type Item = <[T; N] as IntoIterator>::Item;
     type IntoIter = <[T; N] as IntoIterator>::IntoIter;
@@ -249,6 +299,35 @@ impl<const N: usize> PlayerIndex<N> {
             log::warn!("PlayerIndex<{}>::new({}): index out of range", N, index);
             None
         }
+    }
+
+    /// Get the player index as a plain `usize` value.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for3, for6};
+    ///
+    /// assert_eq!(for3::P0.as_usize(), 0);
+    /// assert_eq!(for3::P2.as_usize(), 2);
+    /// assert_eq!(for6::P2.as_usize(), 2);
+    /// assert_eq!(for6::P5.as_usize(), 5);
+    /// ```
+    pub fn as_usize(&self) -> usize {
+        self.0
+    }
+
+    /// Get the number of players in the game, which corresponds to the numbers of unique indexes
+    /// in this type.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for5, for12};
+    ///
+    /// assert_eq!(for5::P3.num_players(), 5);
+    /// assert_eq!(for12::P7.num_players(), 12);
+    /// ```
+    pub fn num_players(&self) -> usize {
+        N
     }
 
     /// Get an iterator that iterates over all player indexes of a given type.
