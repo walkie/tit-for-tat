@@ -77,6 +77,16 @@ where
     ///         PerPlayer::new(['O', 'X']), PerPlayer::new(['O', 'O']),
     ///     ],
     /// );
+    ///
+    /// let mut iter = ProfileIter::symmetric(vec!['A', 'B', 'C'].into_iter());
+    /// assert_eq!(
+    ///     iter.collect::<Vec<PerPlayer<char, 2>>>(),
+    ///     vec![
+    ///         PerPlayer::new(['A', 'A']), PerPlayer::new(['A', 'B']), PerPlayer::new(['A', 'C']),
+    ///         PerPlayer::new(['B', 'A']), PerPlayer::new(['B', 'B']), PerPlayer::new(['B', 'C']),
+    ///         PerPlayer::new(['C', 'A']), PerPlayer::new(['C', 'B']), PerPlayer::new(['C', 'C']),
+    ///     ],
+    /// );
     /// ```
     ///
     /// Generating all profiles for a symmetric 3-player game:
@@ -135,26 +145,12 @@ where
     /// ```
     /// use tft::core::{for3, PerPlayer, ProfileIter};
     ///
-    /// let moves = PerPlayer::new([
-    ///     vec!['A', 'B'],
-    ///     vec!['C', 'D', 'E'],
-    ///     vec!['F', 'G', 'H'],
-    /// ]);
-    ///
-    /// let mut iter = ProfileIter::from_vecs(moves.clone())
+    /// let mut iter = ProfileIter::symmetric(vec!['A', 'B', 'C'].into_iter())
     ///     .include(for3::P0, 'A')
-    ///     .include(for3::P2, 'G');
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'C', 'G'])));
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D', 'G'])));
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'E', 'G'])));
-    /// assert_eq!(iter.next(), None);
-    ///
-    /// let mut iter = ProfileIter::from_vecs(moves)
-    ///     .include(for3::P0, 'B')
-    ///     .include(for3::P1, 'C');
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'C', 'F'])));
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'C', 'G'])));
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'C', 'H'])));
+    ///     .include(for3::P2, 'C');
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'A', 'C'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'B', 'C'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'C', 'C'])));
     /// assert_eq!(iter.next(), None);
     /// ```
     ///
@@ -233,18 +229,16 @@ where
     ///
     /// Combining with [`include()`](ProfileIter::include):
     /// ```
-    /// use tft::core::{for2, PerPlayer, ProfileIter};
+    /// use tft::core::{for3, PerPlayer, ProfileIter};
     ///
-    /// let moves = PerPlayer::new([
-    ///     vec!['A', 'B', 'C'],
-    ///     vec!['D', 'E', 'F', 'G'],
-    /// ]);
-    ///
-    /// let mut iter = ProfileIter::from_vecs(moves.clone())
-    ///     .exclude(for2::P0, 'C')
-    ///     .include(for2::P1, 'F');
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'F'])));
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'F'])));
+    /// let mut iter = ProfileIter::symmetric(vec!['A', 'B', 'C'].into_iter())
+    ///     .exclude(for3::P0, 'A')
+    ///     .exclude(for3::P1, 'B')
+    ///     .include(for3::P2, 'C');
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'A', 'C'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'C', 'C'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['C', 'A', 'C'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['C', 'C', 'C'])));
     /// assert_eq!(iter.next(), None);
     /// ```
     pub fn exclude(self, player: PlayerIndex<N>, the_move: Move) -> Self {
