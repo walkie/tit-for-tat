@@ -11,8 +11,9 @@ use crate::core::{PerPlayer, PlayerIndex};
 /// A pure strategy profile for a simultaneous game: one move played by each player.
 pub type Profile<Move, const N: usize> = PerPlayer<Move, N>;
 
-/// An iterator over all of the pure strategy profiles that can be generated from a list of moves
+/// An iterator over all of the pure strategy profiles that can be generated from the moves
 /// available to each player.
+#[derive(Clone, Debug)]
 pub struct ProfileIter<Move: Copy, MoveIter: Iterator<Item = Move> + Clone, const N: usize> {
     /// Moves that must be included in any generated profile, for each player.
     includes: PerPlayer<Vec<Move>, N>,
