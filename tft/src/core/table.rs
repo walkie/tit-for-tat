@@ -30,7 +30,7 @@ where
     /// - If *too few* payoffs are provided, logs an error and returns `None`.
     /// - If *too many* payoffs are provided, logs a warning and returns a table in which the
     ///   excess payoffs are ignored.
-    pub fn from_vec(
+    pub fn from_payoff_vec(
         profile_iter: ProfileIter<Move, MoveIter, N>,
         payoffs: Vec<Payoff<Util, N>>,
     ) -> Option<Self> {
@@ -39,7 +39,7 @@ where
         match num_profiles.cmp(&num_payoffs) {
             Ordering::Greater => {
                 log::error!(
-                    "PayoffTable::from_vec(): not enough payoffs provided; expected {}, got {}",
+                    "PayoffTable::from_payoff_vec(): not enough payoffs provided; expected {}, got {}",
                     num_profiles,
                     num_payoffs,
                 );
@@ -47,7 +47,7 @@ where
             }
             Ordering::Less => {
                 log::warn!(
-                    "PayoffTable::from_vec(): too many payoffs provided; expected {}, got {}",
+                    "PayoffTable::from_payoff_vec(): too many payoffs provided; expected {}, got {}",
                     num_profiles,
                     num_payoffs,
                 );
@@ -71,7 +71,7 @@ where
     /// # Errors
     /// If the payoff function returns `None` for a generated profile, logs an error and return
     /// `None`.
-    pub fn from_fn(
+    pub fn from_payoff_fn(
         profile_iter: ProfileIter<Move, MoveIter, N>,
         payoff_fn: impl Fn(Profile<Move, N>) -> Option<Payoff<Util, N>> + 'static,
     ) -> Option<Self> {
@@ -83,7 +83,7 @@ where
                 payoff_map.insert(profile, payoff);
             } else {
                 log::error!(
-                    "PayoffTable::from_fn(): payoff function returned `None` for profile {:?}",
+                    "PayoffTable::from_payoff_fn(): payoff function returned `None` for profile {:?}",
                     profile,
                 );
                 return None;

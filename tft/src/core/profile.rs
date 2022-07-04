@@ -40,7 +40,7 @@ where
     ///     vec!['D', 'E'].into_iter(),
     ///     vec!['F', 'G'].into_iter(),
     /// ]);
-    /// let mut iter = ProfileIter::new(moves);
+    /// let mut iter = ProfileIter::from_move_iters(moves);
     /// assert_eq!(
     ///     iter.collect::<Vec<PerPlayer<char, 3>>>(),
     ///     vec![
@@ -53,7 +53,7 @@ where
     ///     ],
     /// );
     /// ```
-    pub fn new(move_iters: PerPlayer<MoveIter, N>) -> Self {
+    pub fn from_move_iters(move_iters: PerPlayer<MoveIter, N>) -> Self {
         ProfileIter {
             includes: PerPlayer::init_with(Vec::new()),
             excludes: PerPlayer::init_with(Vec::new()),
@@ -106,7 +106,7 @@ where
     /// );
     /// ```
     pub fn symmetric(move_iter: MoveIter) -> Self {
-        ProfileIter::new(PerPlayer::init_with(move_iter))
+        ProfileIter::from_move_iters(PerPlayer::init_with(move_iter))
     }
 
     /// Constrain the iterator to generate only profiles where the given player plays a specific
@@ -130,13 +130,13 @@ where
     ///     vec!['C', 'D', 'E'],
     /// ]);
     ///
-    /// let mut iter = ProfileIter::from_vecs(moves.clone()).include(for2::P0, 'B');
+    /// let mut iter = ProfileIter::from_move_vecs(moves.clone()).include(for2::P0, 'B');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'C'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'E'])));
     /// assert_eq!(iter.next(), None);
     ///
-    /// let mut iter = ProfileIter::from_vecs(moves).include(for2::P1, 'D');
+    /// let mut iter = ProfileIter::from_move_vecs(moves).include(for2::P1, 'D');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D'])));
     /// assert_eq!(iter.next(), None);
@@ -165,7 +165,7 @@ where
     ///     vec!['F', 'G', 'H'],
     /// ]);
     ///
-    /// let mut iter = ProfileIter::from_vecs(moves.clone())
+    /// let mut iter = ProfileIter::from_move_vecs(moves.clone())
     ///     .include(for3::P1, 'D')
     ///     .exclude(for3::P2, 'G');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D', 'F'])));
@@ -200,7 +200,7 @@ where
     ///     vec!['C', 'D', 'E'],
     /// ]);
     ///
-    /// let mut iter = ProfileIter::from_vecs(moves).exclude(for2::P1, 'C');
+    /// let mut iter = ProfileIter::from_move_vecs(moves).exclude(for2::P1, 'C');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'E'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D'])));
@@ -217,7 +217,7 @@ where
     ///     vec!['D', 'E', 'F', 'G'],
     /// ]);
     ///
-    /// let mut iter = ProfileIter::from_vecs(moves)
+    /// let mut iter = ProfileIter::from_move_vecs(moves)
     ///     .exclude(for2::P0, 'A')
     ///     .exclude(for2::P1, 'E')
     ///     .exclude(for2::P1, 'G');
@@ -294,15 +294,15 @@ where
     ///     vec!['A', 'B', 'C', 'D'],
     ///     vec!['E', 'F', 'G'],
     /// ]);
-    /// let mut iter = ProfileIter::from_vecs(moves).include(for2::P1, 'F');
+    /// let mut iter = ProfileIter::from_move_vecs(moves).include(for2::P1, 'F');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'F'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'F'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['C', 'F'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['D', 'F'])));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub fn from_vecs(move_vecs: PerPlayer<Vec<Move>, N>) -> Self {
-        ProfileIter::new(move_vecs.map(|v| v.into_iter()))
+    pub fn from_move_vecs(move_vecs: PerPlayer<Vec<Move>, N>) -> Self {
+        ProfileIter::from_move_iters(move_vecs.map(|v| v.into_iter()))
     }
 }
 
