@@ -170,8 +170,8 @@ where
         }
     }
 
-    /// Constrain the iterator to generate only profiles where the given player *does not* play a
-    /// specific move.
+    /// Constrain the iterator to enumerate only those cells where the given player *does not* play
+    /// a specific move.
     ///
     /// If the move is not a valid move for that player, then this method will have no effect.
     ///
@@ -184,6 +184,24 @@ where
     pub fn exclude(self, player: PlayerIndex<N>, the_move: Move) -> Self {
         TableCellIter {
             profile_iter: self.profile_iter.exclude(player, the_move),
+            ..self
+        }
+    }
+
+    /// Constrain the iterator to generate only cells that correspond to "adjacent" profiles of the
+    /// given profile for a given player.
+    ///
+    /// An adjacent profile is one where the given player plays a different move, but all other
+    /// players play the move specified in the profile.
+    ///
+    /// Note that this doesn't correspond to adjacency in the payoff table, but rather an entire
+    /// row or column, minus the provided profile.
+    ///
+    /// See the documentation for [`ProfileIter::adjacent()`](crate::core::ProfileIter::adjacent)
+    /// for examples and more info.
+    pub fn adjacent(self, player: PlayerIndex<N>, profile: Profile<Move, N>) -> Self {
+        TableCellIter {
+            profile_iter: self.profile_iter.adjacent(player, profile),
             ..self
         }
     }

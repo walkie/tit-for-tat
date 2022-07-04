@@ -247,6 +247,36 @@ where
         excludes[player].push(the_move);
         ProfileIter { excludes, ..self }
     }
+
+    /// Constrain the iterator to generate only profiles that are "adjacent" to the given profile
+    /// for a given player.
+    ///
+    /// An adjacent profile is one where the given player plays a different move, but all other
+    /// players play the move specified in the profile.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for5, PerPlayer, ProfileIter};
+    ///
+    /// let mut iter = ProfileIter::symmetric(vec![1, 2, 3, 4, 5].into_iter())
+    ///     .adjacent(for5::P3, PerPlayer::new([5, 4, 3, 2, 1]));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new([5, 4, 3, 1, 1])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new([5, 4, 3, 3, 1])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new([5, 4, 3, 4, 1])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new([5, 4, 3, 5, 1])));
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    pub fn adjacent(self, player: PlayerIndex<N>, profile: Profile<Move, N>) -> Self {
+        let mut iter = self;
+        for i in PlayerIndex::all_indexes() {
+            if i == player {
+                iter = iter.exclude(i, profile[i]);
+            } else {
+                iter = iter.include(i, profile[i]);
+            }
+        }
+        iter
+    }
 }
 
 impl<Move, const N: usize> ProfileIter<Move, std::vec::IntoIter<Move>, N>
