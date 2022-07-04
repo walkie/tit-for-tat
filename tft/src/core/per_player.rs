@@ -190,6 +190,12 @@ impl<T, const N: usize> PerPlayer<T, N>
 where
     T: Clone,
 {
+    /// Create a new per-player collection where each element is initialized with the given
+    /// cloneable value.
+    pub fn init_with(value: T) -> Self {
+        PerPlayer::generate(|_| value.clone())
+    }
+
     /// Map a function over all of the elements in a per-player collection, producing a new
     /// per-player collection.
     ///

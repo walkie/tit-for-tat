@@ -1,6 +1,7 @@
 //! This module defines the types related to pure strategy profiles for simultaneous games.
 
-use either::Either;
+use itertools::structs::MultiProduct;
+use itertools::Itertools;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::Iterator;
@@ -10,55 +11,33 @@ use crate::core::{PerPlayer, PlayerIndex};
 /// A pure strategy profile for a simultaneous game: one move played by each player.
 pub type Profile<Move, const N: usize> = PerPlayer<Move, N>;
 
-/// A pattern describing the profiles to match and/or a profile iteration in progress.
-type Pattern<Move, const N: usize> = PerPlayer<Either<Move, usize>, N>;
-
-/// State of a profile iterator. Changes from `Init` to `Running` after `next()` is called once.
-/// Changes from `Running` to `Exhausted` after the last element is returned.
-enum State<Move, const N: usize> {
-    /// Iterator in the initialization stage: before `next()` has been called. In this stage, the
-    /// `including()` and `adjacent_to()` methods may be called. The pattern describes the first
-    /// profile to return.
-    Init(Pattern<Move, N>),
-    /// Running iterator: after `next()` has been called once, but before the iterator is
-    /// exhausted. The pattern describes the next profile to return.
-    Running(Pattern<Move, N>),
-    /// Exhausted iterator: there are no more profiles to return.
-    Exhausted,
-}
-
-impl<Move, const N: usize> State<Move, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-{
-    /// Construct a new initial state with an empty pattern.
-    fn init() -> Self {
-        State::Init(PerPlayer::new([Either::Right(0); N]))
-    }
-}
-
 /// An iterator over all of the pure strategy profiles that can be generated from a list of moves
 /// available to each player.
-pub struct ProfileIter<Move, const N: usize> {
-    moves: PerPlayer<Vec<Move>, N>,
-    state: State<Move, N>,
+pub struct ProfileIter<Move: Copy, MoveIter: Iterator<Item = Move> + Clone, const N: usize> {
+    /// Moves that must be included in any generated profile, for each player.
+    includes: PerPlayer<Vec<Move>, N>,
+    /// Moves that must be excluded from any generated profile, for each player.
+    excludes: PerPlayer<Vec<Move>, N>,
+    /// The multi-product iterator used to generate each profile.
+    multi_iter: MultiProduct<MoveIter>,
 }
 
-impl<Move, const N: usize> ProfileIter<Move, N>
+impl<Move, MoveIter, const N: usize> ProfileIter<Move, MoveIter, N>
 where
     Move: Copy + Debug + Eq + Hash,
+    MoveIter: Iterator<Item = Move> + Clone,
 {
-    /// Construct a new profile iterator that iterates over all combinations of the provided
-    /// vectors of available moves for each player.
+    /// Construct a new profile iterator from a per-player collection of iterators over the moves
+    /// available to each player.
     ///
     /// # Examples
     /// ```
     /// use tft::core::{PerPlayer, ProfileIter};
     ///
     /// let moves = PerPlayer::new([
-    ///     vec!['A', 'B', 'C'],
-    ///     vec!['D', 'E'],
-    ///     vec!['F', 'G'],
+    ///     vec!['A', 'B', 'C'].into_iter(),
+    ///     vec!['D', 'E'].into_iter(),
+    ///     vec!['F', 'G'].into_iter(),
     /// ]);
     /// let mut iter = ProfileIter::new(moves);
     /// assert_eq!(
@@ -73,10 +52,11 @@ where
     ///     ],
     /// );
     /// ```
-    pub fn new(moves: PerPlayer<Vec<Move>, N>) -> Self {
+    pub fn new(move_iters: PerPlayer<MoveIter, N>) -> Self {
         ProfileIter {
-            moves,
-            state: State::init(),
+            includes: PerPlayer::init_with(Vec::new()),
+            excludes: PerPlayer::init_with(Vec::new()),
+            multi_iter: move_iters.into_iter().multi_cartesian_product(),
         }
     }
 
@@ -84,46 +64,49 @@ where
     /// moves.
     ///
     /// # Examples
+    ///
+    /// Generating all profiles for a symmetric 2-player game:
     /// ```
     /// use tft::core::{PerPlayer, ProfileIter};
     ///
-    /// let moves = PerPlayer::new([
-    ///     vec!['A', 'B', 'C'],
-    ///     vec!['D', 'E'],
-    ///     vec!['F', 'G'],
-    /// ]);
-    /// let mut iter = ProfileIter::new(moves);
+    /// let mut iter = ProfileIter::symmetric(vec!['X', 'O'].into_iter());
     /// assert_eq!(
-    ///     iter.collect::<Vec<PerPlayer<char, 3>>>(),
+    ///     iter.collect::<Vec<PerPlayer<char, 2>>>(),
     ///     vec![
-    ///         PerPlayer::new(['A', 'D', 'F']), PerPlayer::new(['A', 'D', 'G']),
-    ///         PerPlayer::new(['A', 'E', 'F']), PerPlayer::new(['A', 'E', 'G']),
-    ///         PerPlayer::new(['B', 'D', 'F']), PerPlayer::new(['B', 'D', 'G']),
-    ///         PerPlayer::new(['B', 'E', 'F']), PerPlayer::new(['B', 'E', 'G']),
-    ///         PerPlayer::new(['C', 'D', 'F']), PerPlayer::new(['C', 'D', 'G']),
-    ///         PerPlayer::new(['C', 'E', 'F']), PerPlayer::new(['C', 'E', 'G']),
+    ///         PerPlayer::new(['X', 'X']), PerPlayer::new(['X', 'O']),
+    ///         PerPlayer::new(['O', 'X']), PerPlayer::new(['O', 'O']),
     ///     ],
     /// );
     /// ```
-    pub fn symmetric(moves: Vec<Move>) -> Self {
-        ProfileIter {
-            moves: PerPlayer::generate(|_| moves.clone()),
-            state: State::init(),
-        }
+    ///
+    /// Generating all profiles for a symmetric 3-player game:
+    /// ```
+    /// use tft::core::{PerPlayer, ProfileIter};
+    ///
+    /// let mut iter = ProfileIter::symmetric(vec!['X', 'O'].into_iter());
+    /// assert_eq!(
+    ///     iter.collect::<Vec<PerPlayer<char, 3>>>(),
+    ///     vec![
+    ///         PerPlayer::new(['X', 'X', 'X']), PerPlayer::new(['X', 'X', 'O']),
+    ///         PerPlayer::new(['X', 'O', 'X']), PerPlayer::new(['X', 'O', 'O']),
+    ///         PerPlayer::new(['O', 'X', 'X']), PerPlayer::new(['O', 'X', 'O']),
+    ///         PerPlayer::new(['O', 'O', 'X']), PerPlayer::new(['O', 'O', 'O']),
+    ///     ],
+    /// );
+    /// ```
+    pub fn symmetric(move_iter: MoveIter) -> Self {
+        ProfileIter::new(PerPlayer::init_with(move_iter))
     }
 
-    /// Constrain the iterator to generate only profiles that include the given move played by the
-    /// given player.
+    /// Constrain the iterator to generate only profiles where the given player plays a specific
+    /// move.
     ///
-    /// Multiple invocations of [`including()`](ProfileIter::including) and
-    /// [`excluding()`](ProfileIter::excluding) can be chained together to add several constraints
-    /// to the iterator.
+    /// If the move is not a valid move for that player, then the resulting iterator will not
+    /// generate any profiles.
     ///
-    /// # Errors
-    ///
-    /// Logs an error and returns an exhausted iterator that returns no profiles if:
-    /// - The provided move is not a valid move for the given player.
-    /// - The iterator has already generated at least one profile.
+    /// Multiple invocations of [`include()`](ProfileIter::include) and
+    /// [`exclude()`](ProfileIter::exclude) can be chained together to add several constraints to
+    /// the iterator.
     ///
     /// # Examples
     ///
@@ -136,13 +119,13 @@ where
     ///     vec!['C', 'D', 'E'],
     /// ]);
     ///
-    /// let mut iter = ProfileIter::new(moves.clone()).including(for2::P0, 'B');
+    /// let mut iter = ProfileIter::from_vecs(moves.clone()).include(for2::P0, 'B');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'C'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'E'])));
     /// assert_eq!(iter.next(), None);
     ///
-    /// let mut iter = ProfileIter::new(moves).including(for2::P1, 'D');
+    /// let mut iter = ProfileIter::from_vecs(moves).include(for2::P1, 'D');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D'])));
     /// assert_eq!(iter.next(), None);
@@ -158,60 +141,24 @@ where
     ///     vec!['F', 'G', 'H'],
     /// ]);
     ///
-    /// let mut iter = ProfileIter::new(moves.clone())
-    ///     .including(for3::P0, 'A')
-    ///     .including(for3::P2, 'G');
+    /// let mut iter = ProfileIter::from_vecs(moves.clone())
+    ///     .include(for3::P0, 'A')
+    ///     .include(for3::P2, 'G');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'C', 'G'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D', 'G'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'E', 'G'])));
     /// assert_eq!(iter.next(), None);
     ///
-    /// let mut iter = ProfileIter::new(moves)
-    ///     .including(for3::P0, 'B')
-    ///     .including(for3::P1, 'C');
+    /// let mut iter = ProfileIter::from_vecs(moves)
+    ///     .include(for3::P0, 'B')
+    ///     .include(for3::P1, 'C');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'C', 'F'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'C', 'G'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'C', 'H'])));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub fn including(self, player: PlayerIndex<N>, the_move: Move) -> Self {
-        if let State::Init(mut pattern) = self.state {
-            if self.moves[player].contains(&the_move) {
-                pattern[player] = Either::Left(the_move);
-                // success
-                return ProfileIter {
-                    moves: self.moves,
-                    state: State::Init(pattern),
-                };
-            } else {
-                log::error!(
-                    "ProfileIter::including(): tried to constrain player {} to invalid move {:?}",
-                    usize::from(player),
-                    the_move
-                );
-            }
-        } else {
-            log::error!("ProfileIter::including(): tried to constrain an iterator that is already running or exhausted");
-        }
-        // error
-        ProfileIter {
-            moves: self.moves,
-            state: State::Exhausted,
-        }
-    }
-
-    /// Constrain the iterator to generate only those profiles that are "adjacent" to the given
-    /// profile for the indicated player.
     ///
-    /// An adjacent profile differs from the given profile only in the move of the given player.
-    ///
-    /// # Errors
-    ///
-    /// Logs an error and returns an exhausted iterator that returns no profiles if:
-    /// - The provided profile contains a move that is invalid for the corresponding player.
-    /// - The iterator has already generated at least one profile.
-    ///
-    /// # Examples
+    /// Combining with [`exclude()`](ProfileIter::exclude):
     /// ```
     /// use tft::core::{for3, PerPlayer, ProfileIter};
     ///
@@ -220,99 +167,144 @@ where
     ///     vec!['C', 'D', 'E'],
     ///     vec!['F', 'G', 'H'],
     /// ]);
-    /// let profile = PerPlayer::new(['A', 'D', 'H']);
     ///
-    /// let mut iter = ProfileIter::new(moves.clone()).adjacent_to(for3::P0, profile);
+    /// let mut iter = ProfileIter::from_vecs(moves.clone())
+    ///     .include(for3::P1, 'D')
+    ///     .exclude(for3::P2, 'G');
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D', 'F'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D', 'H'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D', 'F'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D', 'H'])));
     /// assert_eq!(iter.next(), None);
+    /// ```
+    pub fn include(self, player: PlayerIndex<N>, the_move: Move) -> Self {
+        let mut includes = self.includes;
+        includes[player].push(the_move);
+        ProfileIter { includes, ..self }
+    }
+
+    /// Constrain the iterator to generate only profiles where the given player *does not* play a
+    /// specific move.
     ///
-    /// let mut iter = ProfileIter::new(moves.clone()).adjacent_to(for3::P1, profile);
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'C', 'H'])));
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'E', 'H'])));
-    /// assert_eq!(iter.next(), None);
+    /// If the move is not a valid move for that player, then this method will have no effect.
     ///
-    /// let mut iter = ProfileIter::new(moves).adjacent_to(for3::P2, profile);
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D', 'F'])));
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D', 'G'])));
+    /// Multiple invocations of [`include()`](ProfileIter::include) and
+    /// [`exclude()`](ProfileIter::exclude) can be chained together to add several constraints to
+    /// the iterator.
+    ///
+    /// # Examples
+    ///
+    /// Applying a single exlcusion constraint:
+    /// ```
+    /// use tft::core::{for2, PerPlayer, ProfileIter};
+    ///
+    /// let moves = PerPlayer::new([
+    ///     vec!['A', 'B'],
+    ///     vec!['C', 'D', 'E'],
+    /// ]);
+    ///
+    /// let mut iter = ProfileIter::from_vecs(moves).exclude(for2::P1, 'C');
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'E'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'E'])));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub fn adjacent_to(self, player: PlayerIndex<N>, profile: Profile<Move, N>) -> Self {
-        // check that the profile contains only valid moves
-        if PlayerIndex::all_indexes().all(|i| self.moves[i].contains(&profile[i])) {
-            if let State::Init(old_pattern) = self.state {
-                let new_pattern = PerPlayer::generate(|i| {
-                    if i == player {
-                        old_pattern[i]
-                    } else {
-                        Either::Left(profile[i])
-                    }
-                });
-                // success
-                return ProfileIter {
-                    moves: self.moves,
-                    state: State::Init(new_pattern),
-                };
-            } else {
-                log::error!("ProfileIter::adjacent_to(): tried to constrain an iterator that is already running or exhausted");
-            }
-        } else {
-            log::error!("ProfileIter::adjacent_to(): profile contains invalid moves: {:?}", profile);
-        }
-        // error
-        ProfileIter {
-            moves: self.moves,
-            state: State::Exhausted,
-        }
+    ///
+    /// Applying multiple exclusion constraints by chaining invocations of this method:
+    /// ```
+    /// use tft::core::{for2, PerPlayer, ProfileIter};
+    ///
+    /// let moves = PerPlayer::new([
+    ///     vec!['A', 'B', 'C'],
+    ///     vec!['D', 'E', 'F', 'G'],
+    /// ]);
+    ///
+    /// let mut iter = ProfileIter::from_vecs(moves)
+    ///     .exclude(for2::P0, 'A')
+    ///     .exclude(for2::P1, 'E')
+    ///     .exclude(for2::P1, 'G');
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'F'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['C', 'D'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['C', 'F'])));
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    ///
+    /// Combining with [`include()`](ProfileIter::include):
+    /// ```
+    /// use tft::core::{for2, PerPlayer, ProfileIter};
+    ///
+    /// let moves = PerPlayer::new([
+    ///     vec!['A', 'B', 'C'],
+    ///     vec!['D', 'E', 'F', 'G'],
+    /// ]);
+    ///
+    /// let mut iter = ProfileIter::from_vecs(moves.clone())
+    ///     .exclude(for2::P0, 'C')
+    ///     .include(for2::P1, 'F');
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'F'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'F'])));
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    pub fn exclude(self, player: PlayerIndex<N>, the_move: Move) -> Self {
+        let mut excludes = self.excludes;
+        excludes[player].push(the_move);
+        ProfileIter { excludes, ..self }
     }
 }
 
-impl<Move, const N: usize> Iterator for ProfileIter<Move, N>
+impl<Move, const N: usize> ProfileIter<Move, std::vec::IntoIter<Move>, N>
 where
     Move: Copy + Debug + Eq + Hash,
+{
+    /// Construct a new profile iterator from a per-player collection of vectors of available moves
+    /// for each player.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for2, PerPlayer, ProfileIter};
+    ///
+    /// let moves = PerPlayer::new([
+    ///     vec!['A', 'B', 'C', 'D'],
+    ///     vec!['E', 'F', 'G'],
+    /// ]);
+    /// let mut iter = ProfileIter::from_vecs(moves).include(for2::P1, 'F');
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'F'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'F'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['C', 'F'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['D', 'F'])));
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    pub fn from_vecs(move_vecs: PerPlayer<Vec<Move>, N>) -> Self {
+        ProfileIter::new(move_vecs.map(|v| v.into_iter()))
+    }
+}
+
+impl<Move, MoveIter, const N: usize> Iterator for ProfileIter<Move, MoveIter, N>
+where
+    Move: Copy + Debug + Eq + Hash,
+    MoveIter: Iterator<Item = Move> + Clone,
 {
     type Item = Profile<Move, N>;
 
     fn next(&mut self) -> Option<Profile<Move, N>> {
-        if let State::Init(pattern) = self.state {
-            // this is the first time we've called next, switch to "running" state
-            self.state = State::Running(pattern);
-        }
-
-        if let State::Running(mut pattern) = self.state {
-            // turn pattern into profile
-            let profile = PerPlayer::generate(|player| match pattern[player] {
-                Either::Left(m) => m,
-                Either::Right(i) => self.moves[player][i],
-            });
-
-            // try to increment pattern
-            let mut has_next = false;
-            for player in PlayerIndex::all_indexes().rev() {
-                match pattern[player] {
-                    Either::Left(_) => {}
-                    Either::Right(i) => {
-                        if i + 1 < self.moves[player].len() {
-                            has_next = true;
-                            pattern[player] = Either::Right(i + 1);
-                            self.state = State::Running(pattern);
-                            break;
-                        } else {
-                            pattern[player] = Either::Right(0);
-                        }
-                    }
+        for moves in self.multi_iter.by_ref() {
+            let profile = PerPlayer::new(moves.try_into().unwrap());
+            let mut good = true;
+            for player in PlayerIndex::all_indexes() {
+                let m = profile[player];
+                if self.excludes[player].contains(&m)
+                    || !self.includes[player].is_empty() && !self.includes[player].contains(&m)
+                {
+                    good = false;
+                    break;
                 }
             }
-
-            // if incrementing failed, set the state to "exhausted"
-            if !has_next {
-                self.state = State::Exhausted;
+            if good {
+                return Some(profile);
             }
-
-            // return profile
-            Some(profile)
-        } else {
-            // no more profiles
-            None
         }
+        None
     }
 }
