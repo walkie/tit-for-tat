@@ -115,8 +115,8 @@ where
     /// If the move is not a valid move for that player, then the resulting iterator will not
     /// generate any profiles.
     ///
-    /// Multiple invocations of [`include()`](ProfileIter::include) and
-    /// [`exclude()`](ProfileIter::exclude) can be chained together to add several constraints to
+    /// Multiple invocations of [`include`](ProfileIter::include) and
+    /// [`exclude`](ProfileIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
     /// # Examples
@@ -155,7 +155,7 @@ where
     /// assert_eq!(iter.next(), None);
     /// ```
     ///
-    /// Combining with [`exclude()`](ProfileIter::exclude):
+    /// Combining with [`exclude`](ProfileIter::exclude):
     /// ```
     /// use tft::core::{for3, PerPlayer, ProfileIter};
     ///
@@ -185,8 +185,8 @@ where
     ///
     /// If the move is not a valid move for that player, then this method will have no effect.
     ///
-    /// Multiple invocations of [`include()`](ProfileIter::include) and
-    /// [`exclude()`](ProfileIter::exclude) can be chained together to add several constraints to
+    /// Multiple invocations of [`include`](ProfileIter::include) and
+    /// [`exclude`](ProfileIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
     /// # Examples
@@ -228,7 +228,7 @@ where
     /// assert_eq!(iter.next(), None);
     /// ```
     ///
-    /// Combining with [`include()`](ProfileIter::include):
+    /// Combining with [`include`](ProfileIter::include):
     /// ```
     /// use tft::core::{for3, PerPlayer, ProfileIter};
     ///
