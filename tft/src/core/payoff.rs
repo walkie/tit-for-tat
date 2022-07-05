@@ -23,16 +23,17 @@ use crate::core::{PerPlayer, PlayerIndex};
 /// ```
 ///
 /// The [`Payoff::flat`] function constructs a payoff in which every player receives the same
-/// utility (i.e. a "flat" distribution of utilities). Note that the the size of the payoff will be
-/// determined by the ["const generic"](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html)
+/// utility (i.e. a "flat" distribution of utilities). The [`Payoff:zeros`] function constructs a
+/// flat distribution of zeros. Note that the the size of the payoff will be determined by the
+/// ["const generic"](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html)
 /// argument `N`, which can often be inferred from the context in which the payoff is
 /// used.
 ///
 /// ```
 /// use tft::core::Payoff;
 ///
-/// assert_eq!(Payoff::flat(0), Payoff::from([0, 0]));
-/// assert_eq!(Payoff::flat(5), Payoff::from([5, 5, 5, 5]));
+/// assert_eq!(Payoff::zeros(), Payoff::from([0, 0, 0]));
+/// assert_eq!(Payoff::flat(5), Payoff::from([5, 5, 5, 5, 5]));
 /// ```
 ///
 /// The utility value of a single player can be set by the [`Payoff::except`] method, which is
@@ -43,7 +44,7 @@ use crate::core::{PerPlayer, PlayerIndex};
 ///
 /// assert_eq!(Payoff::flat(-2).except(for4::P1, 5), Payoff::from([-2, 5, -2, -2]));
 /// assert_eq!(
-///     Payoff::flat(0).except(for6::P0, 1).except(for6::P4, 3),
+///     Payoff::zeros().except(for6::P0, 1).except(for6::P4, 3),
 ///     Payoff::from([1, 0, 0, 0, 3, 0])
 /// );
 /// ```
@@ -90,7 +91,7 @@ use crate::core::{PerPlayer, PlayerIndex};
 ///   [`IndexMut`](std::ops::IndexMut) traits.
 ///
 /// For more information, see the documentation for the [`PerPlayer`] type.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, AsMut, AsRef, Index, IndexMut)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, AsMut, AsRef, Index, IndexMut)]
 pub struct Payoff<Util, const N: usize> {
     utilities: PerPlayer<Util, N>,
 }
@@ -121,7 +122,7 @@ impl<Util, const N: usize> Payoff<Util, N> {
     ///
     /// assert_eq!(Payoff::from([1, 2, 3, 4]).except(for4::P2, -1), Payoff::from([1, 2, -1, 4]));
     /// assert_eq!(
-    ///     Payoff::flat(0).except(for6::P2, -3).except(for6::P4, 3),
+    ///     Payoff::zeros().except(for6::P2, -3).except(for6::P4, 3),
     ///     Payoff::from([0, 0, -3, 0, 3, 0])
     /// );
     /// ```
@@ -196,8 +197,8 @@ impl<Util: Copy, const N: usize> Payoff<Util, N> {
     ///
     /// assert_eq!(Payoff::flat(2), Payoff::from([2, 2, 2]));
     /// assert_eq!(
-    ///     Payoff::flat(0).except(for8::P2, 5).except(for8::P5, -7),
-    ///     Payoff::from([0, 0, 5, 0, 0, -7, 0, 0])
+    ///     Payoff::flat(1).except(for8::P2, 5).except(for8::P5, -7),
+    ///     Payoff::from([1, 1, 5, 1, 1, -7, 1, 1]),
     /// );
     /// ```
     pub fn flat(utility: Util) -> Self {
@@ -206,6 +207,22 @@ impl<Util: Copy, const N: usize> Payoff<Util, N> {
 }
 
 impl<Util: Copy + Num, const N: usize> Payoff<Util, N> {
+    /// Construct a payoff where every player's utility is zero.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for7, Payoff};
+    ///
+    /// assert_eq!(Payoff::zeros(), Payoff::from([0, 0, 0]));
+    ///
+    /// assert_eq!(
+    ///     Payoff::zeros().except(for7::P0, 3).except(for7::P4, -2),
+    ///     Payoff::from([3, 0, 0, 0, -2, 0, 0])),
+    /// );
+    pub fn zeros() -> Self {
+        Payoff::flat(Util::zero())
+    }
+
     /// Is this a zero-sum payoff? That is, do each of the utility values it contains sum to zero?
     ///
     /// # Examples

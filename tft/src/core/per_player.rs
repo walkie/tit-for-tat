@@ -242,6 +242,12 @@ where
     }
 }
 
+impl<T: Default, const N: usize> Default for PerPlayer<T, N> {
+    fn default() -> Self {
+        PerPlayer::generate(|_| T::default())
+    }
+}
+
 impl<T, const N: usize> IntoIterator for PerPlayer<T, N> {
     type Item = <[T; N] as IntoIterator>::Item;
     type IntoIter = <[T; N] as IntoIterator>::IntoIter;
