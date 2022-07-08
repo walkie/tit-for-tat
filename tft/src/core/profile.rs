@@ -333,3 +333,98 @@ where
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{for3, PerPlayer};
+    use test_log::test;
+
+    #[test]
+    fn adjacent_profiles_for3_correct() {
+        let iter = ProfileIter::from_move_vecs(PerPlayer::new([
+            vec!['A', 'B'],
+            vec!['C', 'D', 'E'],
+            vec!['F', 'G', 'H', 'I'],
+        ]));
+
+        let profile1 = PerPlayer::new(['A', 'C', 'F']);
+        let profile2 = PerPlayer::new(['B', 'D', 'I']);
+        let profile3 = PerPlayer::new(['A', 'E', 'G']);
+
+        assert_eq!(
+            iter.clone()
+                .adjacent(for3::P0, profile1)
+                .collect::<Vec<Profile<char, 3>>>(),
+            vec![PerPlayer::new(['B', 'C', 'F'])],
+        );
+        assert_eq!(
+            iter.clone()
+                .adjacent(for3::P0, profile2)
+                .collect::<Vec<Profile<char, 3>>>(),
+            vec![PerPlayer::new(['A', 'D', 'I'])],
+        );
+        assert_eq!(
+            iter.clone()
+                .adjacent(for3::P0, profile3)
+                .collect::<Vec<Profile<char, 3>>>(),
+            vec![PerPlayer::new(['B', 'E', 'G'])],
+        );
+        assert_eq!(
+            iter.clone()
+                .adjacent(for3::P1, profile1)
+                .collect::<Vec<Profile<char, 3>>>(),
+            vec![
+                PerPlayer::new(['A', 'D', 'F']),
+                PerPlayer::new(['A', 'E', 'F'])
+            ],
+        );
+        assert_eq!(
+            iter.clone()
+                .adjacent(for3::P1, profile2)
+                .collect::<Vec<Profile<char, 3>>>(),
+            vec![
+                PerPlayer::new(['B', 'C', 'I']),
+                PerPlayer::new(['B', 'E', 'I'])
+            ],
+        );
+        assert_eq!(
+            iter.clone()
+                .adjacent(for3::P1, profile3)
+                .collect::<Vec<Profile<char, 3>>>(),
+            vec![
+                PerPlayer::new(['A', 'C', 'G']),
+                PerPlayer::new(['A', 'D', 'G'])
+            ],
+        );
+        assert_eq!(
+            iter.clone()
+                .adjacent(for3::P2, profile1)
+                .collect::<Vec<Profile<char, 3>>>(),
+            vec![
+                PerPlayer::new(['A', 'C', 'G']),
+                PerPlayer::new(['A', 'C', 'H']),
+                PerPlayer::new(['A', 'C', 'I']),
+            ],
+        );
+        assert_eq!(
+            iter.clone()
+                .adjacent(for3::P2, profile2)
+                .collect::<Vec<Profile<char, 3>>>(),
+            vec![
+                PerPlayer::new(['B', 'D', 'F']),
+                PerPlayer::new(['B', 'D', 'G']),
+                PerPlayer::new(['B', 'D', 'H']),
+            ],
+        );
+        assert_eq!(
+            iter.adjacent(for3::P2, profile3)
+                .collect::<Vec<Profile<char, 3>>>(),
+            vec![
+                PerPlayer::new(['A', 'E', 'F']),
+                PerPlayer::new(['A', 'E', 'H']),
+                PerPlayer::new(['A', 'E', 'I']),
+            ],
+        );
+    }
+}

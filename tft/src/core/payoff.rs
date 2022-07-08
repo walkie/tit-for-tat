@@ -217,7 +217,7 @@ impl<Util: Copy + Num, const N: usize> Payoff<Util, N> {
     ///
     /// assert_eq!(
     ///     Payoff::zeros().except(for7::P0, 3).except(for7::P4, -2),
-    ///     Payoff::from([3, 0, 0, 0, -2, 0, 0])),
+    ///     Payoff::from([3, 0, 0, 0, -2, 0, 0]),
     /// );
     pub fn zeros() -> Self {
         Payoff::flat(Util::zero())

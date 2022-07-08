@@ -4,8 +4,8 @@ use num::Num;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use crate::core::{Payoff, PlayerIndex};
-use crate::game::{Game, Profile, Simultaneous};
+use crate::core::{Payoff, PlayerIndex, Profile};
+use crate::game::{Game, Simultaneous};
 
 /// A simultaneous move game represented by a payoff function.
 ///
