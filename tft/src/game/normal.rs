@@ -22,11 +22,11 @@ use crate::game::{Finite, FiniteSimultaneous, Game, Simultaneous};
 /// encoded directly. There are several other normal-form representations available that should
 /// usually be preferred if your game fits their special capabilities or constraints:
 ///
-/// - [`Bimatrix`] -- 2-players
-/// - [`Matrix`] -- 2-players, [zero-sum](https://en.wikipedia.org/wiki/Zero-sum_game)
-/// - [`Symmetric`] -- 2-players, [symmetric](https://en.wikipedia.org/wiki/Symmetric_game)
-/// - [`Symmetric3`] -- 3-players, symmetric
-/// - [`Symmetric4`] -- 4-players, symmetric
+/// - `Bimatrix` -- 2-players
+/// - `Matrix` -- 2-players, [zero-sum](https://en.wikipedia.org/wiki/Zero-sum_game)
+/// - `Symmetric` -- 2-players, [symmetric](https://en.wikipedia.org/wiki/Symmetric_game)
+/// - `Symmetric3` -- 3-players, symmetric
+/// - `Symmetric4` -- 4-players, symmetric
 ///
 /// # Examples
 pub struct Normal<Move, Util, const N: usize> {
@@ -95,7 +95,7 @@ where
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{Payoff, PerPlayer};
+    /// use tft::prelude::*;
     /// use tft::game::Normal;
     ///
     /// let g = Normal::matrix(
@@ -105,12 +105,12 @@ where
     /// ).unwrap();
     ///
     /// assert!(g.is_zero_sum());
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'D'])).unwrap(), Payoff::from([-3, 3]));
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'E'])).unwrap(), Payoff::from([-1, 1]));
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['B', 'D'])).unwrap(), Payoff::from([0, 0]));
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['B', 'E'])).unwrap(), Payoff::from([2, -2]));
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['C', 'D'])).unwrap(), Payoff::from([4, -4]));
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['C', 'E'])).unwrap(), Payoff::from([6, -6]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'D'])).unwrap(), Payoff::from([-3, 3]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'E'])).unwrap(), Payoff::from([-1, 1]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'D'])).unwrap(), Payoff::from([0, 0]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'E'])).unwrap(), Payoff::from([2, -2]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['C', 'D'])).unwrap(), Payoff::from([4, -4]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['C', 'E'])).unwrap(), Payoff::from([6, -6]));
     /// ```
     pub fn matrix(
         p0_moves: Vec<Move>,
@@ -133,7 +133,7 @@ where
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{Payoff, PerPlayer};
+    /// use tft::prelude::*;
     /// use tft::game::Normal;
     ///
     /// let g = Normal::bimatrix(
@@ -143,12 +143,12 @@ where
     ///     vec![5, 0, 1, 2, 4, 3],
     /// ).unwrap();
     ///
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'D'])).unwrap(), Payoff::from([0, 5]));
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['A', 'E'])).unwrap(), Payoff::from([5, 0]));
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['B', 'D'])).unwrap(), Payoff::from([4, 1]));
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['B', 'E'])).unwrap(), Payoff::from([3, 2]));
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['C', 'D'])).unwrap(), Payoff::from([2, 4]));
-    /// assert_eq!(*g.payoff(&PerPlayer::new(['C', 'E'])).unwrap(), Payoff::from([1, 3]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'D'])).unwrap(), Payoff::from([0, 5]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'E'])).unwrap(), Payoff::from([5, 0]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'D'])).unwrap(), Payoff::from([4, 1]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'E'])).unwrap(), Payoff::from([3, 2]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['C', 'D'])).unwrap(), Payoff::from([2, 4]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['C', 'E'])).unwrap(), Payoff::from([1, 3]));
     /// ```
     pub fn bimatrix(
         p0_moves: Vec<Move>,
@@ -170,7 +170,7 @@ where
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{Payoff, PerPlayer};
+    /// use tft::prelude::*;
     /// use tft::game::Normal;
     ///
     /// let pd = Normal::symmetric_for2(
@@ -178,10 +178,10 @@ where
     ///     vec![2, 0, 3, 1],
     /// ).unwrap();
     ///
-    /// assert_eq!(*pd.payoff(&PerPlayer::new(['C', 'C'])).unwrap(), Payoff::from([2, 2]));
-    /// assert_eq!(*pd.payoff(&PerPlayer::new(['C', 'D'])).unwrap(), Payoff::from([0, 3]));
-    /// assert_eq!(*pd.payoff(&PerPlayer::new(['D', 'C'])).unwrap(), Payoff::from([3, 0]));
-    /// assert_eq!(*pd.payoff(&PerPlayer::new(['D', 'D'])).unwrap(), Payoff::from([1, 1]));
+    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'C'])).unwrap(), Payoff::from([2, 2]));
+    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'D'])).unwrap(), Payoff::from([0, 3]));
+    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'C'])).unwrap(), Payoff::from([3, 0]));
+    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'D'])).unwrap(), Payoff::from([1, 1]));
     /// ```
     pub fn symmetric_for2(moves: Vec<Move>, utils: Vec<Util>) -> Option<Normal<Move, Util, 2>> {
         let side = moves.len();
@@ -218,7 +218,7 @@ where
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{Payoff, PerPlayer};
+    /// use tft::prelude::*;
     /// use tft::game::Normal;
     ///
     /// let pd3 = Normal::symmetric_for3(
@@ -226,14 +226,14 @@ where
     ///     vec![4, 1, 1, 0, 5, 3, 3, 2],
     /// ).unwrap();
     ///
-    /// assert_eq!(*pd3.payoff(&PerPlayer::new(['C', 'C', 'C'])).unwrap(), Payoff::from([4, 4, 4]));
-    /// assert_eq!(*pd3.payoff(&PerPlayer::new(['C', 'C', 'D'])).unwrap(), Payoff::from([1, 1, 5]));
-    /// assert_eq!(*pd3.payoff(&PerPlayer::new(['C', 'D', 'C'])).unwrap(), Payoff::from([1, 5, 1]));
-    /// assert_eq!(*pd3.payoff(&PerPlayer::new(['C', 'D', 'D'])).unwrap(), Payoff::from([0, 3, 3]));
-    /// assert_eq!(*pd3.payoff(&PerPlayer::new(['D', 'C', 'C'])).unwrap(), Payoff::from([5, 1, 1]));
-    /// assert_eq!(*pd3.payoff(&PerPlayer::new(['D', 'C', 'D'])).unwrap(), Payoff::from([3, 0, 3]));
-    /// assert_eq!(*pd3.payoff(&PerPlayer::new(['D', 'D', 'C'])).unwrap(), Payoff::from([3, 3, 0]));
-    /// assert_eq!(*pd3.payoff(&PerPlayer::new(['D', 'D', 'D'])).unwrap(), Payoff::from([2, 2, 2]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'C'])).unwrap(), Payoff::from([4, 4, 4]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'D'])).unwrap(), Payoff::from([1, 1, 5]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'C'])).unwrap(), Payoff::from([1, 5, 1]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'D'])).unwrap(), Payoff::from([0, 3, 3]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'C'])).unwrap(), Payoff::from([5, 1, 1]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'D'])).unwrap(), Payoff::from([3, 0, 3]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'C'])).unwrap(), Payoff::from([3, 3, 0]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'D'])).unwrap(), Payoff::from([2, 2, 2]));
     /// ```
     pub fn symmetric_for3(moves: Vec<Move>, utils: Vec<Util>) -> Option<Normal<Move, Util, 3>> {
         let side = moves.len();
@@ -277,7 +277,7 @@ where
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{Payoff, PerPlayer};
+    /// use tft::prelude::*;
     /// use tft::game::Normal;
     ///
     /// let pd4 = Normal::symmetric_for4(
@@ -285,22 +285,22 @@ where
     ///     vec![6, 2, 2, 1, 2, 1, 1, 0, 7, 5, 5, 4, 5, 4, 4, 3],
     /// ).unwrap();
     ///
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['C', 'C', 'C', 'C'])).unwrap(), Payoff::from([6, 6, 6, 6]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['C', 'C', 'C', 'D'])).unwrap(), Payoff::from([2, 2, 2, 7]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['C', 'C', 'D', 'C'])).unwrap(), Payoff::from([2, 2, 7, 2]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['C', 'C', 'D', 'D'])).unwrap(), Payoff::from([1, 1, 5, 5]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['C', 'D', 'C', 'C'])).unwrap(), Payoff::from([2, 7, 2, 2]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['C', 'D', 'C', 'D'])).unwrap(), Payoff::from([1, 5, 1, 5]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['C', 'D', 'D', 'C'])).unwrap(), Payoff::from([1, 5, 5, 1]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['C', 'D', 'D', 'D'])).unwrap(), Payoff::from([0, 4, 4, 4]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['D', 'C', 'C', 'C'])).unwrap(), Payoff::from([7, 2, 2, 2]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['D', 'C', 'C', 'D'])).unwrap(), Payoff::from([5, 1, 1, 5]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['D', 'C', 'D', 'C'])).unwrap(), Payoff::from([5, 1, 5, 1]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['D', 'C', 'D', 'D'])).unwrap(), Payoff::from([4, 0, 4, 4]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['D', 'D', 'C', 'C'])).unwrap(), Payoff::from([5, 5, 1, 1]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['D', 'D', 'C', 'D'])).unwrap(), Payoff::from([4, 4, 0, 4]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['D', 'D', 'D', 'C'])).unwrap(), Payoff::from([4, 4, 4, 0]));
-    /// assert_eq!(*pd4.payoff(&PerPlayer::new(['D', 'D', 'D', 'D'])).unwrap(), Payoff::from([3, 3, 3, 3]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'C'])).unwrap(), Payoff::from([6, 6, 6, 6]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'D'])).unwrap(), Payoff::from([2, 2, 2, 7]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'C'])).unwrap(), Payoff::from([2, 2, 7, 2]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'D'])).unwrap(), Payoff::from([1, 1, 5, 5]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'C'])).unwrap(), Payoff::from([2, 7, 2, 2]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'D'])).unwrap(), Payoff::from([1, 5, 1, 5]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'C'])).unwrap(), Payoff::from([1, 5, 5, 1]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'D'])).unwrap(), Payoff::from([0, 4, 4, 4]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'C'])).unwrap(), Payoff::from([7, 2, 2, 2]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'D'])).unwrap(), Payoff::from([5, 1, 1, 5]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'C'])).unwrap(), Payoff::from([5, 1, 5, 1]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'D'])).unwrap(), Payoff::from([4, 0, 4, 4]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'C'])).unwrap(), Payoff::from([5, 5, 1, 1]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'D'])).unwrap(), Payoff::from([4, 4, 0, 4]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'C'])).unwrap(), Payoff::from([4, 4, 4, 0]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'D'])).unwrap(), Payoff::from([3, 3, 3, 3]));
     /// ```
     pub fn symmetric_for4(moves: Vec<Move>, utils: Vec<Util>) -> Option<Normal<Move, Util, 4>> {
         let side = moves.len();

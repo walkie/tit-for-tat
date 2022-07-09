@@ -146,7 +146,8 @@ pub trait FiniteSimultaneous<const N: usize>: Finite<N> + Simultaneous<N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::game::{FiniteSimultaneous, Normal};
+    /// use tft::prelude::*;
+    /// use tft::game::Normal;
     ///
     /// let rps = Normal::symmetric_for2(
     ///     vec!["Rock", "Paper", "Scissors"],
@@ -172,8 +173,8 @@ pub trait FiniteSimultaneous<const N: usize>: Finite<N> + Simultaneous<N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{for2, PerPlayer};
-    /// use tft::game::{FiniteSimultaneous, Normal};
+    /// use tft::prelude::*;
+    /// use tft::game::Normal;
     ///
     /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
     /// enum RPS { Rock, Paper, Scissors };
@@ -231,8 +232,8 @@ pub trait FiniteSimultaneous<const N: usize>: Finite<N> + Simultaneous<N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::PerPlayer;
-    /// use tft::game::{FiniteSimultaneous, Normal};
+    /// use tft::prelude::*;
+    /// use tft::game::Normal;
     ///
     /// let dilemma = Normal::symmetric_for2(
     ///     vec!['C', 'D'],
@@ -268,8 +269,8 @@ pub trait FiniteSimultaneous<const N: usize>: Finite<N> + Simultaneous<N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::PerPlayer;
-    /// use tft::game::{FiniteSimultaneous, Normal};
+    /// use tft::prelude::*;
+    /// use tft::game::Normal;
     ///
     /// let dilemma = Normal::symmetric_for2(
     ///     vec!['C', 'D'],
@@ -303,12 +304,12 @@ pub trait FiniteSimultaneous<const N: usize>: Finite<N> + Simultaneous<N> {
     /// Get all dominated move relationships for the given player. If a move is dominated by
     /// multiple different moves, it will contain multiple entries in the returned vector.
     ///
-    /// See the documentation for [`Dominated`](tft::solution::Dominated) for more info.
+    /// See the documentation for [`Dominated`](crate::solution::Dominated) for more info.
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{for2, Payoff, PerPlayer};
-    /// use tft::game::{FiniteSimultaneous, Normal};
+    /// use tft::prelude::*;
+    /// use tft::game::Normal;
     /// use tft::solution::Dominated;
     ///
     /// let g = Normal::new(

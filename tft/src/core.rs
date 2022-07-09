@@ -1,9 +1,9 @@
 //! Defines core types and data structures used throughout the library.
 
-mod outcome;
-mod payoff;
-mod per_player;
-mod profile;
+pub(crate) mod outcome;
+pub(crate) mod payoff;
+pub(crate) mod per_player;
+pub(crate) mod profile;
 
 pub use outcome::*;
 pub use payoff::*;

@@ -23,7 +23,7 @@ use crate::core::{PerPlayer, PlayerIndex};
 /// ```
 ///
 /// The [`Payoff::flat`] function constructs a payoff in which every player receives the same
-/// utility (i.e. a "flat" distribution of utilities). The [`Payoff:zeros`] function constructs a
+/// utility (i.e. a "flat" distribution of utilities). The [`Payoff::zeros`] function constructs a
 /// flat distribution of zeros. Note that the the size of the payoff will be determined by the
 /// ["const generic"](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html)
 /// argument `N`, which can often be inferred from the context in which the payoff is
