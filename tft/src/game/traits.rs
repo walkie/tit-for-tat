@@ -3,7 +3,9 @@
 use std::cmp::Ordering;
 use std::iter::Iterator;
 
-use crate::core::{IsMove, IsUtility, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile, ProfileIter};
+use crate::core::{
+    IsMove, IsUtility, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile, ProfileIter,
+};
 use crate::solution::Dominated;
 
 /// The most general trait for games. Includes associated types and methods that all games must
@@ -39,7 +41,6 @@ pub trait Game<const N: usize> {
 
 /// A game with a finite set of available moves at each decision point.
 pub trait Finite<const N: usize>: Game<N> {
-
     /// Get the set of moves available at the given execution state.
     fn available_moves_for_player_at_state(
         &self,

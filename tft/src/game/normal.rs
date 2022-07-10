@@ -351,4 +351,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Simultaneous<N> for Normal<M
     }
 }
 
-impl<Move: IsMove, Util: IsUtility, const N: usize> FiniteSimultaneous<N> for Normal<Move, Util, N> {}
+impl<Move: IsMove, Util: IsUtility, const N: usize> FiniteSimultaneous<N>
+    for Normal<Move, Util, N>
+{
+}
