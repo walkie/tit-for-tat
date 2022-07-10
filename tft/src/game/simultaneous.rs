@@ -1,11 +1,6 @@
 //! Games where players select their moves simultaneously.
 
-use num::Num;
-use std::fmt::Debug;
-use std::hash::Hash;
-
-use crate::core::{Payoff, PlayerIndex, Profile};
-use crate::game::{Game, Simultaneous};
+use crate::prelude::*;
 
 /// A simultaneous move game represented by a payoff function.
 ///
@@ -61,11 +56,7 @@ pub struct PayoffFn<Move, Util, const N: usize> {
     payoff_fn: Box<dyn Fn(Profile<Move, N>) -> Option<Payoff<Util, N>>>,
 }
 
-impl<Move, Util, const N: usize> PayoffFn<Move, Util, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
+impl<Move: IsMove, Util: IsUtility, const N: usize> PayoffFn<Move, Util, N> {
     /// Construct a new simultaneous move game from two functions:
     /// - `move_fn` -- Is the given move valid for the given player?
     /// - `payoff_fn` -- Get the payoff given the moves for each player.
@@ -80,11 +71,7 @@ where
     }
 }
 
-impl<Move, Util, const N: usize> Game<N> for PayoffFn<Move, Util, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
+impl<Move: IsMove, Util: IsUtility, const N: usize> Game<N> for PayoffFn<Move, Util, N> {
     type Move = Move;
     type Utility = Util;
     type State = ();
@@ -101,11 +88,7 @@ where
     }
 }
 
-impl<Move, Util, const N: usize> Simultaneous<N> for PayoffFn<Move, Util, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
+impl<Move: IsMove, Util: IsUtility, const N: usize> Simultaneous<N> for PayoffFn<Move, Util, N> {
     fn payoff(&self, profile: Profile<Move, N>) -> Option<Payoff<Util, N>> {
         (*self.payoff_fn)(profile)
     }

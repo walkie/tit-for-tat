@@ -2,45 +2,39 @@
 
 use itertools::structs::MultiProduct;
 use itertools::Itertools;
-use std::fmt::Debug;
-use std::hash::Hash;
 use std::iter::Iterator;
 
-use crate::core::{PerPlayer, PlayerIndex};
+use crate::core::{IsMove, MoveIter, PerPlayer, PlayerIndex};
 
 /// A pure strategy profile for a simultaneous game: one move played by each player.
 pub type Profile<Move, const N: usize> = PerPlayer<Move, N>;
 
 /// An iterator over all of the pure strategy profiles that can be generated from the moves
 /// available to each player.
-#[derive(Clone, Debug)]
-pub struct ProfileIter<Move: Copy, MoveIter: Iterator<Item = Move> + Clone, const N: usize> {
+#[derive(Clone)]
+pub struct ProfileIter<'game, Move: Copy, const N: usize> {
     /// Moves that must be included in any generated profile, for each player.
     includes: PerPlayer<Vec<Move>, N>,
     /// Moves that must be excluded from any generated profile, for each player.
     excludes: PerPlayer<Vec<Move>, N>,
     /// The multi-product iterator used to generate each profile.
-    multi_iter: MultiProduct<MoveIter>,
+    multi_iter: MultiProduct<MoveIter<'game, Move>>,
 }
 
-impl<Move, MoveIter, const N: usize> ProfileIter<Move, MoveIter, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-    MoveIter: Iterator<Item = Move> + Clone,
-{
+impl<'game, Move: IsMove, const N: usize> ProfileIter<'game, Move, N> {
     /// Construct a new profile iterator from a per-player collection of iterators over the moves
     /// available to each player.
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{PerPlayer, ProfileIter};
+    /// use tft::core::{MoveIter, PerPlayer, ProfileIter};
     ///
-    /// let moves = PerPlayer::new([
-    ///     vec!['A', 'B', 'C'].into_iter(),
-    ///     vec!['D', 'E'].into_iter(),
-    ///     vec!['F', 'G'].into_iter(),
+    /// let move_iters = PerPlayer::new([
+    ///     MoveIter::new(vec!['A', 'B', 'C'].into_iter()),
+    ///     MoveIter::new(vec!['D', 'E'].into_iter()),
+    ///     MoveIter::new(vec!['F', 'G'].into_iter()),
     /// ]);
-    /// let mut iter = ProfileIter::from_move_iters(moves);
+    /// let iter = ProfileIter::from_move_iters(move_iters);
     /// assert_eq!(
     ///     iter.collect::<Vec<PerPlayer<char, 3>>>(),
     ///     vec![
@@ -53,12 +47,34 @@ where
     ///     ],
     /// );
     /// ```
-    pub fn from_move_iters(move_iters: PerPlayer<MoveIter, N>) -> Self {
+    pub fn from_move_iters(move_iters: PerPlayer<MoveIter<'game, Move>, N>) -> Self {
         ProfileIter {
             includes: PerPlayer::init_with(Vec::new()),
             excludes: PerPlayer::init_with(Vec::new()),
             multi_iter: move_iters.into_iter().multi_cartesian_product(),
         }
+    }
+
+    /// Construct a new profile iterator from a per-player collection of vectors of available moves
+    /// for each player.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for2, PerPlayer, ProfileIter};
+    ///
+    /// let moves = PerPlayer::new([
+    ///     vec!['A', 'B', 'C', 'D'],
+    ///     vec!['E', 'F', 'G'],
+    /// ]);
+    /// let mut iter = ProfileIter::from_move_vecs(moves).include(for2::P1, 'F');
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'F'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'F'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['C', 'F'])));
+    /// assert_eq!(iter.next(), Some(PerPlayer::new(['D', 'F'])));
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    pub fn from_move_vecs(move_vecs: PerPlayer<Vec<Move>, N>) -> Self {
+        ProfileIter::from_move_iters(move_vecs.map(|v| MoveIter::new(v.into_iter())))
     }
 
     /// Construct a new profile iterator for a game where each player has the same set of available
@@ -68,9 +84,10 @@ where
     ///
     /// Generating all profiles for a symmetric 2-player game:
     /// ```
-    /// use tft::core::{PerPlayer, ProfileIter};
+    /// use tft::core::{MoveIter, PerPlayer, ProfileIter};
     ///
-    /// let mut iter = ProfileIter::symmetric(vec!['X', 'O'].into_iter());
+    /// let move_iter = MoveIter::new(vec!['X', 'O'].into_iter());
+    /// let iter = ProfileIter::symmetric(move_iter);
     /// assert_eq!(
     ///     iter.collect::<Vec<PerPlayer<char, 2>>>(),
     ///     vec![
@@ -79,7 +96,8 @@ where
     ///     ],
     /// );
     ///
-    /// let mut iter = ProfileIter::symmetric(vec!['A', 'B', 'C'].into_iter());
+    /// let move_iter = MoveIter::new(vec!['A', 'B', 'C'].into_iter());
+    /// let iter = ProfileIter::symmetric(move_iter);
     /// assert_eq!(
     ///     iter.collect::<Vec<PerPlayer<char, 2>>>(),
     ///     vec![
@@ -92,9 +110,10 @@ where
     ///
     /// Generating all profiles for a symmetric 3-player game:
     /// ```
-    /// use tft::core::{PerPlayer, ProfileIter};
+    /// use tft::core::{MoveIter, PerPlayer, ProfileIter};
     ///
-    /// let mut iter = ProfileIter::symmetric(vec!['X', 'O'].into_iter());
+    /// let move_iter = MoveIter::new(vec!['X', 'O'].into_iter());
+    /// let iter = ProfileIter::symmetric(move_iter);
     /// assert_eq!(
     ///     iter.collect::<Vec<PerPlayer<char, 3>>>(),
     ///     vec![
@@ -105,7 +124,7 @@ where
     ///     ],
     /// );
     /// ```
-    pub fn symmetric(move_iter: MoveIter) -> Self {
+    pub fn symmetric(move_iter: MoveIter<'game, Move>) -> Self {
         ProfileIter::from_move_iters(PerPlayer::init_with(move_iter))
     }
 
@@ -144,9 +163,10 @@ where
     ///
     /// Constraining multiple players' moves by chaining invocations of this method:
     /// ```
-    /// use tft::core::{for3, PerPlayer, ProfileIter};
+    /// use tft::core::{for3, MoveIter, PerPlayer, ProfileIter};
     ///
-    /// let mut iter = ProfileIter::symmetric(vec!['A', 'B', 'C'].into_iter())
+    /// let move_iter = MoveIter::new(vec!['A', 'B', 'C'].into_iter());
+    /// let mut iter = ProfileIter::symmetric(move_iter)
     ///     .include(for3::P0, 'A')
     ///     .include(for3::P2, 'C');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'A', 'C'])));
@@ -230,9 +250,10 @@ where
     ///
     /// Combining with [`include`](ProfileIter::include):
     /// ```
-    /// use tft::core::{for3, PerPlayer, ProfileIter};
+    /// use tft::core::{for3, MoveIter, PerPlayer, ProfileIter};
     ///
-    /// let mut iter = ProfileIter::symmetric(vec!['A', 'B', 'C'].into_iter())
+    /// let move_iter = MoveIter::new(vec!['A', 'B', 'C'].into_iter());
+    /// let mut iter = ProfileIter::symmetric(move_iter)
     ///     .exclude(for3::P0, 'A')
     ///     .exclude(for3::P1, 'B')
     ///     .include(for3::P2, 'C');
@@ -256,9 +277,10 @@ where
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{for5, PerPlayer, ProfileIter};
+    /// use tft::core::{for5, MoveIter, PerPlayer, ProfileIter};
     ///
-    /// let mut iter = ProfileIter::symmetric(vec![1, 2, 3, 4, 5].into_iter())
+    /// let move_iter = MoveIter::new(vec![1, 2, 3, 4, 5].into_iter());
+    /// let mut iter = ProfileIter::symmetric(move_iter)
     ///     .adjacent(for5::P3, PerPlayer::new([5, 4, 3, 2, 1]));
     /// assert_eq!(iter.next(), Some(PerPlayer::new([5, 4, 3, 1, 1])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new([5, 4, 3, 3, 1])));
@@ -279,38 +301,7 @@ where
     }
 }
 
-impl<Move, const N: usize> ProfileIter<Move, std::vec::IntoIter<Move>, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-{
-    /// Construct a new profile iterator from a per-player collection of vectors of available moves
-    /// for each player.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::{for2, PerPlayer, ProfileIter};
-    ///
-    /// let moves = PerPlayer::new([
-    ///     vec!['A', 'B', 'C', 'D'],
-    ///     vec!['E', 'F', 'G'],
-    /// ]);
-    /// let mut iter = ProfileIter::from_move_vecs(moves).include(for2::P1, 'F');
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'F'])));
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'F'])));
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['C', 'F'])));
-    /// assert_eq!(iter.next(), Some(PerPlayer::new(['D', 'F'])));
-    /// assert_eq!(iter.next(), None);
-    /// ```
-    pub fn from_move_vecs(move_vecs: PerPlayer<Vec<Move>, N>) -> Self {
-        ProfileIter::from_move_iters(move_vecs.map(|v| v.into_iter()))
-    }
-}
-
-impl<Move, MoveIter, const N: usize> Iterator for ProfileIter<Move, MoveIter, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-    MoveIter: Iterator<Item = Move> + Clone,
-{
+impl<'game, Move: IsMove, const N: usize> Iterator for ProfileIter<'game, Move, N> {
     type Item = Profile<Move, N>;
 
     fn next(&mut self) -> Option<Profile<Move, N>> {

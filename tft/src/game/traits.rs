@@ -1,12 +1,9 @@
 //! Defines traits over various classes of games.
 
-use num::Num;
 use std::cmp::Ordering;
-use std::fmt::Debug;
-use std::hash::Hash;
 use std::iter::Iterator;
 
-use crate::core::{OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile, ProfileIter};
+use crate::core::{IsMove, IsUtility, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile, ProfileIter};
 use crate::solution::Dominated;
 
 /// The most general trait for games. Includes associated types and methods that all games must
@@ -15,10 +12,10 @@ use crate::solution::Dominated;
 /// The const type variable `N` indicates the number of players this game is for.
 pub trait Game<const N: usize> {
     /// The type of moves played during the game.
-    type Move: Copy + Debug + Eq + Hash;
+    type Move: IsMove;
 
     /// The type of utility value awarded to each player in the payoff at the end of the game.
-    type Utility: Copy + Debug + Num + Ord;
+    type Utility: IsUtility;
 
     /// The type of state maintained while executing an iteration of this game.
     type State: Clone;
@@ -42,15 +39,13 @@ pub trait Game<const N: usize> {
 
 /// A game with a finite set of available moves at each decision point.
 pub trait Finite<const N: usize>: Game<N> {
-    /// An iterator over available moves.
-    type MoveIter: Clone + Iterator<Item = Self::Move>;
 
     /// Get the set of moves available at the given execution state.
     fn available_moves_for_player_at_state(
         &self,
         player: PlayerIndex<N>,
         state: &Self::State,
-    ) -> Self::MoveIter;
+    ) -> MoveIter<Self::Move>;
 }
 
 /// A game in which each player plays a single move without knowledge of the other players' moves.
@@ -100,27 +95,29 @@ pub trait Simultaneous<const N: usize>: Game<N, State = ()> {
 /// Each player plays a single move from a finite set of available moves, without knowledge of
 /// other players' moves.
 ///
-/// Note that many of this trait's default method implementations are naive algorithms that iterate
-/// over all of the outcomes of the game. Implementors of this trait should provide more efficient
-/// implementations, where possible.
+/// Note that this trait has no required methods, and so may be trivially implemented for any type
+/// that implements both the [`Finite`] and [`Simultaneous`] traits. However, many of this trait's
+/// default method implementations are naive algorithms that iterate over all of the outcomes of
+/// the game. Implementors of this trait should provide more efficient implementations, where
+/// possible.
 pub trait FiniteSimultaneous<const N: usize>: Finite<N> + Simultaneous<N> {
     /// Iterate over the moves available to the given player.
-    fn available_moves_for_player(&self, player: PlayerIndex<N>) -> Self::MoveIter {
+    fn available_moves_for_player(&self, player: PlayerIndex<N>) -> MoveIter<'_, Self::Move> {
         self.available_moves_for_player_at_state(player, &())
     }
 
     /// Get iterators for moves available to each player.
-    fn available_moves(&self) -> PerPlayer<Self::MoveIter, N> {
+    fn available_moves(&self) -> PerPlayer<MoveIter<Self::Move>, N> {
         PerPlayer::generate(|player| self.available_moves_for_player(player))
     }
 
     /// An iterator over all of the valid pure strategy profiles for this game.
-    fn profiles(&self) -> ProfileIter<Self::Move, Self::MoveIter, N> {
+    fn profiles(&self) -> ProfileIter<Self::Move, N> {
         ProfileIter::from_move_iters(self.available_moves())
     }
 
     /// An iterator over all possible outcomes of the game.
-    fn outcomes(&self) -> OutcomeIter<Self::Move, Self::MoveIter, Self::Utility, N> {
+    fn outcomes(&self) -> OutcomeIter<Self::Move, Self::Utility, N> {
         let payoff_fn = |profile| {
             if let Some(payoff) = self.payoff(profile) {
                 payoff

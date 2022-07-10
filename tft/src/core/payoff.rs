@@ -2,15 +2,22 @@
 
 use derive_more::{AsMut, AsRef, Index, IndexMut};
 use num::{FromPrimitive, Num};
+use std::fmt::Debug;
 use std::ops::{Add, Mul, Sub};
 
 use crate::core::{PerPlayer, PlayerIndex};
 
+/// A trait that collects the trait requirements of payoff utility values.
+///
+/// A blanket implementation covers all types that meet the requirements, so this trait should not
+/// be implemented directly.
+pub trait IsUtility: Copy + Debug + Num + Ord {}
+impl<T: Copy + Debug + Num + Ord> IsUtility for T {}
+
 /// A collection containing the utility values awarded to each player at the end of a game.
 ///
 /// This struct is a wrapper around a [`PerPlayer`] collection. A payoff of type `Payoff<Util, N>`
-/// awards a (typically numeric) utility value of type `Util` to each player in a game among `N`
-/// players.
+/// awards a (numeric) utility value of type `Util` to each player in a game among `N` players.
 ///
 /// # Constructing payoffs
 ///
@@ -96,7 +103,7 @@ pub struct Payoff<Util, const N: usize> {
     utilities: PerPlayer<Util, N>,
 }
 
-impl<Util, const N: usize> Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Payoff<Util, N> {
     /// Construct a new payoff from a `PerPlayer` collection of utilities.
     ///
     /// Use [`Payoff::from`] to construct a payoff from a simple array of utilities.
@@ -109,6 +116,44 @@ impl<Util, const N: usize> Payoff<Util, N> {
     /// ```
     pub fn new(utilities: PerPlayer<Util, N>) -> Self {
         Payoff { utilities }
+    }
+
+    /// Construct a payoff where every player's utility is identical.
+    ///
+    /// Note that the size of the payoff is determined by the type parameter `N`, which
+    /// can often be inferred by context.
+    ///
+    /// It is often useful to chain one or more applications of the [`Payoff::except`] method after
+    /// constructing a flat payoff to adjust the utility for individual players.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for8, Payoff};
+    ///
+    /// assert_eq!(Payoff::flat(2), Payoff::from([2, 2, 2]));
+    /// assert_eq!(
+    ///     Payoff::flat(1).except(for8::P2, 5).except(for8::P5, -7),
+    ///     Payoff::from([1, 1, 5, 1, 1, -7, 1, 1]),
+    /// );
+    /// ```
+    pub fn flat(utility: Util) -> Self {
+        Payoff::from([utility; N])
+    }
+
+    /// Construct a payoff where every player's utility is zero.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::{for7, Payoff};
+    ///
+    /// assert_eq!(Payoff::zeros(), Payoff::from([0, 0, 0]));
+    ///
+    /// assert_eq!(
+    ///     Payoff::zeros().except(for7::P0, 3).except(for7::P4, -2),
+    ///     Payoff::from([3, 0, 0, 0, -2, 0, 0]),
+    /// );
+    pub fn zeros() -> Self {
+        Payoff::flat(Util::zero())
     }
 
     /// Change the utility corresponding to the given player index.
@@ -155,13 +200,13 @@ impl<Util, const N: usize> Payoff<Util, N> {
     ///
     /// let p = Payoff::from([1, -2, 3]);
     ///
-    /// assert_eq!(p.for_player(0), Some(&1));
-    /// assert_eq!(p.for_player(1), Some(&-2));
-    /// assert_eq!(p.for_player(2), Some(&3));
+    /// assert_eq!(p.for_player(0), Some(1));
+    /// assert_eq!(p.for_player(1), Some(-2));
+    /// assert_eq!(p.for_player(2), Some(3));
     /// assert_eq!(p.for_player(3), None);
     /// ```
-    pub fn for_player(&self, i: usize) -> Option<&Util> {
-        self.utilities.for_player(i)
+    pub fn for_player(&self, i: usize) -> Option<Util> {
+        self.utilities.for_player(i).copied()
     }
 
     /// Get a mutable reference to the utility for the `i`th player in the game. Returns `None` if
@@ -172,55 +217,13 @@ impl<Util, const N: usize> Payoff<Util, N> {
     /// let mut p = Payoff::from([1, -2, 3]);
     /// *p.for_player_mut(1).unwrap() = 4;
     ///
-    /// assert_eq!(p.for_player(0), Some(&1));
-    /// assert_eq!(p.for_player(1), Some(&4));
-    /// assert_eq!(p.for_player(2), Some(&3));
+    /// assert_eq!(p.for_player(0), Some(1));
+    /// assert_eq!(p.for_player(1), Some(4));
+    /// assert_eq!(p.for_player(2), Some(3));
     /// assert_eq!(p.for_player(3), None);
     /// ```
     pub fn for_player_mut(&mut self, i: usize) -> Option<&mut Util> {
         self.utilities.for_player_mut(i)
-    }
-}
-
-impl<Util: Copy, const N: usize> Payoff<Util, N> {
-    /// Construct a payoff where every player's utility is identical.
-    ///
-    /// Note that the size of the payoff is determined by the type parameter `N`, which
-    /// can often be inferred by context.
-    ///
-    /// It is often useful to chain one or more applications of the [`Payoff::except`] method after
-    /// constructing a flat payoff to adjust the utility for individual players.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::{for8, Payoff};
-    ///
-    /// assert_eq!(Payoff::flat(2), Payoff::from([2, 2, 2]));
-    /// assert_eq!(
-    ///     Payoff::flat(1).except(for8::P2, 5).except(for8::P5, -7),
-    ///     Payoff::from([1, 1, 5, 1, 1, -7, 1, 1]),
-    /// );
-    /// ```
-    pub fn flat(utility: Util) -> Self {
-        Payoff::from([utility; N])
-    }
-}
-
-impl<Util: Copy + Num, const N: usize> Payoff<Util, N> {
-    /// Construct a payoff where every player's utility is zero.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::{for7, Payoff};
-    ///
-    /// assert_eq!(Payoff::zeros(), Payoff::from([0, 0, 0]));
-    ///
-    /// assert_eq!(
-    ///     Payoff::zeros().except(for7::P0, 3).except(for7::P4, -2),
-    ///     Payoff::from([3, 0, 0, 0, -2, 0, 0]),
-    /// );
-    pub fn zeros() -> Self {
-        Payoff::flat(Util::zero())
     }
 
     /// Is this a zero-sum payoff? That is, do each of the utility values it contains sum to zero?
@@ -258,7 +261,7 @@ impl<Util: Copy + Num, const N: usize> Payoff<Util, N> {
     }
 }
 
-impl<Util: Copy + FromPrimitive + Num, const N: usize> Payoff<Util, N> {
+impl<Util: IsUtility + FromPrimitive, const N: usize> Payoff<Util, N> {
     /// Construct a zero-sum payoff in which one player "loses" by receiving a utility of
     /// `1-N` while all other players receive a utility of `1`.
     ///
@@ -306,7 +309,7 @@ impl<Util: Copy + FromPrimitive + Num, const N: usize> Payoff<Util, N> {
     }
 }
 
-impl<Util, const N: usize> From<[Util; N]> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> From<[Util; N]> for Payoff<Util, N> {
     /// Construct a payoff from an array of utility values.
     ///
     /// # Examples
@@ -323,7 +326,7 @@ impl<Util, const N: usize> From<[Util; N]> for Payoff<Util, N> {
     }
 }
 
-impl<Util: Copy + Num, const N: usize> Add<Util> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Add<Util> for Payoff<Util, N> {
     type Output = Self;
 
     /// Add a constant value to each utility in a payoff.
@@ -340,7 +343,7 @@ impl<Util: Copy + Num, const N: usize> Add<Util> for Payoff<Util, N> {
     }
 }
 
-impl<Util: Copy + Num, const N: usize> Sub<Util> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Sub<Util> for Payoff<Util, N> {
     type Output = Self;
 
     /// Subtract a constant value from each utility in a payoff.
@@ -357,7 +360,7 @@ impl<Util: Copy + Num, const N: usize> Sub<Util> for Payoff<Util, N> {
     }
 }
 
-impl<Util: Copy + Num, const N: usize> Mul<Util> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Mul<Util> for Payoff<Util, N> {
     type Output = Self;
 
     /// Multiply a constant value to each utility in a payoff.
@@ -374,7 +377,7 @@ impl<Util: Copy + Num, const N: usize> Mul<Util> for Payoff<Util, N> {
     }
 }
 
-impl<Util: Copy + Num, const N: usize> Add<Self> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Add<Self> for Payoff<Util, N> {
     type Output = Self;
 
     /// Combine two payoffs by adding the corresponding utilities in each.
@@ -393,7 +396,7 @@ impl<Util: Copy + Num, const N: usize> Add<Self> for Payoff<Util, N> {
     }
 }
 
-impl<Util: Copy + Num, const N: usize> Sub<Self> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Sub<Self> for Payoff<Util, N> {
     type Output = Self;
 
     /// Combine two payoffs by subtracting the corresponding utilities in the second payoff from
@@ -413,7 +416,7 @@ impl<Util: Copy + Num, const N: usize> Sub<Self> for Payoff<Util, N> {
     }
 }
 
-impl<Util: Copy + Num, const N: usize> Mul<Self> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Mul<Self> for Payoff<Util, N> {
     type Output = Self;
 
     /// Combine two payoffs by multiplying the corresponding utilities in each.

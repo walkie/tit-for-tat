@@ -1,14 +1,10 @@
 //! Games represented in normal form. Simultaneous move games with finite move sets.
 
-use num::Num;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::fmt::Debug;
-use std::hash::Hash;
 use std::iter::Iterator;
 
-use crate::core::{Payoff, PerPlayer, PlayerIndex, Profile, ProfileIter};
-use crate::game::{Finite, FiniteSimultaneous, Game, Simultaneous};
+use crate::prelude::*;
 
 /// A finite simultaneous-move game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
@@ -29,16 +25,13 @@ use crate::game::{Finite, FiniteSimultaneous, Game, Simultaneous};
 /// - `Symmetric4` -- 4-players, symmetric
 ///
 /// # Examples
+#[derive(Clone, Debug)]
 pub struct Normal<Move, Util, const N: usize> {
     moves: PerPlayer<Vec<Move>, N>,
     payoff_map: HashMap<Profile<Move, N>, Payoff<Util, N>>,
 }
 
-impl<Move, Util, const N: usize> Normal<Move, Util, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
+impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// Construct a normal-form game given the moves available to each player and a vector of
     /// payoffs in [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
     ///
@@ -82,11 +75,7 @@ where
     }
 }
 
-impl<Move, Util> Normal<Move, Util, 2>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
+impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
     /// Construct a matrix game, a two-player zero-sum game where the payoffs are defined by a
     /// single matrix of utility values.
     ///
@@ -207,11 +196,7 @@ where
     }
 }
 
-impl<Move, Util> Normal<Move, Util, 3>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
+impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 3> {
     /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) three-player
     /// normal-form game. Constructed from a list of moves available to all players and the utility
     /// values for player `P0`.
@@ -266,11 +251,7 @@ where
     }
 }
 
-impl<Move, Util> Normal<Move, Util, 4>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
+impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 4> {
     /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) four-player
     /// normal-form game. Constructed from a list of moves available to all players and the utility
     /// values for player `P0`.
@@ -337,11 +318,7 @@ where
     }
 }
 
-impl<Move, Util, const N: usize> Game<N> for Normal<Move, Util, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
+impl<Move: IsMove, Util: IsUtility, const N: usize> Game<N> for Normal<Move, Util, N> {
     type Move = Move;
     type Utility = Util;
     type State = ();
@@ -358,35 +335,20 @@ where
     }
 }
 
-impl<Move, Util, const N: usize> Finite<N> for Normal<Move, Util, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
-    type MoveIter = std::vec::IntoIter<Move>;
-
+impl<Move: IsMove, Util: IsUtility, const N: usize> Finite<N> for Normal<Move, Util, N> {
     fn available_moves_for_player_at_state(
         &self,
         player: PlayerIndex<N>,
         _state: &(),
-    ) -> Self::MoveIter {
-        self.moves[player].clone().into_iter()
+    ) -> MoveIter<'_, Move> {
+        MoveIter::new(self.moves[player].clone().into_iter())
     }
 }
 
-impl<Move, Util, const N: usize> Simultaneous<N> for Normal<Move, Util, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
+impl<Move: IsMove, Util: IsUtility, const N: usize> Simultaneous<N> for Normal<Move, Util, N> {
     fn payoff(&self, profile: Profile<Move, N>) -> Option<Payoff<Util, N>> {
         self.payoff_map.get(&profile).copied()
     }
 }
 
-impl<Move, Util, const N: usize> FiniteSimultaneous<N> for Normal<Move, Util, N>
-where
-    Move: Copy + Debug + Eq + Hash,
-    Util: Copy + Debug + Num + Ord,
-{
-}
+impl<Move: IsMove, Util: IsUtility, const N: usize> FiniteSimultaneous<N> for Normal<Move, Util, N> {}
