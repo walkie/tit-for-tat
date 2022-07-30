@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
-use crate::core::{IsMove, IsUtility, Payoff, PlayerIndex, Profile, ProfileIter};
+use crate::core::{IsMove, IsUtility, Payoff, PlayerIndex};
+use crate::norm::profile::{Profile, ProfileIter};
 
 /// A (potential) outcome of a simultaneous move game. A payoff combined with the move profile that
 /// produced it.
@@ -17,23 +18,23 @@ pub struct Outcome<Move, Util, const N: usize> {
 /// For normal-form games, this enumerates the cells of the payoff table in
 /// [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
 #[derive(Clone)]
-pub struct OutcomeIter<'game, Move: Copy, Util, const N: usize> {
-    profile_iter: ProfileIter<'game, Move, N>,
-    payoff_fn: Rc<dyn Fn(Profile<Move, N>) -> Payoff<Util, N> + 'game>,
+pub struct OutcomeIter<Move: Copy, Util, const N: usize> {
+    profile_iter: ProfileIter<Move, N>,
+    payoff_fn: Rc<dyn Fn(Profile<Move, N>) -> Payoff<Util, N>>,
 }
 
-impl<'game, Move: IsMove, Util: IsUtility, const N: usize> OutcomeIter<'game, Move, Util, N> {
+impl<Move: IsMove, Util: IsUtility, const N: usize> OutcomeIter<Move, Util, N> {
     /// Construct a new outcome iterator from a profile iterator and a function that returns the
     /// payoff for each profile.
     ///
     /// The payoff function can assume that it will only ever be called by valid profiles.
     pub fn new(
-        profile_iter: ProfileIter<'game, Move, N>,
-        payoff_fn: impl Fn(Profile<Move, N>) -> Payoff<Util, N> + 'game,
+        profile_iter: ProfileIter<Move, N>,
+        payoff_fn: Rc<dyn Fn(Profile<Move, N>) -> Payoff<Util, N>>,
     ) -> Self {
         OutcomeIter {
             profile_iter,
-            payoff_fn: Rc::new(payoff_fn),
+            payoff_fn,
         }
     }
 
@@ -93,9 +94,7 @@ impl<'game, Move: IsMove, Util: IsUtility, const N: usize> OutcomeIter<'game, Mo
     }
 }
 
-impl<'game, Move: IsMove, Util: IsUtility, const N: usize> Iterator
-    for OutcomeIter<'game, Move, Util, N>
-{
+impl<Move: IsMove, Util: IsUtility, const N: usize> Iterator for OutcomeIter<Move, Util, N> {
     type Item = Outcome<Move, Util, N>;
     fn next(&mut self) -> Option<Self::Item> {
         self.profile_iter.next().map(|profile| Outcome {

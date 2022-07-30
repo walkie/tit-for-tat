@@ -18,23 +18,22 @@ impl<I, T: DynClone + Iterator<Item = I>> CloneableIterator<I> for T {}
 
 dyn_clone::clone_trait_object!(<I> CloneableIterator<I>);
 
-/// An iterator over available moves in a [`Finite`](crate::game::Finite) or
-/// [`FiniteSimultaneous`](crate::game::FiniteSimultaneous) game.
+/// An iterator over available moves in a game with a finite move set.
 #[derive(Clone)]
-pub struct MoveIter<'game, Move> {
-    iter: Box<dyn CloneableIterator<Move> + 'game>,
+pub struct MoveIter<Move> {
+    iter: Box<dyn CloneableIterator<Move> + 'static>,
 }
 
-impl<'game, Move> MoveIter<'game, Move> {
+impl<Move> MoveIter<Move> {
     /// Construct a new move iterator.
-    pub fn new(iter: impl Clone + Iterator<Item = Move> + 'game) -> Self {
+    pub fn new(iter: impl Clone + Iterator<Item = Move> + 'static) -> Self {
         MoveIter {
             iter: Box::new(iter),
         }
     }
 }
 
-impl<'game, Move> Iterator for MoveIter<'game, Move> {
+impl<Move> Iterator for MoveIter<Move> {
     type Item = Move;
     fn next(&mut self) -> Option<Move> {
         self.iter.next()
