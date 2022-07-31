@@ -1,4 +1,4 @@
-//! Definitions related to solution concepts.
+//! Definitions related to solution concepts of normal form games.
 
 /// Captures a domination relationship between moves in a simultaneous move game.
 ///
