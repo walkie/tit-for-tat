@@ -447,18 +447,18 @@ impl<const N: usize> DoubleEndedIterator for PlayerIndexes<N> {
 /// Defines indexes into a collection of type `PerPlayer<T, 1>`.
 pub mod for1 {
     use super::PlayerIndex;
+    /// Only player in a 1-player game.
     pub const P0: PlayerIndex<1> = PlayerIndex(0);
 }
 
-/// Defines indexes into a collection of type `PerPlayer<T, 2>`, and a move type for 2-player
-/// games.
+/// Defines indexes into a collection of type `PerPlayer<T, 2>` and a move type for 2-player games.
 pub mod for2 {
     use super::PlayerIndex;
     pub const P0: PlayerIndex<2> = PlayerIndex(0);
     pub const P1: PlayerIndex<2> = PlayerIndex(1);
-    /// The *row* player in a 2-player normal form game. Defined as [`for2::P0`].
+    /// The *row* player in a 2-player normal form game. Same as [`P0`].
     pub const ROW: PlayerIndex<2> = P0;
-    /// The *column* player in a 2-player normal form game. Defined as [`for2::P1`].
+    /// The *column* player in a 2-player normal form game. Same as [`P1`].
     pub const COL: PlayerIndex<2> = P1;
 
     /// A move in a 2-player game. This type enables defining games where each player has a
@@ -472,21 +472,47 @@ pub mod for2 {
     }
 }
 
-/// Defines indexes into a collection of type `PerPlayer<T, 3>`.
+/// Defines indexes into a collection of type `PerPlayer<T, 3>` and a move type for 3-player games.
 pub mod for3 {
     use super::PlayerIndex;
     pub const P0: PlayerIndex<3> = PlayerIndex(0);
     pub const P1: PlayerIndex<3> = PlayerIndex(1);
     pub const P2: PlayerIndex<3> = PlayerIndex(2);
+
+    /// A move in a 3-player game. This type enables defining games where each player has a
+    /// different type of move.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+    pub enum Move<P0, P1, P2> {
+        /// A move for player `P0`.
+        P0(P0),
+        /// A move for player `P1`.
+        P1(P1),
+        /// A move for player `P2`.
+        P2(P2),
+    }
 }
 
-/// Defines indexes into a collection of type `PerPlayer<T, 4>`.
+/// Defines indexes into a collection of type `PerPlayer<T, 4>` and a move type for 4-player games.
 pub mod for4 {
     use super::PlayerIndex;
     pub const P0: PlayerIndex<4> = PlayerIndex(0);
     pub const P1: PlayerIndex<4> = PlayerIndex(1);
     pub const P2: PlayerIndex<4> = PlayerIndex(2);
     pub const P3: PlayerIndex<4> = PlayerIndex(3);
+
+    /// A move in a 4-player game. This type enables defining games where each player has a
+    /// different type of move.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+    pub enum Move<P0, P1, P2, P3> {
+        /// A move for player `P0`.
+        P0(P0),
+        /// A move for player `P1`.
+        P1(P1),
+        /// A move for player `P2`.
+        P2(P2),
+        /// A move for player `P3`.
+        P3(P3),
+    }
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 5>`.

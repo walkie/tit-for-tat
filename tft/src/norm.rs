@@ -140,7 +140,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
 
     /// Get the payoff for the given strategy profile.
     ///
-    /// This method should only be called with [valid](Simultaneous::is_valid_profile) profiles.
+    /// This method should only be called with [valid](Normal::is_valid_profile) profiles.
     /// For invalid profiles, this method will return an arbitrary payoff.
     pub fn payoff(&self, profile: Profile<Move, N>) -> Payoff<Util, N> {
         (*self.payoff_fn)(profile)
@@ -309,7 +309,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// Get all dominated move relationships for the given player. If a move is dominated by
     /// multiple different moves, it will contain multiple entries in the returned vector.
     ///
-    /// See the documentation for [`Dominated`](crate::solution::Dominated) for more info.
+    /// See the documentation for [`Dominated`](crate::norm::Dominated) for more info.
     ///
     /// # Examples
     /// ```

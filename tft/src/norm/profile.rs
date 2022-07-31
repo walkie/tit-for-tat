@@ -9,8 +9,10 @@ use crate::core::{IsMove, MoveIter, PerPlayer, PlayerIndex};
 // Re-export `Profile` type definition here.
 pub use crate::simo::Profile;
 
-/// An iterator over all of the pure strategy profiles that can be generated from the moves
-/// available to each player.
+/// An iterator over all pure strategy profiles for a normal-form game.
+///
+/// This iterator enumerates all profiles that can be produced from the moves available to each
+/// player.
 #[derive(Clone)]
 pub struct ProfileIter<Move: Copy, const N: usize> {
     /// Moves that must be included in any generated profile, for each player.
