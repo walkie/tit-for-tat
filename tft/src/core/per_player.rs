@@ -363,7 +363,7 @@ impl<const N: usize> PlayerIndex<N> {
 
 impl<const N: usize> From<PlayerIndex<N>> for usize {
     fn from(index: PlayerIndex<N>) -> usize {
-        index.0
+        index.as_usize()
     }
 }
 

@@ -111,6 +111,158 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
         Some(Self::from_payoff_map(moves, payoff_map))
     }
 
+    /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) normal-form game.
+    ///
+    /// A symmetric game is the same from the perspective of every player.
+    ///
+    /// The game is constructed from a list of available moves and a vector of utility values for
+    /// player `P0` in [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
+    ///
+    /// # Examples
+    ///
+    /// The classic [prisoner's dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma) is an
+    /// example of a symmetric 2-player game:
+    /// ```
+    /// use tft::core::*;
+    /// use tft::norm::*;
+    ///
+    /// let pd = Normal::symmetric(
+    ///     vec!['C', 'D'],
+    ///     vec![2, 0, 3, 1],
+    /// ).unwrap();
+    ///
+    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'C'])), Payoff::from([2, 2]));
+    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'D'])), Payoff::from([0, 3]));
+    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'C'])), Payoff::from([3, 0]));
+    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'D'])), Payoff::from([1, 1]));
+    /// ```
+    ///
+    /// Symmetric games can be more than two players. Here's an example of a
+    /// [3-player prisoner's dilemma](https://classes.cs.uchicago.edu/archive/1998/fall/CS105/Project/node6.html),
+    /// where each player's moves and payoffs are symmetric:
+    ///
+    /// ```
+    /// use tft::core::*;
+    /// use tft::norm::*;
+    ///
+    /// let pd3 = Normal::symmetric(
+    ///     vec!['C', 'D'],
+    ///     vec![4, 1, 1, 0, 5, 3, 3, 2],
+    /// ).unwrap();
+    ///
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'C'])), Payoff::from([4, 4, 4]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'D'])), Payoff::from([1, 1, 5]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'C'])), Payoff::from([1, 5, 1]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'D'])), Payoff::from([0, 3, 3]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'C'])), Payoff::from([5, 1, 1]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'D'])), Payoff::from([3, 0, 3]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'C'])), Payoff::from([3, 3, 0]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'D'])), Payoff::from([2, 2, 2]));
+    /// ```
+    ///
+    /// And similarly, a 4-player prisoner's dilemma:
+    ///
+    /// ```
+    /// use tft::core::*;
+    /// use tft::norm::*;
+    ///
+    /// let pd4 = Normal::symmetric(
+    ///     vec!['C', 'D'],
+    ///     vec![6, 2, 2, 1, 2, 1, 1, 0, 7, 5, 5, 4, 5, 4, 4, 3],
+    /// ).unwrap();
+    ///
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'C'])), Payoff::from([6, 6, 6, 6]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'D'])), Payoff::from([2, 2, 2, 7]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'C'])), Payoff::from([2, 2, 7, 2]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'D'])), Payoff::from([1, 1, 5, 5]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'C'])), Payoff::from([2, 7, 2, 2]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'D'])), Payoff::from([1, 5, 1, 5]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'C'])), Payoff::from([1, 5, 5, 1]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'D'])), Payoff::from([0, 4, 4, 4]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'C'])), Payoff::from([7, 2, 2, 2]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'D'])), Payoff::from([5, 1, 1, 5]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'C'])), Payoff::from([5, 1, 5, 1]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'D'])), Payoff::from([4, 0, 4, 4]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'C'])), Payoff::from([5, 5, 1, 1]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'D'])), Payoff::from([4, 4, 0, 4]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'C'])), Payoff::from([4, 4, 4, 0]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'D'])), Payoff::from([3, 3, 3, 3]));
+    /// ```
+    #[allow(clippy::needless_range_loop)]
+    pub fn symmetric(moves: Vec<Move>, utils: Vec<Util>) -> Option<Self> {
+        let num_moves = moves.len();
+        let size = num_moves.pow(N as u32);
+        let num_utils = utils.len();
+        match size.cmp(&num_utils) {
+            Ordering::Greater => {
+                log::error!(
+                    "Normal::symmetric: not enough utility values provided; expected {}^{}={}, got {}",
+                    num_moves,
+                    N,
+                    size,
+                    num_utils,
+                );
+                return None;
+            }
+            Ordering::Less => {
+                log::warn!(
+                    "Normal::symmetric: too many utility values provided; expected {}^{}={}, got {}",
+                    num_moves,
+                    N,
+                    size,
+                    num_utils,
+                );
+            }
+            Ordering::Equal => {}
+        }
+
+        // map that gives the index corresponding to each move
+        let mut move_index_map = HashMap::with_capacity(num_moves);
+        for (i, m) in moves.clone().into_iter().enumerate() {
+            move_index_map.insert(m, i);
+        }
+
+        // vector used to translate a profile's move indexes into an index that retrieves player
+        // P0's utility from the payoff vector
+        let mut translate_p0 = [0; N];
+        for i in 0..N {
+            translate_p0[i] = num_moves.pow((N-1-i) as u32);
+        }
+
+        // vectors as above, but for all N players
+        let mut translate = [[0; N]; N];
+        for p in 0..N {
+            for i in 0..N {
+                translate[p][i] = translate_p0[(N + i - p) % N];
+            }
+        }
+
+        // payoff function
+        let payoff_fn = move |profile: Profile<Move, N>| {
+            // get the profile's move indexes
+            let mut move_indexes = [0; N];
+            for p in PlayerIndex::all_indexes() {
+                let the_move = profile[p];
+                if let Some(i) = move_index_map.get(&the_move).copied() {
+                    move_indexes[p.as_usize()] = i;
+                } else {
+                    log::error!("Normal::symmetric: payoff function received in invalid move: {:?}", the_move);
+                }
+            }
+
+            let mut payoff_utils = [Util::zero(); N];
+            for p in 0..N {
+                // compute dot product of translation vector and profile's move indexes to get
+                // index into the utility vector
+                let util_index: usize = translate[p].iter().zip(move_indexes).map(|(t, i)| t * i).sum();
+                payoff_utils[p] = utils[util_index];
+            }
+            Payoff::from(payoff_utils)
+        };
+
+        Some(Normal::from_payoff_fn(PerPlayer::init_with(moves), payoff_fn))
+    }
+
     /// The number of players this game is for.
     pub fn num_players(&self) -> usize {
         N
@@ -163,14 +315,14 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// use tft::core::*;
     /// use tft::norm::*;
     ///
-    /// let rps = Normal::symmetric_for2(
+    /// let rps: Normal<_, _, 2> = Normal::symmetric(
     ///     vec!["Rock", "Paper", "Scissors"],
     ///     vec![0, -1, 1, 1, 0, -1, -1, 1, 0],
     /// ).unwrap();
     ///
     /// assert!(rps.is_zero_sum());
     ///
-    /// let pd = Normal::symmetric_for2(
+    /// let pd: Normal<_, _, 2> = Normal::symmetric(
     ///     vec!["Cooperate", "Defect"],
     ///     vec![2, 0, 3, 1],
     /// ).unwrap();
@@ -193,7 +345,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
     /// enum RPS { Rock, Paper, Scissors };
     ///
-    /// let rps = Normal::symmetric_for2(
+    /// let rps = Normal::symmetric(
     ///     vec![RPS::Rock, RPS::Paper, RPS::Scissors],
     ///     vec![ 0, -1,  1,
     ///           1,  0, -1,
@@ -240,12 +392,12 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// use tft::core::*;
     /// use tft::norm::*;
     ///
-    /// let dilemma = Normal::symmetric_for2(
+    /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
     ///     vec![2, 0, 3, 1],
     /// ).unwrap();
     ///
-    /// let hunt = Normal::symmetric_for2(
+    /// let hunt = Normal::symmetric(
     ///     vec!['C', 'D'],
     ///     vec![3, 0, 2, 1],
     /// ).unwrap();
@@ -277,12 +429,12 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// use tft::core::*;
     /// use tft::norm::*;
     ///
-    /// let dilemma = Normal::symmetric_for2(
+    /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
     ///     vec![2, 0, 3, 1],
     /// ).unwrap();
     ///
-    /// let hunt = Normal::symmetric_for2(
+    /// let hunt = Normal::symmetric(
     ///     vec!['C', 'D'],
     ///     vec![3, 0, 2, 1],
     /// ).unwrap();
@@ -452,169 +604,5 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
             payoffs.push(Payoff::from([u0, u1]));
         }
         Normal::from_payoff_vec(moves, payoffs)
-    }
-
-    /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) two-player
-    /// normal-form game. Constructed from a list of moves available to both players and the
-    /// utility values for player `P0`.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::*;
-    /// use tft::norm::*;
-    ///
-    /// let pd = Normal::symmetric_for2(
-    ///     vec!['C', 'D'],
-    ///     vec![2, 0, 3, 1],
-    /// ).unwrap();
-    ///
-    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'C'])), Payoff::from([2, 2]));
-    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'D'])), Payoff::from([0, 3]));
-    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'C'])), Payoff::from([3, 0]));
-    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'D'])), Payoff::from([1, 1]));
-    /// ```
-    pub fn symmetric_for2(moves: Vec<Move>, utils: Vec<Util>) -> Option<Normal<Move, Util, 2>> {
-        let side = moves.len();
-        let size = side * side;
-        if utils.len() < size {
-            log::warn!(
-                "Normal::symmetric_for2(): expected {} utility values, got only {}",
-                size,
-                utils.len(),
-            );
-            return None;
-        }
-
-        let mut payoffs = Vec::with_capacity(size);
-        for m0 in 0..side {
-            for m1 in 0..side {
-                let u0 = utils[m0 * side + m1];
-                let u1 = utils[m0 + m1 * side];
-                payoffs.push(Payoff::from([u0, u1]));
-            }
-        }
-        Normal::from_payoff_vec(PerPlayer::new([moves.clone(), moves]), payoffs)
-    }
-}
-
-impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 3> {
-    /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) three-player
-    /// normal-form game. Constructed from a list of moves available to all players and the utility
-    /// values for player `P0`.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::*;
-    /// use tft::norm::*;
-    ///
-    /// let pd3 = Normal::symmetric_for3(
-    ///     vec!['C', 'D'],
-    ///     vec![4, 1, 1, 0, 5, 3, 3, 2],
-    /// ).unwrap();
-    ///
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'C'])), Payoff::from([4, 4, 4]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'D'])), Payoff::from([1, 1, 5]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'C'])), Payoff::from([1, 5, 1]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'D'])), Payoff::from([0, 3, 3]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'C'])), Payoff::from([5, 1, 1]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'D'])), Payoff::from([3, 0, 3]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'C'])), Payoff::from([3, 3, 0]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'D'])), Payoff::from([2, 2, 2]));
-    /// ```
-    pub fn symmetric_for3(moves: Vec<Move>, utils: Vec<Util>) -> Option<Normal<Move, Util, 3>> {
-        let side = moves.len();
-        let side_pow2 = side.pow(2);
-        let size = side.pow(3);
-        if utils.len() < size {
-            log::warn!(
-                "Normal::symmetric_for3(): expected {} utility values, got only {}",
-                size,
-                utils.len(),
-            );
-            return None;
-        }
-
-        let mut payoffs = Vec::with_capacity(size);
-        for m0 in 0..side {
-            for m1 in 0..side {
-                for m2 in 0..side {
-                    let u0 = utils[m0 * side_pow2 + m1 * side + m2];
-                    let u1 = utils[m0 + m1 * side_pow2 + m2 * side];
-                    let u2 = utils[m0 * side + m1 + m2 * side_pow2];
-                    payoffs.push(Payoff::from([u0, u1, u2]));
-                }
-            }
-        }
-        Normal::from_payoff_vec(
-            PerPlayer::new([moves.clone(), moves.clone(), moves]),
-            payoffs,
-        )
-    }
-}
-
-impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 4> {
-    /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) four-player
-    /// normal-form game. Constructed from a list of moves available to all players and the utility
-    /// values for player `P0`.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::core::*;
-    /// use tft::norm::*;
-    ///
-    /// let pd4 = Normal::symmetric_for4(
-    ///     vec!['C', 'D'],
-    ///     vec![6, 2, 2, 1, 2, 1, 1, 0, 7, 5, 5, 4, 5, 4, 4, 3],
-    /// ).unwrap();
-    ///
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'C'])), Payoff::from([6, 6, 6, 6]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'D'])), Payoff::from([2, 2, 2, 7]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'C'])), Payoff::from([2, 2, 7, 2]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'D'])), Payoff::from([1, 1, 5, 5]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'C'])), Payoff::from([2, 7, 2, 2]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'D'])), Payoff::from([1, 5, 1, 5]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'C'])), Payoff::from([1, 5, 5, 1]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'D'])), Payoff::from([0, 4, 4, 4]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'C'])), Payoff::from([7, 2, 2, 2]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'D'])), Payoff::from([5, 1, 1, 5]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'C'])), Payoff::from([5, 1, 5, 1]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'D'])), Payoff::from([4, 0, 4, 4]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'C'])), Payoff::from([5, 5, 1, 1]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'D'])), Payoff::from([4, 4, 0, 4]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'C'])), Payoff::from([4, 4, 4, 0]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'D'])), Payoff::from([3, 3, 3, 3]));
-    /// ```
-    pub fn symmetric_for4(moves: Vec<Move>, utils: Vec<Util>) -> Option<Normal<Move, Util, 4>> {
-        let side = moves.len();
-        let side_pow2 = side.pow(2);
-        let side_pow3 = side.pow(3);
-        let size = side.pow(4);
-        if utils.len() < size {
-            log::warn!(
-                "Normal::symmetric_for4(): expected {} utility values, got only {}",
-                size,
-                utils.len(),
-            );
-            return None;
-        }
-
-        let mut payoffs = Vec::with_capacity(size);
-        for m0 in 0..side {
-            for m1 in 0..side {
-                for m2 in 0..side {
-                    for m3 in 0..side {
-                        let u0 = utils[m0 * side_pow3 + m1 * side_pow2 + m2 * side + m3];
-                        let u1 = utils[m0 + m1 * side_pow3 + m2 * side_pow2 + m3 * side];
-                        let u2 = utils[m0 * side + m1 + m2 * side_pow3 + m3 * side_pow2];
-                        let u3 = utils[m0 * side_pow2 + m1 * side + m2 + m3 * side_pow3];
-                        payoffs.push(Payoff::from([u0, u1, u2, u3]));
-                    }
-                }
-            }
-        }
-        Normal::from_payoff_vec(
-            PerPlayer::new([moves.clone(), moves.clone(), moves.clone(), moves]),
-            payoffs,
-        )
     }
 }
