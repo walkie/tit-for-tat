@@ -51,17 +51,24 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// Construct a normal-form game given the moves available to each player and a map containing
     /// the payoff associated with each valid profile.
     ///
-    /// The resulting game will yield a [zero payoff](crate::core::Payoff::zeros) for any profile
-    /// not contained in the map.
+    /// # Errors
+    ///
+    /// The resulting game will log an error and return a [zero payoff](crate::core::Payoff::zeros)
+    /// for any profile not contained in the map.
     pub fn from_payoff_map(
         moves: PerPlayer<Vec<Move>, N>,
         payoff_map: HashMap<Profile<Move, N>, Payoff<Util, N>>,
     ) -> Self {
         let payoff_fn = move |profile| {
-            payoff_map
-                .get(&profile)
-                .copied()
-                .unwrap_or_else(|| Payoff::zeros())
+            if let Some(payoff) = payoff_map.get(&profile).copied() {
+                payoff
+            } else {
+                log::error!(
+                    "Normal::from_payoff_map: attempted to get the payoff of a profile not in the map: {:?}",
+                    profile
+                );
+                Payoff::zeros()
+            }
         };
         Self::from_payoff_fn(moves, payoff_fn)
     }
@@ -89,7 +96,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
         match num_profiles.cmp(&num_payoffs) {
             Ordering::Greater => {
                 log::error!(
-                    "Normal::new: not enough payoffs provided; expected {}, got {}",
+                    "Normal::from_payoff_vec: not enough payoffs provided; expected {}, got {}",
                     num_profiles,
                     num_payoffs,
                 );
@@ -97,7 +104,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
             }
             Ordering::Less => {
                 log::warn!(
-                    "Normal::new: too many payoffs provided; expected {}, got {}",
+                    "Normal::from_payoff_vec: too many payoffs provided; expected {}, got {}",
                     num_profiles,
                     num_payoffs,
                 );
