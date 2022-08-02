@@ -226,7 +226,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
         // P0's utility from the payoff vector
         let mut translate_p0 = [0; N];
         for i in 0..N {
-            translate_p0[i] = num_moves.pow((N-1-i) as u32);
+            translate_p0[i] = num_moves.pow((N - 1 - i) as u32);
         }
 
         // vectors as above, but for all N players
@@ -246,7 +246,10 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
                 if let Some(i) = move_index_map.get(&the_move).copied() {
                     move_indexes[p.as_usize()] = i;
                 } else {
-                    log::error!("Normal::symmetric: payoff function received in invalid move: {:?}", the_move);
+                    log::error!(
+                        "Normal::symmetric: payoff function received in invalid move: {:?}",
+                        the_move
+                    );
                 }
             }
 
@@ -254,13 +257,20 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
             for p in 0..N {
                 // compute dot product of translation vector and profile's move indexes to get
                 // index into the utility vector
-                let util_index: usize = translate[p].iter().zip(move_indexes).map(|(t, i)| t * i).sum();
+                let util_index: usize = translate[p]
+                    .iter()
+                    .zip(move_indexes)
+                    .map(|(t, i)| t * i)
+                    .sum();
                 payoff_utils[p] = utils[util_index];
             }
             Payoff::from(payoff_utils)
         };
 
-        Some(Normal::from_payoff_fn(PerPlayer::init_with(moves), payoff_fn))
+        Some(Normal::from_payoff_fn(
+            PerPlayer::init_with(moves),
+            payoff_fn,
+        ))
     }
 
     /// The number of players this game is for.

@@ -277,6 +277,12 @@ impl<'a, T, const N: usize> IntoIterator for &'a mut PerPlayer<T, N> {
 ///
 /// This type is used in the implementations of the [`Index`] and [`IndexMut`] traits and ensures
 /// that their operations will not fail.
+///
+/// Note that player's are indexed from zero for consistency with the rest of Rust. That is, the
+/// first player in a game has index `0`, the second player has index `1`, and so on. This isn't
+/// ideal since most of the literature on game theory uses one-based terminology. However, I judged
+/// internal consistency to be more important than external consistency, in this case. Juggling
+/// multiple different indexing styles within the code itself would be really confusing!
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct PlayerIndex<const N: usize>(usize);
 
@@ -447,15 +453,19 @@ impl<const N: usize> DoubleEndedIterator for PlayerIndexes<N> {
 /// Defines indexes into a collection of type `PerPlayer<T, 1>`.
 pub mod for1 {
     use super::PlayerIndex;
-    /// Only player in a 1-player game.
+    /// The only player in a 1-player game.
     pub const P0: PlayerIndex<1> = PlayerIndex(0);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 2>` and a move type for 2-player games.
 pub mod for2 {
-    use super::PlayerIndex;
+    use super::{PerPlayer, PlayerIndex};
+
+    /// The 1st player in a 2-player game.
     pub const P0: PlayerIndex<2> = PlayerIndex(0);
+    /// The 2nd player in a 2-player game.
     pub const P1: PlayerIndex<2> = PlayerIndex(1);
+
     /// The *row* player in a 2-player normal form game. Same as [`P0`].
     pub const ROW: PlayerIndex<2> = P0;
     /// The *column* player in a 2-player normal form game. Same as [`P1`].
@@ -464,239 +474,428 @@ pub mod for2 {
     /// A move in a 2-player game. This type enables defining games where each player has a
     /// different type of move.
     #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-    pub enum Move<P0, P1> {
+    pub enum Move<M0, M1> {
         /// A move for player `P0`.
-        P0(P0),
+        P0(M0),
         /// A move for player `P1`.
-        P1(P1),
+        P1(M1),
+    }
+
+    /// Construct a per-player collection of moves available to each player, given a vector of
+    /// moves available to each player, which may be of different types.
+    pub fn per_player_moves<M0, M1>(
+        p0_moves: Vec<M0>,
+        p1_moves: Vec<M1>,
+    ) -> PerPlayer<Vec<Move<M0, M1>>, 2> {
+        PerPlayer::new([
+            p0_moves.into_iter().map(|m| Move::P0(m)).collect(),
+            p1_moves.into_iter().map(|m| Move::P1(m)).collect(),
+        ])
     }
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 3>` and a move type for 3-player games.
 pub mod for3 {
-    use super::PlayerIndex;
+    use super::{PerPlayer, PlayerIndex};
+
+    /// The 1st player in a 3-player game.
     pub const P0: PlayerIndex<3> = PlayerIndex(0);
+    /// The 2nd player in a 3-player game.
     pub const P1: PlayerIndex<3> = PlayerIndex(1);
+    /// The 3rd player in a 3-player game.
     pub const P2: PlayerIndex<3> = PlayerIndex(2);
 
     /// A move in a 3-player game. This type enables defining games where each player has a
     /// different type of move.
     #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-    pub enum Move<P0, P1, P2> {
+    pub enum Move<M0, M1, M2> {
         /// A move for player `P0`.
-        P0(P0),
+        P0(M0),
         /// A move for player `P1`.
-        P1(P1),
+        P1(M1),
         /// A move for player `P2`.
-        P2(P2),
+        P2(M2),
+    }
+
+    /// Construct a per-player collection of moves available to each player, given a vector of
+    /// moves available to each player, which may be of different types.
+    pub fn per_player_moves<M0, M1, M2>(
+        p0_moves: Vec<M0>,
+        p1_moves: Vec<M1>,
+        p2_moves: Vec<M2>,
+    ) -> PerPlayer<Vec<Move<M0, M1, M2>>, 3> {
+        PerPlayer::new([
+            p0_moves.into_iter().map(|m| Move::P0(m)).collect(),
+            p1_moves.into_iter().map(|m| Move::P1(m)).collect(),
+            p2_moves.into_iter().map(|m| Move::P2(m)).collect(),
+        ])
     }
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 4>` and a move type for 4-player games.
 pub mod for4 {
-    use super::PlayerIndex;
+    use super::{PerPlayer, PlayerIndex};
+
+    /// The 1st player in a 4-player game.
     pub const P0: PlayerIndex<4> = PlayerIndex(0);
+    /// The 2nd player in a 4-player game.
     pub const P1: PlayerIndex<4> = PlayerIndex(1);
+    /// The 3rd player in a 4-player game.
     pub const P2: PlayerIndex<4> = PlayerIndex(2);
+    /// The 4th player in a 4-player game.
     pub const P3: PlayerIndex<4> = PlayerIndex(3);
 
     /// A move in a 4-player game. This type enables defining games where each player has a
     /// different type of move.
     #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-    pub enum Move<P0, P1, P2, P3> {
+    pub enum Move<M0, M1, M2, M3> {
         /// A move for player `P0`.
-        P0(P0),
+        P0(M0),
         /// A move for player `P1`.
-        P1(P1),
+        P1(M1),
         /// A move for player `P2`.
-        P2(P2),
+        P2(M2),
         /// A move for player `P3`.
-        P3(P3),
+        P3(M3),
+    }
+
+    /// Construct a per-player collection of moves available to each player, given a vector of
+    /// moves available to each player, which may be of different types.
+    pub fn per_player_moves<M0, M1, M2, M3>(
+        p0_moves: Vec<M0>,
+        p1_moves: Vec<M1>,
+        p2_moves: Vec<M2>,
+        p3_moves: Vec<M3>,
+    ) -> PerPlayer<Vec<Move<M0, M1, M2, M3>>, 4> {
+        PerPlayer::new([
+            p0_moves.into_iter().map(|m| Move::P0(m)).collect(),
+            p1_moves.into_iter().map(|m| Move::P1(m)).collect(),
+            p2_moves.into_iter().map(|m| Move::P2(m)).collect(),
+            p3_moves.into_iter().map(|m| Move::P3(m)).collect(),
+        ])
     }
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 5>`.
 pub mod for5 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 5-player game.
     pub const P0: PlayerIndex<5> = PlayerIndex(0);
+    /// The 2nd player in a 5-player game.
     pub const P1: PlayerIndex<5> = PlayerIndex(1);
+    /// The 3rd player in a 5-player game.
     pub const P2: PlayerIndex<5> = PlayerIndex(2);
+    /// The 4th player in a 5-player game.
     pub const P3: PlayerIndex<5> = PlayerIndex(3);
+    /// The 5th player in a 5-player game.
     pub const P4: PlayerIndex<5> = PlayerIndex(4);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 6>`.
 pub mod for6 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 6-player game.
     pub const P0: PlayerIndex<6> = PlayerIndex(0);
+    /// The 2nd player in a 6-player game.
     pub const P1: PlayerIndex<6> = PlayerIndex(1);
+    /// The 3rd player in a 6-player game.
     pub const P2: PlayerIndex<6> = PlayerIndex(2);
+    /// The 4th player in a 6-player game.
     pub const P3: PlayerIndex<6> = PlayerIndex(3);
+    /// The 5th player in a 6-player game.
     pub const P4: PlayerIndex<6> = PlayerIndex(4);
+    /// The 6th player in a 6-player game.
     pub const P5: PlayerIndex<6> = PlayerIndex(5);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 7>`.
 pub mod for7 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 7-player game.
     pub const P0: PlayerIndex<7> = PlayerIndex(0);
+    /// The 2nd player in a 7-player game.
     pub const P1: PlayerIndex<7> = PlayerIndex(1);
+    /// The 3rd player in a 7-player game.
     pub const P2: PlayerIndex<7> = PlayerIndex(2);
+    /// The 4th player in a 7-player game.
     pub const P3: PlayerIndex<7> = PlayerIndex(3);
+    /// The 5th player in a 7-player game.
     pub const P4: PlayerIndex<7> = PlayerIndex(4);
+    /// The 6th player in a 7-player game.
     pub const P5: PlayerIndex<7> = PlayerIndex(5);
+    /// The 7th player in a 7-player game.
     pub const P6: PlayerIndex<7> = PlayerIndex(6);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 8>`.
 pub mod for8 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 8-player game.
     pub const P0: PlayerIndex<8> = PlayerIndex(0);
+    /// The 2nd player in a 8-player game.
     pub const P1: PlayerIndex<8> = PlayerIndex(1);
+    /// The 3rd player in a 8-player game.
     pub const P2: PlayerIndex<8> = PlayerIndex(2);
+    /// The 4th player in a 8-player game.
     pub const P3: PlayerIndex<8> = PlayerIndex(3);
+    /// The 5th player in a 8-player game.
     pub const P4: PlayerIndex<8> = PlayerIndex(4);
+    /// The 6th player in a 8-player game.
     pub const P5: PlayerIndex<8> = PlayerIndex(5);
+    /// The 7th player in a 8-player game.
     pub const P6: PlayerIndex<8> = PlayerIndex(6);
+    /// The 8th player in a 8-player game.
     pub const P7: PlayerIndex<8> = PlayerIndex(7);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 9>`.
 pub mod for9 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 9-player game.
     pub const P0: PlayerIndex<9> = PlayerIndex(0);
+    /// The 2nd player in a 9-player game.
     pub const P1: PlayerIndex<9> = PlayerIndex(1);
+    /// The 3rd player in a 9-player game.
     pub const P2: PlayerIndex<9> = PlayerIndex(2);
+    /// The 4th player in a 9-player game.
     pub const P3: PlayerIndex<9> = PlayerIndex(3);
+    /// The 5th player in a 9-player game.
     pub const P4: PlayerIndex<9> = PlayerIndex(4);
+    /// The 6th player in a 9-player game.
     pub const P5: PlayerIndex<9> = PlayerIndex(5);
+    /// The 7th player in a 9-player game.
     pub const P6: PlayerIndex<9> = PlayerIndex(6);
+    /// The 8th player in a 9-player game.
     pub const P7: PlayerIndex<9> = PlayerIndex(7);
+    /// The 9th player in a 9-player game.
     pub const P8: PlayerIndex<9> = PlayerIndex(8);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 10>`.
 pub mod for10 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 10-player game.
     pub const P0: PlayerIndex<10> = PlayerIndex(0);
+    /// The 2nd player in a 10-player game.
     pub const P1: PlayerIndex<10> = PlayerIndex(1);
+    /// The 3rd player in a 10-player game.
     pub const P2: PlayerIndex<10> = PlayerIndex(2);
+    /// The 4th player in a 10-player game.
     pub const P3: PlayerIndex<10> = PlayerIndex(3);
+    /// The 5th player in a 10-player game.
     pub const P4: PlayerIndex<10> = PlayerIndex(4);
+    /// The 6th player in a 10-player game.
     pub const P5: PlayerIndex<10> = PlayerIndex(5);
+    /// The 7th player in a 10-player game.
     pub const P6: PlayerIndex<10> = PlayerIndex(6);
+    /// The 8th player in a 10-player game.
     pub const P7: PlayerIndex<10> = PlayerIndex(7);
+    /// The 9th player in a 10-player game.
     pub const P8: PlayerIndex<10> = PlayerIndex(8);
+    /// The 10th player in a 10-player game.
     pub const P9: PlayerIndex<10> = PlayerIndex(9);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 11>`.
 pub mod for11 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 11-player game.
     pub const P0: PlayerIndex<11> = PlayerIndex(0);
+    /// The 2nd player in a 11-player game.
     pub const P1: PlayerIndex<11> = PlayerIndex(1);
+    /// The 3rd player in a 11-player game.
     pub const P2: PlayerIndex<11> = PlayerIndex(2);
+    /// The 4th player in a 11-player game.
     pub const P3: PlayerIndex<11> = PlayerIndex(3);
+    /// The 5th player in a 11-player game.
     pub const P4: PlayerIndex<11> = PlayerIndex(4);
+    /// The 6th player in a 11-player game.
     pub const P5: PlayerIndex<11> = PlayerIndex(5);
+    /// The 7th player in a 11-player game.
     pub const P6: PlayerIndex<11> = PlayerIndex(6);
+    /// The 8th player in a 11-player game.
     pub const P7: PlayerIndex<11> = PlayerIndex(7);
+    /// The 9th player in a 11-player game.
     pub const P8: PlayerIndex<11> = PlayerIndex(8);
+    /// The 10th player in a 11-player game.
     pub const P9: PlayerIndex<11> = PlayerIndex(9);
+    /// The 11th player in a 11-player game.
     pub const P10: PlayerIndex<11> = PlayerIndex(10);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 12>`.
 pub mod for12 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 12-player game.
     pub const P0: PlayerIndex<12> = PlayerIndex(0);
+    /// The 2nd player in a 12-player game.
     pub const P1: PlayerIndex<12> = PlayerIndex(1);
+    /// The 3rd player in a 12-player game.
     pub const P2: PlayerIndex<12> = PlayerIndex(2);
+    /// The 4th player in a 12-player game.
     pub const P3: PlayerIndex<12> = PlayerIndex(3);
+    /// The 5th player in a 12-player game.
     pub const P4: PlayerIndex<12> = PlayerIndex(4);
+    /// The 6th player in a 12-player game.
     pub const P5: PlayerIndex<12> = PlayerIndex(5);
+    /// The 7th player in a 12-player game.
     pub const P6: PlayerIndex<12> = PlayerIndex(6);
+    /// The 8th player in a 12-player game.
     pub const P7: PlayerIndex<12> = PlayerIndex(7);
+    /// The 9th player in a 12-player game.
     pub const P8: PlayerIndex<12> = PlayerIndex(8);
+    /// The 10th player in a 12-player game.
     pub const P9: PlayerIndex<12> = PlayerIndex(9);
+    /// The 11th player in a 12-player game.
     pub const P10: PlayerIndex<12> = PlayerIndex(10);
+    /// The 12th player in a 12-player game.
     pub const P11: PlayerIndex<12> = PlayerIndex(11);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 13>`.
 pub mod for13 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 13-player game.
     pub const P0: PlayerIndex<13> = PlayerIndex(0);
+    /// The 2nd player in a 13-player game.
     pub const P1: PlayerIndex<13> = PlayerIndex(1);
+    /// The 3rd player in a 13-player game.
     pub const P2: PlayerIndex<13> = PlayerIndex(2);
+    /// The 4th player in a 13-player game.
     pub const P3: PlayerIndex<13> = PlayerIndex(3);
+    /// The 5th player in a 13-player game.
     pub const P4: PlayerIndex<13> = PlayerIndex(4);
+    /// The 6th player in a 13-player game.
     pub const P5: PlayerIndex<13> = PlayerIndex(5);
+    /// The 7th player in a 13-player game.
     pub const P6: PlayerIndex<13> = PlayerIndex(6);
+    /// The 8th player in a 13-player game.
     pub const P7: PlayerIndex<13> = PlayerIndex(7);
+    /// The 9th player in a 13-player game.
     pub const P8: PlayerIndex<13> = PlayerIndex(8);
+    /// The 10th player in a 13-player game.
     pub const P9: PlayerIndex<13> = PlayerIndex(9);
+    /// The 11th player in a 13-player game.
     pub const P10: PlayerIndex<13> = PlayerIndex(10);
+    /// The 12th player in a 13-player game.
     pub const P11: PlayerIndex<13> = PlayerIndex(11);
+    /// The 13th player in a 13-player game.
     pub const P12: PlayerIndex<13> = PlayerIndex(12);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 14>`.
 pub mod for14 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 14-player game.
     pub const P0: PlayerIndex<14> = PlayerIndex(0);
+    /// The 2nd player in a 14-player game.
     pub const P1: PlayerIndex<14> = PlayerIndex(1);
+    /// The 3rd player in a 14-player game.
     pub const P2: PlayerIndex<14> = PlayerIndex(2);
+    /// The 4th player in a 14-player game.
     pub const P3: PlayerIndex<14> = PlayerIndex(3);
+    /// The 5th player in a 14-player game.
     pub const P4: PlayerIndex<14> = PlayerIndex(4);
+    /// The 6th player in a 14-player game.
     pub const P5: PlayerIndex<14> = PlayerIndex(5);
+    /// The 7th player in a 14-player game.
     pub const P6: PlayerIndex<14> = PlayerIndex(6);
+    /// The 8th player in a 14-player game.
     pub const P7: PlayerIndex<14> = PlayerIndex(7);
+    /// The 9th player in a 14-player game.
     pub const P8: PlayerIndex<14> = PlayerIndex(8);
+    /// The 10th player in a 14-player game.
     pub const P9: PlayerIndex<14> = PlayerIndex(9);
+    /// The 11th player in a 14-player game.
     pub const P10: PlayerIndex<14> = PlayerIndex(10);
+    /// The 12th player in a 14-player game.
     pub const P11: PlayerIndex<14> = PlayerIndex(11);
+    /// The 13th player in a 14-player game.
     pub const P12: PlayerIndex<14> = PlayerIndex(12);
+    /// The 14th player in a 14-player game.
     pub const P13: PlayerIndex<14> = PlayerIndex(13);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 15>`.
 pub mod for15 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 15-player game.
     pub const P0: PlayerIndex<15> = PlayerIndex(0);
+    /// The 2nd player in a 15-player game.
     pub const P1: PlayerIndex<15> = PlayerIndex(1);
+    /// The 3rd player in a 15-player game.
     pub const P2: PlayerIndex<15> = PlayerIndex(2);
+    /// The 4th player in a 15-player game.
     pub const P3: PlayerIndex<15> = PlayerIndex(3);
+    /// The 5th player in a 15-player game.
     pub const P4: PlayerIndex<15> = PlayerIndex(4);
+    /// The 6th player in a 15-player game.
     pub const P5: PlayerIndex<15> = PlayerIndex(5);
+    /// The 7th player in a 15-player game.
     pub const P6: PlayerIndex<15> = PlayerIndex(6);
+    /// The 8th player in a 15-player game.
     pub const P7: PlayerIndex<15> = PlayerIndex(7);
+    /// The 9th player in a 15-player game.
     pub const P8: PlayerIndex<15> = PlayerIndex(8);
+    /// The 10th player in a 15-player game.
     pub const P9: PlayerIndex<15> = PlayerIndex(9);
+    /// The 11th player in a 15-player game.
     pub const P10: PlayerIndex<15> = PlayerIndex(10);
+    /// The 12th player in a 15-player game.
     pub const P11: PlayerIndex<15> = PlayerIndex(11);
+    /// The 13th player in a 15-player game.
     pub const P12: PlayerIndex<15> = PlayerIndex(12);
+    /// The 14th player in a 15-player game.
     pub const P13: PlayerIndex<15> = PlayerIndex(13);
+    /// The 15th player in a 15-player game.
     pub const P14: PlayerIndex<15> = PlayerIndex(14);
 }
 
 /// Defines indexes into a collection of type `PerPlayer<T, 16>`.
 pub mod for16 {
     use super::PlayerIndex;
+
+    /// The 1st player in a 16-player game.
     pub const P0: PlayerIndex<16> = PlayerIndex(0);
+    /// The 2nd player in a 16-player game.
     pub const P1: PlayerIndex<16> = PlayerIndex(1);
+    /// The 3rd player in a 16-player game.
     pub const P2: PlayerIndex<16> = PlayerIndex(2);
+    /// The 4th player in a 16-player game.
     pub const P3: PlayerIndex<16> = PlayerIndex(3);
+    /// The 5th player in a 16-player game.
     pub const P4: PlayerIndex<16> = PlayerIndex(4);
+    /// The 6th player in a 16-player game.
     pub const P5: PlayerIndex<16> = PlayerIndex(5);
+    /// The 7th player in a 16-player game.
     pub const P6: PlayerIndex<16> = PlayerIndex(6);
+    /// The 8th player in a 16-player game.
     pub const P7: PlayerIndex<16> = PlayerIndex(7);
+    /// The 9th player in a 16-player game.
     pub const P8: PlayerIndex<16> = PlayerIndex(8);
+    /// The 10th player in a 16-player game.
     pub const P9: PlayerIndex<16> = PlayerIndex(9);
+    /// The 11th player in a 16-player game.
     pub const P10: PlayerIndex<16> = PlayerIndex(10);
+    /// The 12th player in a 16-player game.
     pub const P11: PlayerIndex<16> = PlayerIndex(11);
+    /// The 13th player in a 16-player game.
     pub const P12: PlayerIndex<16> = PlayerIndex(12);
+    /// The 14th player in a 16-player game.
     pub const P13: PlayerIndex<16> = PlayerIndex(13);
+    /// The 15th player in a 16-player game.
     pub const P14: PlayerIndex<16> = PlayerIndex(14);
+    /// The 16th player in a 16-player game.
     pub const P15: PlayerIndex<16> = PlayerIndex(15);
 }
