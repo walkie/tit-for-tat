@@ -285,6 +285,12 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
         N
     }
 
+    /// Get the number of moves available to each player, which corresponds to the dimensions of
+    /// the payoff matrix.
+    pub fn dimensions(&self) -> PerPlayer<usize, N> {
+        self.available_moves().map(|ms| ms.count())
+    }
+
     /// Get an iterator over the available moves for the given player.
     pub fn available_moves_for_player(&self, player: PlayerIndex<N>) -> MoveIter<Move> {
         MoveIter::new(self.moves[player].clone().into_iter())
@@ -354,6 +360,9 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     ///
     /// A unilateral improvement assumes that all other player's moves will be unchanged.
     ///
+    /// If more than one move would unilaterally improve the player's utility, then the move that
+    /// improves it by the *most* is returned.
+    ///
     /// # Examples
     /// ```
     /// use tft::core::*;
@@ -402,7 +411,8 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// Is the given strategy profile stable? A profile is stable if no player can unilaterally
     /// improve their utility.
     ///
-    /// A stable profile is a pure Nash equilibrium of the game.
+    /// A stable profile is a pure
+    /// [Nash equilibrium](https://en.wikipedia.org/wiki/Nash_equilibrium) of the game.
     ///
     /// # Examples
     /// ```
@@ -439,7 +449,11 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
             .all(|player| self.unilaterally_improve(player, profile).is_none())
     }
 
-    /// All pure Nash equilibrium solutions of a finite simultaneous game.
+    /// All pure [Nash equilibria](https://en.wikipedia.org/wiki/Nash_equilibrium) solutions of a
+    /// finite simultaneous game.
+    ///
+    /// This function simply enumerates all profiles and checks to see if each one is
+    /// [stable](Normal::is_stable).
     ///
     /// # Examples
     /// ```
@@ -473,6 +487,35 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
             }
         }
         nash
+    }
+
+    pub fn pareto_improve(&self, profile: Profile<Move, N>) -> Option<Profile<Move, N>> {
+        let payoff = self.payoff(profile);
+        let mut best_profile = None;
+        let mut best_improvement = Util::zero();
+        for outcome in self.outcomes() {
+            if let Some(improvement) = payoff.pareto_improvement(outcome.payoff) {
+                if improvement.gt(&best_improvement) {
+                    best_profile = Some(outcome.profile);
+                    best_improvement = improvement;
+                }
+            }
+        }
+        best_profile
+    }
+
+    pub fn is_pareto_optimal(&self, profile: Profile<Move, N>) -> bool {
+        self.pareto_improve(profile).is_none()
+    }
+
+    pub fn pareto_optimal_solutions(&self) -> Vec<Profile<Move, N>> {
+        let mut pareto = Vec::new();
+        for profile in self.profiles() {
+            if self.is_pareto_optimal(profile) {
+                pareto.push(profile)
+            }
+        }
+        pareto
     }
 
     /// Get all dominated move relationships for the given player. If a move is dominated by
@@ -518,12 +561,14 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
                 for (ted_outcome, tor_outcome) in ted_iter.clone().zip(tor_iter) {
                     let ted_payoff = ted_outcome.payoff;
                     let tor_payoff = tor_outcome.payoff;
-                    match ted_payoff[player].cmp(&tor_payoff[player]) {
-                        Ordering::Less => {}
-                        Ordering::Equal => is_strict = false,
-                        Ordering::Greater => {
-                            is_dominated = false;
-                            break;
+                    if let Some(ordering) = ted_payoff[player].partial_cmp(&tor_payoff[player]) {
+                        match ordering {
+                            Ordering::Less => {}
+                            Ordering::Equal => is_strict = false,
+                            Ordering::Greater => {
+                                is_dominated = false;
+                                break;
+                            }
                         }
                     }
                 }

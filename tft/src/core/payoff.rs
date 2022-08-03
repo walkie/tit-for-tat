@@ -11,8 +11,8 @@ use crate::core::{PerPlayer, PlayerIndex};
 ///
 /// A blanket implementation covers all types that meet the requirements, so this trait should not
 /// be implemented directly.
-pub trait IsUtility: Copy + Debug + Num + Ord + 'static {}
-impl<T: Copy + Debug + Num + Ord + 'static> IsUtility for T {}
+pub trait IsUtility: Copy + Debug + Num + PartialOrd + 'static {}
+impl<T: Copy + Debug + Num + PartialOrd + 'static> IsUtility for T {}
 
 /// A collection containing the utility values awarded to each player at the end of a game.
 ///
@@ -244,6 +244,49 @@ impl<Util: IsUtility, const N: usize> Payoff<Util, N> {
         sum == Util::zero()
     }
 
+    /// The amount that a given payoff represents a
+    /// [Pareto improvement](https://en.wikipedia.org/wiki/Pareto_efficiency) over this payoff.
+    ///
+    /// A payoff is a Pareto improvement over another if the first increases at least one utility
+    /// value *without decreasing* any others.
+    ///
+    /// This function returns the sum of all utility value increases, or `None` if the payoff is
+    /// not a Pareto improvement over this payoff.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::Payoff;
+    ///
+    /// assert_eq!(Payoff::from([2.5, 0.3]).pareto_improvement(Payoff::from([3.0, 1.0])), Some(1.2));
+    /// assert_eq!(Payoff::from([2.5, 0.3]).pareto_improvement(Payoff::from([2.5, 0.3])), None);
+    /// assert_eq!(Payoff::from([2.5, 0.3]).pareto_improvement(Payoff::from([3.0, 0.0])), None);
+    ///
+    /// assert_eq!(
+    ///   Payoff::from([-3, 2, -5, 4]).pareto_improvement(Payoff::from([-3, 4, -4, 4])),
+    ///   Some(3),
+    /// );
+    /// assert_eq!(
+    ///   Payoff::from([-3, 2, -5, 4]).pareto_improvement(Payoff::from([-3, 100, 0, 3])),
+    ///   None,
+    /// );
+    /// ```
+    pub fn pareto_improvement(&self, other: Self) -> Option<Util> {
+        let mut improvement = Util::zero();
+        for (v_self, v_other) in self.utilities.into_iter().zip(other.utilities) {
+            if v_self.le(&v_other) {
+                improvement = improvement.add(v_other.sub(v_self));
+            } else {
+                return None;
+            }
+        }
+        if improvement.is_zero() {
+            None
+        } else {
+            Some(improvement)
+        }
+    }
+
+    /// Map a function over all of the elements in a payoff.
     fn map(self, f: impl Fn(Util) -> Util) -> Self {
         let mut result = [Util::zero(); N];
         for (r, v) in result.iter_mut().zip(self) {
@@ -252,10 +295,11 @@ impl<Util: IsUtility, const N: usize> Payoff<Util, N> {
         Payoff::from(result)
     }
 
+    /// Combine two payoffs element-wise using the given function.
     fn zip_with(self, other: Self, combine: impl Fn(Util, Util) -> Util) -> Self {
         let mut result = [Util::zero(); N];
-        for ((r, a), b) in result.iter_mut().zip(self).zip(other) {
-            *r = combine(a, b);
+        for ((r, v), w) in result.iter_mut().zip(self).zip(other) {
+            *r = combine(v, w);
         }
         Payoff::from(result)
     }
