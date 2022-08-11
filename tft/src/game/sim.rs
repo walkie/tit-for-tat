@@ -5,7 +5,7 @@ mod profile;
 pub use crate::game::Game;
 pub use profile::*;
 
-use crate::core::{IsMove, IsUtil, Payoff, PlayerIndex};
+use crate::core::{IsMove, IsUtil, Payoff, PerPlayer, PlayerIndex};
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
@@ -64,7 +64,7 @@ pub trait IsSimultaneous<const N: usize>: Game<N> {
 /// let payoff = |profile: Profile<i32, 2>| {
 ///   Payoff::from([profile[for2::P1], profile[for2::P0]])
 /// };
-/// let pick_em = Simultaneous::new(valid_move, payoff);
+/// let pick_em = Simultaneous::from_payoff_fn(valid_move, payoff);
 ///
 /// assert_eq!(pick_em.num_players(), 2);
 ///
@@ -89,13 +89,27 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Simultaneous<Move, Util, N> {
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a function that yields the payoff given a profile
     /// containing a move played by each player.
-    ///
-    /// If passed an [invalid profile](Simultaneous::is_valid_profile), the payoff function should
-    /// return an arbitrary payoff (rather than, say, panic).
-    pub fn new(
+    pub fn from_payoff_fn(
         move_fn: impl Fn(PlayerIndex<N>, Move) -> bool + 'static,
         payoff_fn: impl Fn(Profile<Move, N>) -> Payoff<Util, N> + 'static,
     ) -> Self {
+        Simultaneous {
+            move_fn: Box::new(move_fn),
+            payoff_fn: Box::new(payoff_fn),
+        }
+    }
+
+    /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
+    /// valid for a given player, and (2) a utility function for each player.
+    pub fn from_utility_fns(
+        move_fn: impl Fn(PlayerIndex<N>, Move) -> bool + 'static,
+        util_fns: PerPlayer<impl Fn(Move) -> Util + 'static, N>,
+    ) -> Self {
+        let payoff_fn = move |profile: Profile<Move, N>| {
+            Payoff::new(PerPlayer::generate(|player| {
+                util_fns[player](profile[player])
+            }))
+        };
         Simultaneous {
             move_fn: Box::new(move_fn),
             payoff_fn: Box::new(payoff_fn),

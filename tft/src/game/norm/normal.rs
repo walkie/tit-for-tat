@@ -47,9 +47,6 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> IsNormal<N> for Normal<Move, Ut
 impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// Construct a normal-form game given the moves available to each player and a function that
     /// yields the game's payoff given a profile containing a move played by each player.
-    ///
-    /// If passed an [invalid profile](Normal::is_valid_profile), the payoff function should
-    /// return an arbitrary payoff (rather than, say, panic).
     pub fn from_payoff_fn(
         moves: PerPlayer<Vec<Move>, N>,
         payoff_fn: impl Fn(Profile<Move, N>) -> Payoff<Util, N> + 'static,
@@ -58,6 +55,20 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
             moves,
             payoff_fn: Rc::new(payoff_fn),
         }
+    }
+
+    /// Construct a normal-form game given the moves available to each player and a utility
+    /// function for each player.
+    pub fn from_utility_fns(
+        moves: PerPlayer<Vec<Move>, N>,
+        util_fns: PerPlayer<impl Fn(Move) -> Util + 'static, N>,
+    ) -> Self {
+        let payoff_fn = move |profile: Profile<Move, N>| {
+            Payoff::new(PerPlayer::generate(|player| {
+                util_fns[player](profile[player])
+            }))
+        };
+        Self::from_payoff_fn(moves, payoff_fn)
     }
 
     /// Construct a normal-form game given the moves available to each player and a map containing
