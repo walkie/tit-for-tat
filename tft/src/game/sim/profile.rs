@@ -6,31 +6,32 @@ use std::iter::Iterator;
 
 use crate::core::{IsMove, MoveIter, PerPlayer, PlayerIndex};
 
-// Re-export `Profile` type definition here.
-pub use crate::simo::Profile;
+/// A pure strategy profile for a simultaneous game: one move played by each player.
+pub type Profile<Move, const N: usize> = PerPlayer<Move, N>;
 
-/// An iterator over all pure strategy profiles for a normal-form game.
+/// An iterator over all pure strategy profiles for a
+/// [simultaneous, finite-move])(crate::game::sim::SimFin) game.
 ///
 /// This iterator enumerates all profiles that can be produced from the moves available to each
 /// player.
 #[derive(Clone)]
-pub struct ProfileIter<Move: Copy, const N: usize> {
+pub struct ProfileIter<'g, Move: Copy, const N: usize> {
     /// Moves that must be included in any generated profile, for each player.
     includes: PerPlayer<Vec<Move>, N>,
     /// Moves that must be excluded from any generated profile, for each player.
     excludes: PerPlayer<Vec<Move>, N>,
     /// The multi-product iterator used to generate each profile.
-    multi_iter: MultiProduct<MoveIter<Move>>,
+    multi_iter: MultiProduct<MoveIter<'g, Move>>,
 }
 
-impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
+impl<'g, Move: IsMove, const N: usize> ProfileIter<'g, Move, N> {
     /// Construct a new profile iterator from a per-player collection of iterators over the moves
     /// available to each player.
     ///
     /// # Examples
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let move_iters = PerPlayer::new([
     ///     MoveIter::new(vec!['A', 'B', 'C'].into_iter()),
@@ -50,7 +51,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     ///     ],
     /// );
     /// ```
-    pub fn from_move_iters(move_iters: PerPlayer<MoveIter<Move>, N>) -> Self {
+    pub fn from_move_iters(move_iters: PerPlayer<MoveIter<'g, Move>, N>) -> Self {
         ProfileIter {
             includes: PerPlayer::init_with(Vec::new()),
             excludes: PerPlayer::init_with(Vec::new()),
@@ -64,7 +65,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// # Examples
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let moves = PerPlayer::new([
     ///     vec!['A', 'B', 'C', 'D'],
@@ -77,7 +78,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['D', 'F'])));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub fn from_move_vecs(move_vecs: PerPlayer<Vec<Move>, N>) -> Self {
+    pub fn from_move_vecs(move_vecs: PerPlayer<Vec<Move>, N>) -> ProfileIter<'static, Move, N> {
         ProfileIter::from_move_iters(move_vecs.map(|v| MoveIter::new(v.into_iter())))
     }
 
@@ -89,7 +90,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// Generating all profiles for a symmetric 2-player game:
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let move_iter = MoveIter::new(vec!['X', 'O'].into_iter());
     /// let iter = ProfileIter::symmetric(move_iter);
@@ -116,7 +117,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// Generating all profiles for a symmetric 3-player game:
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let move_iter = MoveIter::new(vec!['X', 'O'].into_iter());
     /// let iter = ProfileIter::symmetric(move_iter);
@@ -130,7 +131,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     ///     ],
     /// );
     /// ```
-    pub fn symmetric(move_iter: MoveIter<Move>) -> Self {
+    pub fn symmetric(move_iter: MoveIter<'g, Move>) -> Self {
         ProfileIter::from_move_iters(PerPlayer::init_with(move_iter))
     }
 
@@ -149,7 +150,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// Constraining a single player's move:
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let moves = PerPlayer::new([
     ///     vec!['A', 'B'],
@@ -171,7 +172,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// Constraining multiple players' moves by chaining invocations of this method:
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let move_iter = MoveIter::new(vec!['A', 'B', 'C'].into_iter());
     /// let mut iter = ProfileIter::symmetric(move_iter)
@@ -186,7 +187,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// Combining with [`exclude`](ProfileIter::exclude):
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let moves = PerPlayer::new([
     ///     vec!['A', 'B'],
@@ -223,7 +224,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// Applying a single exlcusion constraint:
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let moves = PerPlayer::new([
     ///     vec!['A', 'B'],
@@ -241,7 +242,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// Applying multiple exclusion constraints by chaining invocations of this method:
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let moves = PerPlayer::new([
     ///     vec!['A', 'B', 'C'],
@@ -262,7 +263,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// Combining with [`include`](ProfileIter::include):
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let move_iter = MoveIter::new(vec!['A', 'B', 'C'].into_iter());
     /// let mut iter = ProfileIter::symmetric(move_iter)
@@ -290,7 +291,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     /// # Examples
     /// ```
     /// use tft::core::*;
-    /// use tft::norm::*;
+    /// use tft::game::sim::*;
     ///
     /// let move_iter = MoveIter::new(vec![1, 2, 3, 4, 5].into_iter());
     /// let mut iter = ProfileIter::symmetric(move_iter)
@@ -314,7 +315,7 @@ impl<Move: IsMove, const N: usize> ProfileIter<Move, N> {
     }
 }
 
-impl<Move: IsMove, const N: usize> Iterator for ProfileIter<Move, N> {
+impl<'g, Move: IsMove, const N: usize> Iterator for ProfileIter<'g, Move, N> {
     type Item = Profile<Move, N>;
 
     fn next(&mut self) -> Option<Profile<Move, N>> {

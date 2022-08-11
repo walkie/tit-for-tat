@@ -6,7 +6,7 @@ use std::hash::Hash;
 ///
 /// A blanket implementation covers all types that meet the requirements, so this trait should not
 /// be implemented directly.
-pub trait IsMove: Copy + Debug + Eq + Hash + 'static {}
+pub trait IsMove: Copy + Debug + Eq + Hash + Sized + 'static {}
 impl<T: Copy + Debug + Eq + Hash + 'static> IsMove for T {}
 
 /// An iterator that can be cloned, enabling it to be used multiple times.
@@ -20,20 +20,20 @@ dyn_clone::clone_trait_object!(<I> CloneableIterator<I>);
 
 /// An iterator over available moves in a game with a finite move set.
 #[derive(Clone)]
-pub struct MoveIter<Move> {
-    iter: Box<dyn CloneableIterator<Move> + 'static>,
+pub struct MoveIter<'a, Move> {
+    iter: Box<dyn CloneableIterator<Move> + 'a>,
 }
 
-impl<Move> MoveIter<Move> {
+impl<'a, Move> MoveIter<'a, Move> {
     /// Construct a new move iterator.
-    pub fn new(iter: impl Clone + Iterator<Item = Move> + 'static) -> Self {
+    pub fn new(iter: impl Clone + Iterator<Item = Move> + 'a) -> Self {
         MoveIter {
             iter: Box::new(iter),
         }
     }
 }
 
-impl<Move> Iterator for MoveIter<Move> {
+impl<'a, Move> Iterator for MoveIter<'a, Move> {
     type Item = Move;
     fn next(&mut self) -> Option<Move> {
         self.iter.next()
