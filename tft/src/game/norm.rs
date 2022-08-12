@@ -1,10 +1,12 @@
 //! Games represented in normal form. Simultaneous move games with finite move sets.
 
-mod normal;
-mod outcome;
-mod solution;
+// pub(crate) mod bimatrix;
+pub(crate) mod normal;
+pub(crate) mod outcome;
+pub(crate) mod solution;
 
 pub use crate::game::sim::*;
+// pub use bimatrix::*;
 pub use normal::*;
 pub use outcome::*;
 pub use solution::*;

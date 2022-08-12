@@ -134,7 +134,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
             }
             Ordering::Equal => {}
         }
-        let mut payoff_map = HashMap::with_capacity(profiles.len());
+        let mut payoff_map = HashMap::with_capacity(num_profiles);
         for (profile, payoff) in profiles.into_iter().zip(payoffs) {
             payoff_map.insert(profile, payoff);
         }
@@ -317,10 +317,12 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     /// use tft::game::norm::*;
     ///
     /// let g = Normal::matrix(
-    ///     vec!['A', 'B', 'C'],
-    ///     vec!['D', 'E'],
-    ///     vec![-3, -1, 0, 2, 4, 6],
-    /// ).unwrap();
+    ///     ['A', 'B', 'C'],
+    ///     ['D', 'E'],
+    ///     [[-3, -1],
+    ///      [ 0,  2],
+    ///      [ 4,  6]],
+    /// );
     ///
     /// assert!(g.is_zero_sum());
     /// assert_eq!(g.payoff(PerPlayer::new(['A', 'D'])), Payoff::from([-3, 3]));
@@ -330,17 +332,22 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     /// assert_eq!(g.payoff(PerPlayer::new(['C', 'D'])), Payoff::from([4, -4]));
     /// assert_eq!(g.payoff(PerPlayer::new(['C', 'E'])), Payoff::from([6, -6]));
     /// ```
-    pub fn matrix(
-        p0_moves: Vec<Move>,
-        p1_moves: Vec<Move>,
-        p0_utils: Vec<Util>,
-    ) -> Option<Normal<Move, Util, 2>> {
-        let moves = PerPlayer::new([p0_moves, p1_moves]);
-        let mut payoffs = Vec::with_capacity(p0_utils.len());
-        for u0 in p0_utils.into_iter() {
-            payoffs.push(Payoff::from([u0, Util::zero().sub(u0)]));
+    pub fn matrix<const ROWS: usize, const COLS: usize>(
+        row_moves: [Move; ROWS],
+        col_moves: [Move; COLS],
+        row_utils: [[Util; COLS]; ROWS],
+    ) -> Self {
+        let moves = PerPlayer::new([row_moves.to_vec(), col_moves.to_vec()]);
+        let mut payoff_map = HashMap::with_capacity(ROWS * COLS);
+        for (r, row_move) in row_moves.into_iter().enumerate() {
+            for (c, col_move) in col_moves.into_iter().enumerate() {
+                let row_util = row_utils[r][c];
+                let payoff = Payoff::from([row_util, Util::zero().sub(row_util)]);
+                let profile = PerPlayer::new([row_move, col_move]);
+                payoff_map.insert(profile, payoff);
+            }
         }
-        Normal::from_payoff_vec(moves, payoffs)
+        Normal::from_payoff_map(moves, payoff_map)
     }
 
     /// Construct a [bimatrix game](https://en.wikipedia.org/wiki/Bimatrix_game), a two-player
@@ -355,11 +362,11 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     /// use tft::game::norm::*;
     ///
     /// let g = Normal::bimatrix(
-    ///     vec!['A', 'B', 'C'],
-    ///     vec!['D', 'E'],
-    ///     vec![0, 5, 4, 3, 2, 1],
-    ///     vec![5, 0, 1, 2, 4, 3],
-    /// ).unwrap();
+    ///     ['A', 'B', 'C'],
+    ///     ['D', 'E'],
+    ///     [[0, 5], [4, 3], [2, 1]],
+    ///     [[5, 0], [1, 2], [4, 3]],
+    /// );
     ///
     /// assert_eq!(g.payoff(PerPlayer::new(['A', 'D'])), Payoff::from([0, 5]));
     /// assert_eq!(g.payoff(PerPlayer::new(['A', 'E'])), Payoff::from([5, 0]));
@@ -368,17 +375,160 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     /// assert_eq!(g.payoff(PerPlayer::new(['C', 'D'])), Payoff::from([2, 4]));
     /// assert_eq!(g.payoff(PerPlayer::new(['C', 'E'])), Payoff::from([1, 3]));
     /// ```
-    pub fn bimatrix(
-        p0_moves: Vec<Move>,
-        p1_moves: Vec<Move>,
-        p0_utils: Vec<Util>,
-        p1_utils: Vec<Util>,
-    ) -> Option<Normal<Move, Util, 2>> {
-        let moves = PerPlayer::new([p0_moves, p1_moves]);
-        let mut payoffs = Vec::with_capacity(p0_utils.len());
-        for (u0, u1) in p0_utils.into_iter().zip(p1_utils) {
-            payoffs.push(Payoff::from([u0, u1]));
+    pub fn bimatrix<const ROWS: usize, const COLS: usize>(
+        row_moves: [Move; ROWS],
+        col_moves: [Move; COLS],
+        row_utils: [[Util; COLS]; ROWS],
+        col_utils: [[Util; COLS]; ROWS],
+    ) -> Self {
+        let moves = PerPlayer::new([row_moves.to_vec(), col_moves.to_vec()]);
+        let mut payoff_map = HashMap::with_capacity(ROWS * COLS);
+        for (r, row_move) in row_moves.into_iter().enumerate() {
+            for (c, col_move) in col_moves.into_iter().enumerate() {
+                let profile = PerPlayer::new([row_move, col_move]);
+                let payoff = Payoff::from([row_utils[r][c], col_utils[r][c]]);
+                payoff_map.insert(profile, payoff);
+            }
         }
-        Normal::from_payoff_vec(moves, payoffs)
+        Normal::from_payoff_map(moves, payoff_map)
+    }
+
+    /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) two-player
+    /// normal-form game. Constructed from a list of moves available to both players and the
+    /// utility values for the `ROW` player (`P0`).
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::*;
+    /// use tft::game::norm::*;
+    ///
+    /// let pd = Normal::symmetric_for2(
+    ///     ['C', 'D'],
+    ///     [[2, 0], [3, 1]],
+    /// );
+    ///
+    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'C'])), Payoff::from([2, 2]));
+    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'D'])), Payoff::from([0, 3]));
+    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'C'])), Payoff::from([3, 0]));
+    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'D'])), Payoff::from([1, 1]));
+    /// ```
+    pub fn symmetric_for2<const SIZE: usize>(
+        moves: [Move; SIZE],
+        row_utils: [[Util; SIZE]; SIZE],
+    ) -> Self {
+        let all_moves = PerPlayer::init_with(moves.to_vec());
+        let mut payoff_map = HashMap::with_capacity(SIZE * SIZE);
+        for (r, row_move) in moves.into_iter().enumerate() {
+            for (c, col_move) in moves.into_iter().enumerate() {
+                let profile = PerPlayer::new([row_move, col_move]);
+                let payoff = Payoff::from([row_utils[r][c], row_utils[c][r]]);
+                payoff_map.insert(profile, payoff);
+            }
+        }
+        Normal::from_payoff_map(all_moves, payoff_map)
+    }
+}
+
+impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 3> {
+    /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) three-player
+    /// normal-form game. Constructed from a list of moves available to all players and the utility
+    /// values for player `P0`.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::*;
+    /// use tft::game::norm::*;
+    ///
+    /// let pd3 = Normal::symmetric_for3(
+    ///     ['C', 'D'],
+    ///     [[[4, 1], [1, 0]], [[5, 3], [3, 2]]],
+    /// );
+    ///
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'C'])), Payoff::from([4, 4, 4]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'D'])), Payoff::from([1, 1, 5]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'C'])), Payoff::from([1, 5, 1]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'D'])), Payoff::from([0, 3, 3]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'C'])), Payoff::from([5, 1, 1]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'D'])), Payoff::from([3, 0, 3]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'C'])), Payoff::from([3, 3, 0]));
+    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'D'])), Payoff::from([2, 2, 2]));
+    /// ```
+    pub fn symmetric_for3<const SIZE: usize>(
+        moves: [Move; SIZE],
+        p0_utils: [[[Util; SIZE]; SIZE]; SIZE],
+    ) -> Self {
+        let all_moves = PerPlayer::init_with(moves.to_vec());
+        let mut payoff_map = HashMap::with_capacity(SIZE.pow(3));
+        for (i0, m0) in moves.into_iter().enumerate() {
+            for (i1, m1) in moves.into_iter().enumerate() {
+                for (i2, m2) in moves.into_iter().enumerate() {
+                    let u0 = p0_utils[i0][i1][i2];
+                    let u1 = p0_utils[i1][i2][i0];
+                    let u2 = p0_utils[i2][i0][i1];
+                    let payoff = Payoff::from([u0, u1, u2]);
+                    let profile = PerPlayer::new([m0, m1, m2]);
+                    payoff_map.insert(profile, payoff);
+                }
+            }
+        }
+        Normal::from_payoff_map(all_moves, payoff_map)
+    }
+}
+
+impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 4> {
+    /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) four-player
+    /// normal-form game. Constructed from a list of moves available to all players and the utility
+    /// values for player `P0`.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::*;
+    /// use tft::game::norm::*;
+    ///
+    /// let pd4 = Normal::symmetric_for4(
+    ///     ['C', 'D'],
+    ///     [[[[6, 2], [2, 1]], [[2, 1], [1, 0]]],
+    ///      [[[7, 5], [5, 4]], [[5, 4], [4, 3]]]],
+    /// );
+    ///
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'C'])), Payoff::from([6, 6, 6, 6]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'D'])), Payoff::from([2, 2, 2, 7]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'C'])), Payoff::from([2, 2, 7, 2]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'D'])), Payoff::from([1, 1, 5, 5]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'C'])), Payoff::from([2, 7, 2, 2]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'D'])), Payoff::from([1, 5, 1, 5]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'C'])), Payoff::from([1, 5, 5, 1]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'D'])), Payoff::from([0, 4, 4, 4]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'C'])), Payoff::from([7, 2, 2, 2]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'D'])), Payoff::from([5, 1, 1, 5]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'C'])), Payoff::from([5, 1, 5, 1]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'D'])), Payoff::from([4, 0, 4, 4]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'C'])), Payoff::from([5, 5, 1, 1]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'D'])), Payoff::from([4, 4, 0, 4]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'C'])), Payoff::from([4, 4, 4, 0]));
+    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'D'])), Payoff::from([3, 3, 3, 3]));
+    /// ```
+    pub fn symmetric_for4<const SIZE: usize>(
+        moves: [Move; SIZE],
+        p0_utils: [[[[Util; SIZE]; SIZE]; SIZE]; SIZE],
+    ) -> Self {
+        let all_moves = PerPlayer::init_with(moves.to_vec());
+        let mut payoff_map = HashMap::with_capacity(SIZE.pow(4));
+        for (i0, m0) in moves.into_iter().enumerate() {
+            for (i1, m1) in moves.into_iter().enumerate() {
+                for (i2, m2) in moves.into_iter().enumerate() {
+                    for (i3, m3) in moves.into_iter().enumerate() {
+                        let u0 = p0_utils[i0][i1][i2][i3];
+                        let u1 = p0_utils[i1][i2][i3][i0];
+                        let u2 = p0_utils[i2][i3][i0][i1];
+                        let u3 = p0_utils[i3][i0][i1][i2];
+                        let payoff = Payoff::from([u0, u1, u2, u3]);
+                        let profile = PerPlayer::new([m0, m1, m2, m3]);
+                        payoff_map.insert(profile, payoff);
+                    }
+                }
+            }
+        }
+        Normal::from_payoff_map(all_moves, payoff_map)
     }
 }
