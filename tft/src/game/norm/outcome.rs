@@ -18,10 +18,9 @@ pub struct Outcome<Move, Util, const N: usize> {
     pub payoff: Payoff<Util, N>,
 }
 
-/// An iterator over all possible outcomes of a
-/// [finite, simultaneous-move])(crate::game::sim::IsNormal) game.
+/// An iterator over all possible outcomes of a [normal-form](crate::game::sim::IsNormal) game.
 ///
-/// For a [normal-form](crate::game::sim::Normal) game, this enumerates the cells of the payoff
+/// This enumerates the cells of the payoff
 /// table in [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
 #[derive(Clone)]
 pub struct OutcomeIter<'g, Move: Copy, Util, const N: usize> {

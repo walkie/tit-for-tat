@@ -10,15 +10,14 @@ use crate::core::{IsMove, IsUtil, Payoff, PerPlayer, PlayerIndex};
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
 pub trait IsSimultaneous<const N: usize>: Game<N> {
-    /// Get the payoff for the given [valid](Sim::is_valid_profile) strategy profile.
+    /// Get the payoff for the given strategy profile.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Implementors of this method are not required to check the validity of the profile and may
-    /// respond to an invalid profile however they choose, including by panicking.
-    ///
-    /// Callers should ensure that this method is only called with valid profiles.
-    fn payoff(&self, profile: Profile<Self::Move, N>) -> Payoff<Self::Util, N>;
+    /// This method *may* return `None` for an [invalid](IsSimultaneous::is_valid_profile) profile.
+    /// However, implementors are not required to check the validity of the profile and may also
+    /// return an arbitrary payoff.
+    fn payoff(&self, profile: Profile<Self::Move, N>) -> Option<Payoff<Self::Util, N>>;
 
     /// Is this a valid move for the given player?
     fn is_valid_move_for_player(&self, player: PlayerIndex<N>, the_move: Self::Move) -> bool;
@@ -82,17 +81,18 @@ pub trait IsSimultaneous<const N: usize>: Game<N> {
 /// ```
 pub struct Simultaneous<Move, Util, const N: usize> {
     move_fn: Box<dyn Fn(PlayerIndex<N>, Move) -> bool>,
-    payoff_fn: Box<dyn Fn(Profile<Move, N>) -> Payoff<Util, N>>,
+    payoff_fn: Box<dyn Fn(Profile<Move, N>) -> Option<Payoff<Util, N>>>,
 }
 
 impl<Move: IsMove, Util: IsUtil, const N: usize> Simultaneous<Move, Util, N> {
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a function that yields the payoff given a profile
     /// containing a move played by each player.
-    pub fn from_payoff_fn(
-        move_fn: impl Fn(PlayerIndex<N>, Move) -> bool + 'static,
-        payoff_fn: impl Fn(Profile<Move, N>) -> Payoff<Util, N> + 'static,
-    ) -> Self {
+    pub fn from_payoff_fn<MoveFn, PayoffFn>(move_fn: MoveFn, payoff_fn: PayoffFn) -> Self
+    where
+        MoveFn: Fn(PlayerIndex<N>, Move) -> bool + 'static,
+        PayoffFn: Fn(Profile<Move, N>) -> Option<Payoff<Util, N>> + 'static,
+    {
         Simultaneous {
             move_fn: Box::new(move_fn),
             payoff_fn: Box::new(payoff_fn),
@@ -101,10 +101,11 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Simultaneous<Move, Util, N> {
 
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a utility function for each player.
-    pub fn from_utility_fns(
-        move_fn: impl Fn(PlayerIndex<N>, Move) -> bool + 'static,
-        util_fns: PerPlayer<impl Fn(Move) -> Util + 'static, N>,
-    ) -> Self {
+    pub fn from_utility_fns<MoveFn, UtilFn>(move_fn: MoveFn, util_fns: PerPlayer<UtilFn, N>) -> Self
+    where
+        MoveFn: Fn(PlayerIndex<N>, Move) -> bool + 'static,
+        UtilFn: Fn(Move) -> Util + 'static,
+    {
         let payoff_fn = move |profile: Profile<Move, N>| {
             Payoff::new(PerPlayer::generate(|player| {
                 util_fns[player](profile[player])

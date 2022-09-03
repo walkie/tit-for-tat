@@ -6,7 +6,6 @@ pub(crate) mod outcome;
 pub(crate) mod solution;
 
 pub use crate::game::sim::*;
-// pub use bimatrix::*;
 pub use normal::*;
 pub use outcome::*;
 pub use solution::*;
