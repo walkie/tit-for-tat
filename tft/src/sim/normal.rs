@@ -506,7 +506,6 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
         nash
     }
 
-
     /// Get all profiles that represent a
     /// [Pareto improvement](https://en.wikipedia.org/wiki/Pareto_efficiency) on the given profile.
     pub fn pareto_improve(&self, profile: Profile<Move, N>) -> Option<Profile<Move, N>> {

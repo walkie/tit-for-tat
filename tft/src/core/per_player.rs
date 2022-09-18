@@ -240,12 +240,27 @@ impl<T: Clone, const N: usize> PerPlayer<T, N> {
 }
 
 impl<T: std::fmt::Debug, const N: usize> PerPlayer<Option<T>, N> {
+    /// Converts a per-player collection of `Option<T>` values into a per-player collection of `T`
+    /// values if every element in the initial collection is `Some`; otherwise returns `None`.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::core::PerPlayer;
+    ///
+    /// assert_eq!(
+    ///     PerPlayer::new([Some(3), Some(4), Some(5)]).all_some(),
+    ///     Some(PerPlayer::new([3, 4, 5])),
+    /// );
+    /// assert_eq!(
+    ///     PerPlayer::new([Some(3), None, Some(5)]).all_some(),
+    ///     None,
+    /// );
+    /// ```
     pub fn all_some(self) -> Option<PerPlayer<T, N>> {
-        if let Some(vec) = self.data.into_iter().collect::<Option<Vec<T>>>() {
-            Some(PerPlayer::new(vec.try_into().unwrap()))
-        } else {
-            None
-        }
+        self.data
+            .into_iter()
+            .collect::<Option<Vec<T>>>()
+            .map(|vec| PerPlayer::new(vec.try_into().unwrap()))
     }
 }
 

@@ -33,7 +33,10 @@ impl<'g, Move: IsMove, Util: IsUtil, const N: usize> OutcomeIter<'g, Move, Util,
         profile_iter: ProfileIter<'g, Move, N>,
         payoff_fn: Rc<dyn Fn(Profile<Move, N>) -> Payoff<Util, N> + 'g>,
     ) -> Self {
-        OutcomeIter { profile_iter, payoff_fn }
+        OutcomeIter {
+            profile_iter,
+            payoff_fn,
+        }
     }
 
     /// Constrain the iterator to enumerate only those cells where the given player plays a
