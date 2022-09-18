@@ -1,5 +1,6 @@
 pub mod core;
-pub mod game;
+// pub mod seq;
+pub mod sim;
 
 /// Exports the most frequently used types and traits.
 pub mod prelude {

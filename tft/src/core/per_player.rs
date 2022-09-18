@@ -118,7 +118,7 @@ impl<T, const N: usize> PerPlayer<T, N> {
     /// assert_eq!(squares[for5::P3], 9);
     /// assert_eq!(squares[for5::P4], 16);
     /// ```
-    pub fn generate(gen_elem: impl FnMut(PlayerIndex<N>) -> T) -> Self {
+    pub fn generate<F: FnMut(PlayerIndex<N>) -> T>(gen_elem: F) -> Self {
         let indexes: [PlayerIndex<N>; N] = PlayerIndex::all_indexes()
             .collect::<Vec<PlayerIndex<N>>>()
             .try_into()
@@ -186,10 +186,7 @@ impl<T, const N: usize> PerPlayer<T, N> {
     }
 }
 
-impl<T, const N: usize> PerPlayer<T, N>
-where
-    T: Clone,
-{
+impl<T: Clone, const N: usize> PerPlayer<T, N> {
     /// Create a new per-player collection where each element is initialized with the given
     /// cloneable value.
     pub fn init_with(value: T) -> Self {
@@ -211,7 +208,7 @@ where
     /// let mut firsts = pp.map(|s| s.chars().next().unwrap());
     /// assert_eq!(firsts, PerPlayer::new(['f', 's', 'm', 'p']));
     /// ```
-    pub fn map<U>(&self, f: impl FnMut(T) -> U) -> PerPlayer<U, N> {
+    pub fn map<U, F: FnMut(T) -> U>(&self, f: F) -> PerPlayer<U, N> {
         PerPlayer::new(self.data.clone().map(f))
     }
 
@@ -233,12 +230,22 @@ where
     /// let mut nths = pp.map_with_index(|i, s| s.chars().nth(i.as_usize()).unwrap());
     /// assert_eq!(nths, PerPlayer::new(['f', 'a', 'r', 'p']));
     /// ```
-    pub fn map_with_index<U>(&self, f: impl Fn(PlayerIndex<N>, T) -> U) -> PerPlayer<U, N> {
+    pub fn map_with_index<U, F: Fn(PlayerIndex<N>, T) -> U>(&self, f: F) -> PerPlayer<U, N> {
         let mut indexes = PlayerIndex::all_indexes();
         PerPlayer::new(self.data.clone().map(move |elem| {
             let index = indexes.next().unwrap();
             f(index, elem)
         }))
+    }
+}
+
+impl<T: std::fmt::Debug, const N: usize> PerPlayer<Option<T>, N> {
+    pub fn all_some(self) -> Option<PerPlayer<T, N>> {
+        if let Some(vec) = self.data.into_iter().collect::<Option<Vec<T>>>() {
+            Some(PerPlayer::new(vec.try_into().unwrap()))
+        } else {
+            None
+        }
     }
 }
 

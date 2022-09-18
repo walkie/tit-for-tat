@@ -1,8 +1,7 @@
 use std::rc::Rc;
 
 use crate::core::{IsMove, IsUtil, Payoff, PlayerIndex};
-use crate::game::norm::IsNormal;
-use crate::game::sim::{Profile, ProfileIter};
+use crate::sim::profile::{Profile, ProfileIter};
 
 /// A (potential) outcome of a simultaneous move game. A payoff combined with the strategy profile
 /// that produced it.
@@ -18,10 +17,9 @@ pub struct Outcome<Move, Util, const N: usize> {
     pub payoff: Payoff<Util, N>,
 }
 
-/// An iterator over all possible outcomes of a
-/// [finite, simultaneous-move])(crate::game::sim::IsNormal) game.
+/// An iterator over all possible outcomes of a [normal-form](crate::game::sim::IsNormal) game.
 ///
-/// For a [normal-form](crate::game::sim::Normal) game, this enumerates the cells of the payoff
+/// This enumerates the cells of the payoff
 /// table in [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
 #[derive(Clone)]
 pub struct OutcomeIter<'g, Move: Copy, Util, const N: usize> {
@@ -31,11 +29,11 @@ pub struct OutcomeIter<'g, Move: Copy, Util, const N: usize> {
 
 impl<'g, Move: IsMove, Util: IsUtil, const N: usize> OutcomeIter<'g, Move, Util, N> {
     /// Construct a new outcome iterator for the given finite simultaneous-move game.
-    pub fn for_game(game: &'g (impl IsNormal<N, Move = Move, Util = Util> + ?Sized)) -> Self {
-        OutcomeIter {
-            profile_iter: game.profiles(),
-            payoff_fn: Rc::new(|profile| game.payoff(profile)),
-        }
+    pub(crate) fn new(
+        profile_iter: ProfileIter<'g, Move, N>,
+        payoff_fn: Rc<dyn Fn(Profile<Move, N>) -> Payoff<Util, N> + 'g>,
+    ) -> Self {
+        OutcomeIter { profile_iter, payoff_fn }
     }
 
     /// Constrain the iterator to enumerate only those cells where the given player plays a

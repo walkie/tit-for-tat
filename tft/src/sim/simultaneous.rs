@@ -1,36 +1,10 @@
-//! Simultaneous move games.
-
-mod profile;
-
-pub use crate::game::Game;
-pub use profile::*;
+//! Non-finite simultaneous move games.
 
 use crate::core::{IsMove, IsUtil, Payoff, PerPlayer, PlayerIndex};
+use crate::sim::Profile;
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
-pub trait IsSimultaneous<const N: usize>: Game<N> {
-    /// Get the payoff for the given [valid](Sim::is_valid_profile) strategy profile.
-    ///
-    /// # Panics
-    ///
-    /// Implementors of this method are not required to check the validity of the profile and may
-    /// respond to an invalid profile however they choose, including by panicking.
-    ///
-    /// Callers should ensure that this method is only called with valid profiles.
-    fn payoff(&self, profile: Profile<Self::Move, N>) -> Payoff<Self::Util, N>;
-
-    /// Is this a valid move for the given player?
-    fn is_valid_move_for_player(&self, player: PlayerIndex<N>, the_move: Self::Move) -> bool;
-
-    /// Is this a valid strategy profile? A profile is valid if each move is valid for the
-    /// corresponding player.
-    fn is_valid_profile(&self, profile: Profile<Self::Move, N>) -> bool {
-        PlayerIndex::all_indexes().all(|pi| self.is_valid_move_for_player(pi, profile[pi]))
-    }
-}
-
-/// A simultaneous move game.
 ///
 /// This is the most general form of simultaneous move game. It consists of two functions:
 /// 1. A predicate that recognizes valid moves for each player.
@@ -52,7 +26,7 @@ pub trait IsSimultaneous<const N: usize>: Game<N> {
 ///
 /// ```
 /// use tft::core::*;
-/// use tft::game::sim::*;
+/// use tft::sim::*;
 ///
 /// let valid_move = |p, n: i32| {
 ///   if p == for2::P0 {
@@ -89,10 +63,11 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Simultaneous<Move, Util, N> {
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a function that yields the payoff given a profile
     /// containing a move played by each player.
-    pub fn from_payoff_fn(
-        move_fn: impl Fn(PlayerIndex<N>, Move) -> bool + 'static,
-        payoff_fn: impl Fn(Profile<Move, N>) -> Payoff<Util, N> + 'static,
-    ) -> Self {
+    pub fn from_payoff_fn<MoveFn, PayoffFn>(move_fn: MoveFn, payoff_fn: PayoffFn) -> Self
+    where
+        MoveFn: Fn(PlayerIndex<N>, Move) -> bool + 'static,
+        PayoffFn: Fn(Profile<Move, N>) -> Payoff<Util, N> + 'static,
+    {
         Simultaneous {
             move_fn: Box::new(move_fn),
             payoff_fn: Box::new(payoff_fn),
@@ -101,10 +76,11 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Simultaneous<Move, Util, N> {
 
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a utility function for each player.
-    pub fn from_utility_fns(
-        move_fn: impl Fn(PlayerIndex<N>, Move) -> bool + 'static,
-        util_fns: PerPlayer<impl Fn(Move) -> Util + 'static, N>,
-    ) -> Self {
+    pub fn from_utility_fns<MoveFn, UtilFn>(move_fn: MoveFn, util_fns: PerPlayer<UtilFn, N>) -> Self
+    where
+        MoveFn: Fn(PlayerIndex<N>, Move) -> bool + 'static,
+        UtilFn: Fn(Move) -> Util + 'static,
+    {
         let payoff_fn = move |profile: Profile<Move, N>| {
             Payoff::new(PerPlayer::generate(|player| {
                 util_fns[player](profile[player])
@@ -115,18 +91,25 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Simultaneous<Move, Util, N> {
             payoff_fn: Box::new(payoff_fn),
         }
     }
-}
 
-impl<Move: IsMove, Util: IsUtil, const N: usize> Game<N> for Simultaneous<Move, Util, N> {
-    type Move = Move;
-    type Util = Util;
-}
+    /// The number of players this game is for.
+    pub fn num_players(&self) -> usize {
+        N
+    }
 
-impl<Move: IsMove, Util: IsUtil, const N: usize> IsSimultaneous<N> for Simultaneous<Move, Util, N> {
-    fn payoff(&self, profile: Profile<Move, N>) -> Payoff<Util, N> {
+    /// Get the payoff for the given strategy profile.
+    pub fn payoff(&self, profile: Profile<Move, N>) -> Payoff<Util, N> {
         (*self.payoff_fn)(profile)
     }
-    fn is_valid_move_for_player(&self, player: PlayerIndex<N>, the_move: Move) -> bool {
+
+    /// Is this a valid move for the given player?
+    pub fn is_valid_move_for_player(&self, player: PlayerIndex<N>, the_move: Move) -> bool {
         (*self.move_fn)(player, the_move)
+    }
+
+    /// Is this a valid strategy profile? A profile is valid if each move is valid for the
+    /// corresponding player.
+    pub fn is_valid_profile(&self, profile: Profile<Move, N>) -> bool {
+        PlayerIndex::all_indexes().all(|pi| self.is_valid_move_for_player(pi, profile[pi]))
     }
 }
