@@ -329,7 +329,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
         self.available_moves().map(|ms| ms.count())
     }
 
-    /// An iterator over all of the [valid](Sim::is_valid_profile) pure strategy profiles for this
+    /// An iterator over all of the [valid](Normal::is_valid_profile) pure strategy profiles for this
     /// game.
     pub fn profiles(&self) -> ProfileIter<'_, Move, N> {
         ProfileIter::from_move_iters(self.available_moves())
@@ -551,7 +551,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// Get all dominated move relationships for the given player. If a move is dominated by
     /// multiple different moves, it will contain multiple entries in the returned vector.
     ///
-    /// See the documentation for [`Dominated`](crate::norm::Dominated) for more info.
+    /// See the documentation for [`Dominated`](crate::sim::Dominated) for more info.
     ///
     /// # Examples
     /// ```

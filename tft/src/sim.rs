@@ -1,4 +1,4 @@
-//! Simultaneous move games.
+//! Definitions related to simultaneous-move games.
 
 pub(crate) mod normal;
 pub(crate) mod outcome;
