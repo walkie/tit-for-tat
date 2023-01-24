@@ -105,10 +105,28 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// that can be generated from the available moves.
     ///
     /// - If *too few* payoffs are provided, logs an error and returns `None`.
-    /// - If *too many* payoffs are provided, logs a warning and returns a table in which the
+    /// - If *too many* payoffs are provided, logs a warning and returns a game in which the
     ///   excess payoffs are ignored.
     ///
     /// # Examples
+    /// ```
+    /// use tft::core::*;
+    /// use tft::game::norm::*;
+    ///
+    /// let g = Normal::from_payoff_vec(
+    ///     PerPlayer::new([vec!['A', 'B'], vec!['C', 'D'], vec!['E']]),
+    ///     vec![
+    ///         Payoff::from([1, 2, 3]), Payoff::from([4, 5, 6]),
+    ///         Payoff::from([9, 8, 7]), Payoff::from([6, 5, 4]),
+    ///     ]
+    /// )
+    /// .unwrap();
+    ///
+    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'C', 'E'])), Payoff::from([1, 2, 3]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'D', 'E'])), Payoff::from([4, 5, 6]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'C', 'E'])), Payoff::from([9, 8, 7]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'D', 'E'])), Payoff::from([6, 5, 4]));
+    /// ```
     pub fn from_payoff_vec(
         moves: PerPlayer<Vec<Move>, N>,
         payoffs: Vec<Payoff<Util, N>>,
