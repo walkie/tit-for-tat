@@ -239,13 +239,11 @@ impl<T: Clone, const N: usize> PerPlayer<T, N> {
     }
 }
 
-impl<T, const N: usize> PerPlayer<Option<T>, N> {
+impl<T: core::fmt::Debug, const N: usize> PerPlayer<Option<T>, N> {
     pub fn all_some(self) -> Option<PerPlayer<T, N>> {
-        if let Some(vec) = self.data.into_iter().collect::<Option<Vec<T>>>() {
-            Some(PerPlayer::new(vec.try_into().unwrap()))
-        } else {
-            None
-        }
+        self.data.into_iter().collect::<Option<Vec<T>>>().map(|vec|
+            PerPlayer::new(vec.try_into().unwrap())
+        )
     }
 }
 
@@ -267,7 +265,7 @@ impl<'a, T, const N: usize> IntoIterator for &'a PerPlayer<T, N> {
     type Item = <&'a [T; N] as IntoIterator>::Item;
     type IntoIter = <&'a [T; N] as IntoIterator>::IntoIter;
     fn into_iter(self) -> <&'a [T; N] as IntoIterator>::IntoIter {
-        (&self.data).iter()
+        self.data.iter()
     }
 }
 
@@ -275,7 +273,7 @@ impl<'a, T, const N: usize> IntoIterator for &'a mut PerPlayer<T, N> {
     type Item = <&'a mut [T; N] as IntoIterator>::Item;
     type IntoIter = <&'a mut [T; N] as IntoIterator>::IntoIter;
     fn into_iter(self) -> <&'a mut [T; N] as IntoIterator>::IntoIter {
-        (&mut self.data).iter_mut()
+        self.data.iter_mut()
     }
 }
 
