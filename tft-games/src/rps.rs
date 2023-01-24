@@ -8,7 +8,7 @@ pub enum Move {
     Paper,
     Scissors,
     Fire,
-    Water
+    Water,
 }
 
 /// Classic [rock-paper-scissors](https://en.wikipedia.org/wiki/Rock_paper_scissors) game:

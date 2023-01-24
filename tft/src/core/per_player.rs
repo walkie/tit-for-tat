@@ -241,9 +241,10 @@ impl<T: Clone, const N: usize> PerPlayer<T, N> {
 
 impl<T: core::fmt::Debug, const N: usize> PerPlayer<Option<T>, N> {
     pub fn all_some(self) -> Option<PerPlayer<T, N>> {
-        self.data.into_iter().collect::<Option<Vec<T>>>().map(|vec|
-            PerPlayer::new(vec.try_into().unwrap())
-        )
+        self.data
+            .into_iter()
+            .collect::<Option<Vec<T>>>()
+            .map(|vec| PerPlayer::new(vec.try_into().unwrap()))
     }
 }
 
