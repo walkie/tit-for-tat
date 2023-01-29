@@ -1,18 +1,12 @@
-//! Games represented in normal form. Simultaneous move games with finite move sets.
-
 use num::Zero;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::iter::Iterator;
 use std::rc::Rc;
 
-use crate::core::{IsMove, IsUtil, MoveIter, Payoff, PerPlayer, PlayerIndex};
-use crate::sim::outcome::OutcomeIter;
-use crate::sim::profile::{Profile, ProfileIter};
-use crate::sim::solution::Dominated;
+use crate::norm::*;
 
-/// A finite simultaneous-move game represented in
-/// [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
+/// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
 /// In a normal-form game, each player plays a single move from a finite set of available moves,
 /// without knowledge of other players' moves, and the payoff is determined by refering to a table
@@ -33,6 +27,10 @@ pub struct Normal<Move, Util, const N: usize> {
 impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// Construct a normal-form game given the moves available to each player and a function that
     /// yields the game's payoff given a profile containing a move played by each player.
+    ///
+    /// This constructor (and [from_utility_fns](Normal::from_utility_fns)) enables representing
+    /// large normal-form games where it would be intractable to represent the payoff map/table
+    /// directly.
     pub fn from_payoff_fn(
         moves: PerPlayer<Vec<Move>, N>,
         payoff_fn: impl Fn(Profile<Move, N>) -> Payoff<Util, N> + 'static,
@@ -45,6 +43,10 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
 
     /// Construct a normal-form game given the moves available to each player and a utility
     /// function for each player.
+    ///
+    /// This constructor (and [from_payoff_fn](Normal::from_payoff_fn)) enables representing
+    /// large normal-form games where it would be intractable to represent the payoff map/table
+    /// directly.
     pub fn from_utility_fns(
         moves: PerPlayer<Vec<Move>, N>,
         util_fns: PerPlayer<impl Fn(Move) -> Util + 'static, N>,
@@ -62,8 +64,8 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Errors
     ///
-    /// The resulting game will log an error and return a [zero payoff](crate::core::Payoff::zeros)
-    /// for any profile not contained in the map.
+    /// The resulting game will log an error and return a [zero payoff](crate::Payoff::zeros) for
+    /// any profile not contained in the map.
     pub fn from_payoff_map(
         moves: PerPlayer<Vec<Move>, N>,
         payoff_map: HashMap<Profile<Move, N>, Payoff<Util, N>>,
@@ -91,10 +93,27 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// that can be generated from the available moves.
     ///
     /// - If *too few* payoffs are provided, logs an error and returns `None`.
-    /// - If *too many* payoffs are provided, logs a warning and returns a table in which the
+    /// - If *too many* payoffs are provided, logs a warning and returns a game in which the
     ///   excess payoffs are ignored.
     ///
     /// # Examples
+    /// ```
+    /// use tft::norm::*;
+    ///
+    /// let g = Normal::from_payoff_vec(
+    ///     PerPlayer::new([vec!['A', 'B'], vec!['C', 'D'], vec!['E']]),
+    ///     vec![
+    ///         Payoff::from([1, 2, 3]), Payoff::from([4, 5, 6]),
+    ///         Payoff::from([9, 8, 7]), Payoff::from([6, 5, 4]),
+    ///     ]
+    /// )
+    /// .unwrap();
+    ///
+    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'C', 'E'])), Payoff::from([1, 2, 3]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'D', 'E'])), Payoff::from([4, 5, 6]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'C', 'E'])), Payoff::from([9, 8, 7]));
+    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'D', 'E'])), Payoff::from([6, 5, 4]));
+    /// ```
     pub fn from_payoff_vec(
         moves: PerPlayer<Vec<Move>, N>,
         payoffs: Vec<Payoff<Util, N>>,
@@ -139,8 +158,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// The classic [prisoner's dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma) is an
     /// example of a symmetric 2-player game:
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let pd = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -158,8 +176,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// where each player's moves and payoffs are symmetric:
     ///
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let pd3 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -179,8 +196,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// And similarly, a 4-player prisoner's dilemma:
     ///
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let pd4 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -295,6 +311,9 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     }
 
     /// Get the payoff for the given strategy profile.
+    ///
+    /// This method may return an arbitrary payoff if given an
+    /// [invalid profile](Normal::is_valid_profile).
     pub fn payoff(&self, profile: Profile<Move, N>) -> Payoff<Util, N> {
         (*self.payoff_fn)(profile)
     }
@@ -314,7 +333,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     ///
     /// Implementations of this method should produce every valid move for the given player exactly
     /// once.
-    pub fn available_moves_for_player(&self, player: PlayerIndex<N>) -> MoveIter<Move> {
+    pub fn available_moves_for_player(&self, player: PlayerIndex<N>) -> MoveIter<'_, Move> {
         MoveIter::new(self.moves[player].clone().into_iter())
     }
 
@@ -329,8 +348,8 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
         self.available_moves().map(|ms| ms.count())
     }
 
-    /// An iterator over all of the [valid](Normal::is_valid_profile) pure strategy profiles for this
-    /// game.
+    /// An iterator over all of the [valid](Normal::is_valid_profile) pure strategy profiles for
+    /// this game.
     pub fn profiles(&self) -> ProfileIter<'_, Move, N> {
         ProfileIter::from_move_iters(self.available_moves())
     }
@@ -344,8 +363,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let rps: Normal<_, _, 2> = Normal::symmetric(
     ///     vec!["Rock", "Paper", "Scissors"],
@@ -374,8 +392,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
     /// enum RPS { Rock, Paper, Scissors };
@@ -433,8 +450,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -474,8 +490,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -506,8 +521,6 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
         nash
     }
 
-    /// Get all profiles that represent a
-    /// [Pareto improvement](https://en.wikipedia.org/wiki/Pareto_efficiency) on the given profile.
     pub fn pareto_improve(&self, profile: Profile<Move, N>) -> Option<Profile<Move, N>> {
         if self.is_valid_profile(profile) {
             let payoff = self.payoff(profile);
@@ -531,13 +544,10 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
         }
     }
 
-    /// Is the given strategy [Pareto optimal](https://en.wikipedia.org/wiki/Pareto_efficiency)?
     pub fn is_pareto_optimal(&self, profile: Profile<Move, N>) -> bool {
         self.pareto_improve(profile).is_none()
     }
 
-    /// Get all [Pareto-optimal](https://en.wikipedia.org/wiki/Pareto_efficiency) solutions to this
-    /// game.
     pub fn pareto_optimal_solutions(&self) -> Vec<Profile<Move, N>> {
         let mut pareto = Vec::new();
         for profile in self.profiles() {
@@ -551,12 +561,11 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// Get all dominated move relationships for the given player. If a move is dominated by
     /// multiple different moves, it will contain multiple entries in the returned vector.
     ///
-    /// See the documentation for [`Dominated`](crate::sim::Dominated) for more info.
+    /// See the documentation for [`Dominated`](crate::norm::Dominated) for more info.
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let g = Normal::from_payoff_vec(
     ///     PerPlayer::new([
@@ -629,8 +638,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let g = Normal::matrix(
     ///     ['A', 'B', 'C'],
@@ -674,8 +682,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let g = Normal::bimatrix(
     ///     ['A', 'B', 'C'],
@@ -715,8 +722,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let pd = Normal::symmetric_for2(
     ///     ['C', 'D'],
@@ -752,8 +758,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 3> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let pd3 = Normal::symmetric_for3(
     ///     ['C', 'D'],
@@ -798,8 +803,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 4> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::sim::*;
+    /// use tft::norm::*;
     ///
     /// let pd4 = Normal::symmetric_for4(
     ///     ['C', 'D'],

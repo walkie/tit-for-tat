@@ -1,7 +1,4 @@
-//! Non-finite simultaneous move games.
-
-use crate::core::{IsMove, IsUtil, Payoff, PerPlayer, PlayerIndex};
-use crate::sim::Profile;
+use crate::sim::*;
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
@@ -11,7 +8,7 @@ use crate::sim::Profile;
 /// 2. A function that yields the payoff given the moves played by each player.
 ///
 /// This representation is best used for games with non-finite domains of moves. For games with
-/// finite domains of moves, use [`Normal`](crate::sim::Normal).
+/// finite domains of moves, use [`Normal`](crate::Normal).
 ///
 /// # Type variables
 ///
@@ -25,7 +22,6 @@ use crate::sim::Profile;
 /// for player `P1`, while `P1` must pick an odd score for `P0`.
 ///
 /// ```
-/// use tft::core::*;
 /// use tft::sim::*;
 ///
 /// let valid_move = |p, n: i32| {
@@ -62,7 +58,7 @@ pub struct Simultaneous<Move, Util, const N: usize> {
 impl<Move: IsMove, Util: IsUtil, const N: usize> Simultaneous<Move, Util, N> {
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a function that yields the payoff given a profile
-    /// containing a move played by each player.
+    /// containing a valid move played by each player.
     pub fn from_payoff_fn<MoveFn, PayoffFn>(move_fn: MoveFn, payoff_fn: PayoffFn) -> Self
     where
         MoveFn: Fn(PlayerIndex<N>, Move) -> bool + 'static,
@@ -98,6 +94,9 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Simultaneous<Move, Util, N> {
     }
 
     /// Get the payoff for the given strategy profile.
+    ///
+    /// This method may return an arbitrary payoff if given an
+    /// [invalid profile](Simultaneous::is_valid_profile).
     pub fn payoff(&self, profile: Profile<Move, N>) -> Payoff<Util, N> {
         (*self.payoff_fn)(profile)
     }

@@ -1,5 +1,3 @@
-//! Definitions related to solution concepts of normal form games.
-
 /// Captures a domination relationship between moves in a simultaneous move game.
 ///
 /// A move `m1` is *strictly dominated* by another move `m2` for player `p` if, for any possible
