@@ -1,12 +1,12 @@
+use num::Zero;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::iter::Iterator;
 use std::rc::Rc;
 
-use crate::core::*;
-use crate::game::norm::*;
+use crate::norm::*;
 
-/// A finite simultaneous-move game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
+/// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
 /// In a normal-form game, each player plays a single move from a finite set of available moves,
 /// without knowledge of other players' moves, and the payoff is determined by refering to a table
@@ -24,29 +24,13 @@ pub struct Normal<Move, Util, const N: usize> {
     payoff_fn: Rc<dyn Fn(Profile<Move, N>) -> Payoff<Util, N>>,
 }
 
-impl<Move: IsMove, Util: IsUtil, const N: usize> Game<N> for Normal<Move, Util, N> {
-    type Move = Move;
-    type Util = Util;
-}
-
-impl<Move: IsMove, Util: IsUtil, const N: usize> IsSimultaneous<N> for Normal<Move, Util, N> {
-    fn payoff(&self, profile: Profile<Move, N>) -> Payoff<Util, N> {
-        (*self.payoff_fn)(profile)
-    }
-    fn is_valid_move_for_player(&self, player: PlayerIndex<N>, the_move: Move) -> bool {
-        self.moves[player].contains(&the_move)
-    }
-}
-
-impl<Move: IsMove, Util: IsUtil, const N: usize> IsNormal<N> for Normal<Move, Util, N> {
-    fn available_moves_for_player(&self, player: PlayerIndex<N>) -> MoveIter<Move> {
-        MoveIter::new(self.moves[player].clone().into_iter())
-    }
-}
-
 impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// Construct a normal-form game given the moves available to each player and a function that
     /// yields the game's payoff given a profile containing a move played by each player.
+    ///
+    /// This constructor (and [from_utility_fns](Normal::from_utility_fns)) enables representing
+    /// large normal-form games where it would be intractable to represent the payoff map/table
+    /// directly.
     pub fn from_payoff_fn(
         moves: PerPlayer<Vec<Move>, N>,
         payoff_fn: impl Fn(Profile<Move, N>) -> Payoff<Util, N> + 'static,
@@ -59,6 +43,10 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
 
     /// Construct a normal-form game given the moves available to each player and a utility
     /// function for each player.
+    ///
+    /// This constructor (and [from_payoff_fn](Normal::from_payoff_fn)) enables representing
+    /// large normal-form games where it would be intractable to represent the payoff map/table
+    /// directly.
     pub fn from_utility_fns(
         moves: PerPlayer<Vec<Move>, N>,
         util_fns: PerPlayer<impl Fn(Move) -> Util + 'static, N>,
@@ -76,8 +64,8 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Errors
     ///
-    /// The resulting game will log an error and return a [zero payoff](crate::core::Payoff::zeros)
-    /// for any profile not contained in the map.
+    /// The resulting game will log an error and return a [zero payoff](crate::Payoff::zeros) for
+    /// any profile not contained in the map.
     pub fn from_payoff_map(
         moves: PerPlayer<Vec<Move>, N>,
         payoff_map: HashMap<Profile<Move, N>, Payoff<Util, N>>,
@@ -110,8 +98,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::game::norm::*;
+    /// use tft::norm::*;
     ///
     /// let g = Normal::from_payoff_vec(
     ///     PerPlayer::new([vec!['A', 'B'], vec!['C', 'D'], vec!['E']]),
@@ -171,8 +158,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// The classic [prisoner's dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma) is an
     /// example of a symmetric 2-player game:
     /// ```
-    /// use tft::core::*;
-    /// use tft::game::norm::*;
+    /// use tft::norm::*;
     ///
     /// let pd = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -190,8 +176,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// where each player's moves and payoffs are symmetric:
     ///
     /// ```
-    /// use tft::core::*;
-    /// use tft::game::norm::*;
+    /// use tft::norm::*;
     ///
     /// let pd3 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -211,8 +196,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     /// And similarly, a 4-player prisoner's dilemma:
     ///
     /// ```
-    /// use tft::core::*;
-    /// use tft::game::norm::*;
+    /// use tft::norm::*;
     ///
     /// let pd4 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -320,6 +304,329 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
             payoff_fn,
         ))
     }
+
+    /// The number of players this game is for.
+    pub fn num_players(&self) -> usize {
+        N
+    }
+
+    /// Get the payoff for the given strategy profile.
+    ///
+    /// This method may return an arbitrary payoff if given an
+    /// [invalid profile](Normal::is_valid_profile).
+    pub fn payoff(&self, profile: Profile<Move, N>) -> Payoff<Util, N> {
+        (*self.payoff_fn)(profile)
+    }
+
+    /// Is this a valid move for the given player?
+    pub fn is_valid_move_for_player(&self, player: PlayerIndex<N>, the_move: Move) -> bool {
+        self.moves[player].contains(&the_move)
+    }
+
+    /// Is this a valid strategy profile? A profile is valid if each move is valid for the
+    /// corresponding player.
+    pub fn is_valid_profile(&self, profile: Profile<Move, N>) -> bool {
+        PlayerIndex::all_indexes().all(|pi| self.is_valid_move_for_player(pi, profile[pi]))
+    }
+
+    /// Get an iterator over the available moves for the given player.
+    ///
+    /// Implementations of this method should produce every valid move for the given player exactly
+    /// once.
+    pub fn available_moves_for_player(&self, player: PlayerIndex<N>) -> MoveIter<'_, Move> {
+        MoveIter::new(self.moves[player].clone().into_iter())
+    }
+
+    /// Get iterators for moves available to each player.
+    pub fn available_moves(&self) -> PerPlayer<MoveIter<'_, Move>, N> {
+        PerPlayer::generate(|player| self.available_moves_for_player(player))
+    }
+
+    /// Get the number of moves available to each player, which corresponds to the dimensions of
+    /// the payoff matrix.
+    pub fn dimensions(&self) -> PerPlayer<usize, N> {
+        self.available_moves().map(|ms| ms.count())
+    }
+
+    /// An iterator over all of the [valid](Normal::is_valid_profile) pure strategy profiles for
+    /// this game.
+    pub fn profiles(&self) -> ProfileIter<'_, Move, N> {
+        ProfileIter::from_move_iters(self.available_moves())
+    }
+
+    /// An iterator over all possible outcomes of the game.
+    pub fn outcomes(&self) -> OutcomeIter<'_, Move, Util, N> {
+        OutcomeIter::new(self.profiles(), self.payoff_fn.clone())
+    }
+
+    /// Is this game zero-sum? In a zero-sum game, the utility values of each payoff sum to zero.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::norm::*;
+    ///
+    /// let rps: Normal<_, _, 2> = Normal::symmetric(
+    ///     vec!["Rock", "Paper", "Scissors"],
+    ///     vec![0, -1, 1, 1, 0, -1, -1, 1, 0],
+    /// ).unwrap();
+    ///
+    /// assert!(rps.is_zero_sum());
+    ///
+    /// let pd: Normal<_, _, 2> = Normal::symmetric(
+    ///     vec!["Cooperate", "Defect"],
+    ///     vec![2, 0, 3, 1],
+    /// ).unwrap();
+    ///
+    /// assert!(!pd.is_zero_sum());
+    /// ```
+    pub fn is_zero_sum(&self) -> bool {
+        self.outcomes().all(|outcome| outcome.payoff.is_zero_sum())
+    }
+
+    /// Return a move that unilaterally improves the given player's utility, if such a move exists.
+    ///
+    /// A unilateral improvement assumes that all other player's moves will be unchanged.
+    ///
+    /// If more than one move would unilaterally improve the player's utility, then the move that
+    /// improves it by the *most* is returned.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::norm::*;
+    ///
+    /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+    /// enum RPS { Rock, Paper, Scissors };
+    ///
+    /// let rps = Normal::symmetric(
+    ///     vec![RPS::Rock, RPS::Paper, RPS::Scissors],
+    ///     vec![ 0, -1,  1,
+    ///           1,  0, -1,
+    ///          -1,  1,  0,
+    ///     ],
+    /// ).unwrap();
+    ///
+    /// let rock_rock = PerPlayer::new([RPS::Rock, RPS::Rock]);
+    /// assert_eq!(rps.unilaterally_improve(for2::P0, rock_rock), Some(RPS::Paper));
+    /// assert_eq!(rps.unilaterally_improve(for2::P1, rock_rock), Some(RPS::Paper));
+    ///
+    /// let paper_scissors = PerPlayer::new([RPS::Paper, RPS::Scissors]);
+    /// assert_eq!(rps.unilaterally_improve(for2::P0, paper_scissors), Some(RPS::Rock));
+    /// assert_eq!(rps.unilaterally_improve(for2::P1, paper_scissors), None);
+    ///
+    /// let paper_rock = PerPlayer::new([RPS::Paper, RPS::Rock]);
+    /// assert_eq!(rps.unilaterally_improve(for2::P0, paper_rock), None);
+    /// assert_eq!(rps.unilaterally_improve(for2::P1, paper_rock), Some(RPS::Scissors));
+    /// ```
+    pub fn unilaterally_improve(
+        &self,
+        player: PlayerIndex<N>,
+        profile: Profile<Move, N>,
+    ) -> Option<Move> {
+        let mut best_move = None;
+        if self.is_valid_profile(profile) {
+            let mut best_util = self.payoff(profile)[player];
+            for adjacent in self.outcomes().adjacent(player, profile) {
+                let util = adjacent.payoff[player];
+                if util > best_util {
+                    best_move = Some(adjacent.profile[player]);
+                    best_util = util;
+                }
+            }
+            best_move
+        } else {
+            log::error!(
+                "IsNormal::unilaterally_improve: invalid initial profile ({:?})",
+                profile,
+            );
+            None
+        }
+    }
+
+    /// Is the given strategy profile stable? A profile is stable if no player can unilaterally
+    /// improve their utility.
+    ///
+    /// A stable profile is a pure
+    /// [Nash equilibrium](https://en.wikipedia.org/wiki/Nash_equilibrium) of the game.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::norm::*;
+    ///
+    /// let dilemma = Normal::symmetric(
+    ///     vec!['C', 'D'],
+    ///     vec![2, 0, 3, 1],
+    /// ).unwrap();
+    ///
+    /// let hunt = Normal::symmetric(
+    ///     vec!['C', 'D'],
+    ///     vec![3, 0, 2, 1],
+    /// ).unwrap();
+    ///
+    /// let cc = PerPlayer::new(['C', 'C']);
+    /// let cd = PerPlayer::new(['C', 'D']);
+    /// let dc = PerPlayer::new(['D', 'C']);
+    /// let dd = PerPlayer::new(['D', 'D']);
+    ///
+    /// assert!(!dilemma.is_stable(cc));
+    /// assert!(!dilemma.is_stable(cd));
+    /// assert!(!dilemma.is_stable(dc));
+    /// assert!(dilemma.is_stable(dd));
+    ///
+    /// assert!(hunt.is_stable(cc));
+    /// assert!(!hunt.is_stable(cd));
+    /// assert!(!hunt.is_stable(dc));
+    /// assert!(hunt.is_stable(dd));
+    /// ```
+    pub fn is_stable(&self, profile: Profile<Move, N>) -> bool {
+        PlayerIndex::all_indexes()
+            .all(|player| self.unilaterally_improve(player, profile).is_none())
+    }
+
+    /// All pure [Nash equilibria](https://en.wikipedia.org/wiki/Nash_equilibrium) solutions of a
+    /// finite simultaneous game.
+    ///
+    /// This function simply enumerates all profiles and checks to see if each one is
+    /// [stable](Normal::is_stable).
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::norm::*;
+    ///
+    /// let dilemma = Normal::symmetric(
+    ///     vec!['C', 'D'],
+    ///     vec![2, 0, 3, 1],
+    /// ).unwrap();
+    ///
+    /// let hunt = Normal::symmetric(
+    ///     vec!['C', 'D'],
+    ///     vec![3, 0, 2, 1],
+    /// ).unwrap();
+    ///
+    /// assert_eq!(
+    ///     dilemma.pure_nash_equilibria(),
+    ///     vec![PerPlayer::new(['D', 'D'])],
+    /// );
+    /// assert_eq!(
+    ///     hunt.pure_nash_equilibria(),
+    ///     vec![PerPlayer::new(['C', 'C']), PerPlayer::new(['D', 'D'])],
+    /// );
+    /// ```
+    pub fn pure_nash_equilibria(&self) -> Vec<Profile<Move, N>> {
+        let mut nash = Vec::new();
+        for profile in self.profiles() {
+            if self.is_stable(profile) {
+                nash.push(profile);
+            }
+        }
+        nash
+    }
+
+    pub fn pareto_improve(&self, profile: Profile<Move, N>) -> Option<Profile<Move, N>> {
+        if self.is_valid_profile(profile) {
+            let payoff = self.payoff(profile);
+            let mut best_profile = None;
+            let mut best_improvement = <Util as Zero>::zero();
+            for outcome in self.outcomes() {
+                if let Some(improvement) = payoff.pareto_improvement(outcome.payoff) {
+                    if improvement.gt(&best_improvement) {
+                        best_profile = Some(outcome.profile);
+                        best_improvement = improvement;
+                    }
+                }
+            }
+            best_profile
+        } else {
+            log::error!(
+                "IsNormal::pareto_improve: invalid initial profile ({:?})",
+                profile,
+            );
+            None
+        }
+    }
+
+    pub fn is_pareto_optimal(&self, profile: Profile<Move, N>) -> bool {
+        self.pareto_improve(profile).is_none()
+    }
+
+    pub fn pareto_optimal_solutions(&self) -> Vec<Profile<Move, N>> {
+        let mut pareto = Vec::new();
+        for profile in self.profiles() {
+            if self.is_pareto_optimal(profile) {
+                pareto.push(profile)
+            }
+        }
+        pareto
+    }
+
+    /// Get all dominated move relationships for the given player. If a move is dominated by
+    /// multiple different moves, it will contain multiple entries in the returned vector.
+    ///
+    /// See the documentation for [`Dominated`](crate::norm::Dominated) for more info.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::norm::*;
+    ///
+    /// let g = Normal::from_payoff_vec(
+    ///     PerPlayer::new([
+    ///         vec!['A', 'B', 'C'],
+    ///         vec!['D', 'E'],
+    ///     ]),
+    ///     vec![
+    ///         Payoff::from([3, 3]), Payoff::from([3, 5]),
+    ///         Payoff::from([2, 0]), Payoff::from([3, 1]),
+    ///         Payoff::from([4, 0]), Payoff::from([2, 1]),
+    ///     ],
+    /// ).unwrap();
+    ///
+    /// assert_eq!(g.dominated_moves_for(for2::P0), vec![Dominated::weak('B', 'A')]);
+    /// assert_eq!(g.dominated_moves_for(for2::P1), vec![Dominated::strict('D', 'E')]);
+    /// ```
+    pub fn dominated_moves_for(&self, player: PlayerIndex<N>) -> Vec<Dominated<Move>> {
+        let mut dominated = Vec::new();
+
+        for maybe_ted in self.available_moves_for_player(player) {
+            let ted_iter = self.outcomes().include(player, maybe_ted);
+
+            for maybe_tor in self.available_moves_for_player(player) {
+                if maybe_ted == maybe_tor {
+                    continue;
+                }
+
+                let tor_iter = self.outcomes().include(player, maybe_tor);
+
+                let mut is_dominated = true;
+                let mut is_strict = true;
+                for (ted_outcome, tor_outcome) in ted_iter.clone().zip(tor_iter) {
+                    let ted_payoff = ted_outcome.payoff;
+                    let tor_payoff = tor_outcome.payoff;
+                    if let Some(ordering) = ted_payoff[player].partial_cmp(&tor_payoff[player]) {
+                        match ordering {
+                            Ordering::Less => {}
+                            Ordering::Equal => is_strict = false,
+                            Ordering::Greater => {
+                                is_dominated = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if is_dominated {
+                    dominated.push(Dominated {
+                        dominated: maybe_ted,
+                        dominator: maybe_tor,
+                        is_strict,
+                    });
+                }
+            }
+        }
+        dominated
+    }
+
+    /// Get all dominated move relationships for each player.
+    pub fn dominated_moves(&self) -> PerPlayer<Vec<Dominated<Move>>, N> {
+        PerPlayer::generate(|index| self.dominated_moves_for(index))
+    }
 }
 
 impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
@@ -331,8 +638,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::game::norm::*;
+    /// use tft::norm::*;
     ///
     /// let g = Normal::matrix(
     ///     ['A', 'B', 'C'],
@@ -376,8 +682,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::game::norm::*;
+    /// use tft::norm::*;
     ///
     /// let g = Normal::bimatrix(
     ///     ['A', 'B', 'C'],
@@ -417,8 +722,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::game::norm::*;
+    /// use tft::norm::*;
     ///
     /// let pd = Normal::symmetric_for2(
     ///     ['C', 'D'],
@@ -454,8 +758,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 3> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::game::norm::*;
+    /// use tft::norm::*;
     ///
     /// let pd3 = Normal::symmetric_for3(
     ///     ['C', 'D'],
@@ -500,8 +803,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 4> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::*;
-    /// use tft::game::norm::*;
+    /// use tft::norm::*;
     ///
     /// let pd4 = Normal::symmetric_for4(
     ///     ['C', 'D'],

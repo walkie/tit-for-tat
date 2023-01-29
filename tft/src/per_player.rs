@@ -24,7 +24,7 @@ use std::ops::{Index, IndexMut};
 /// number of players in the game.
 ///
 /// ```
-/// use tft::core::PerPlayer;
+/// use tft::PerPlayer;
 ///
 /// let mut pp = PerPlayer::new(["klaatu", "barada", "nikto"]);
 /// assert_eq!(pp.for_player(0), Some(&"klaatu"));
@@ -48,7 +48,7 @@ use std::ops::{Index, IndexMut};
 /// bounds, in which case the constructor will return `None`.
 ///
 /// ```
-/// use tft::core::PlayerIndex;
+/// use tft::PlayerIndex;
 ///
 /// assert!(PlayerIndex::<3>::new(0).is_some());
 /// assert!(PlayerIndex::<3>::new(1).is_some());
@@ -60,7 +60,7 @@ use std::ops::{Index, IndexMut};
 /// `PerPlayer` collection it is used to index into.
 ///
 /// ```
-/// use tft::core::{PerPlayer, PlayerIndex};
+/// use tft::{PerPlayer, PlayerIndex};
 ///
 /// let mut pp = PerPlayer::new(["klaatu", "barada", "nikto"]);
 /// let p0 = PlayerIndex::new(0).unwrap();
@@ -79,7 +79,7 @@ use std::ops::{Index, IndexMut};
 /// included in the [`for3`] submodule.
 ///
 /// ```
-/// use tft::core::{for3, PerPlayer};
+/// use tft::{for3, PerPlayer};
 ///
 /// let mut pp = PerPlayer::new(["klaatu", "barada", "nikto"]);
 /// assert_eq!(pp[for3::P0], "klaatu");
@@ -105,7 +105,7 @@ impl<T, const N: usize> PerPlayer<T, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{for5, PerPlayer, PlayerIndex};
+    /// use tft::{for5, PerPlayer, PlayerIndex};
     ///
     /// let squared = |index: PlayerIndex<5>| {
     ///     let val: usize = index.into();
@@ -137,7 +137,7 @@ impl<T, const N: usize> PerPlayer<T, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::PerPlayer;
+    /// use tft::PerPlayer;
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
     /// assert_eq!(pp.for_player(0), Some(&"frodo"));
@@ -160,7 +160,7 @@ impl<T, const N: usize> PerPlayer<T, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::PerPlayer;
+    /// use tft::PerPlayer;
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
     /// *pp.for_player_mut(1).unwrap() = "samwise";
@@ -198,7 +198,7 @@ impl<T: Clone, const N: usize> PerPlayer<T, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::PerPlayer;
+    /// use tft::PerPlayer;
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
     ///
@@ -220,7 +220,7 @@ impl<T: Clone, const N: usize> PerPlayer<T, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::PerPlayer;
+    /// use tft::PerPlayer;
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
     ///
@@ -240,6 +240,22 @@ impl<T: Clone, const N: usize> PerPlayer<T, N> {
 }
 
 impl<T: core::fmt::Debug, const N: usize> PerPlayer<Option<T>, N> {
+    /// Converts a per-player collection of `Option<T>` values into a per-player collection of `T`
+    /// values if every element in the initial collection is `Some`; otherwise returns `None`.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::PerPlayer;
+    ///
+    /// assert_eq!(
+    ///     PerPlayer::new([Some(3), Some(4), Some(5)]).all_some(),
+    ///     Some(PerPlayer::new([3, 4, 5])),
+    /// );
+    /// assert_eq!(
+    ///     PerPlayer::new([Some(3), None, Some(5)]).all_some(),
+    ///     None,
+    /// );
+    /// ```
     pub fn all_some(self) -> Option<PerPlayer<T, N>> {
         self.data
             .into_iter()
@@ -300,7 +316,7 @@ impl<const N: usize> PlayerIndex<N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{for2, for8, PlayerIndex};
+    /// use tft::{for2, for8, PlayerIndex};
     ///
     /// let p0_opt = PlayerIndex::<2>::new(0);
     /// let p1_opt = PlayerIndex::<2>::new(1);
@@ -329,7 +345,7 @@ impl<const N: usize> PlayerIndex<N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{for3, for6};
+    /// use tft::{for3, for6};
     ///
     /// assert_eq!(for3::P0.as_usize(), 0);
     /// assert_eq!(for3::P2.as_usize(), 2);
@@ -345,7 +361,7 @@ impl<const N: usize> PlayerIndex<N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{for5, for12};
+    /// use tft::{for5, for12};
     ///
     /// assert_eq!(for5::P3.num_players(), 5);
     /// assert_eq!(for12::P7.num_players(), 12);
@@ -358,7 +374,7 @@ impl<const N: usize> PlayerIndex<N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{for3, for5, PlayerIndex};
+    /// use tft::{for3, for5, PlayerIndex};
     ///
     /// assert_eq!(
     ///     PlayerIndex::all_indexes().collect::<Vec<PlayerIndex<3>>>(),
@@ -385,7 +401,7 @@ impl<T, const N: usize> Index<PlayerIndex<N>> for PerPlayer<T, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{for4, PerPlayer};
+    /// use tft::{for4, PerPlayer};
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
     /// assert_eq!(pp[for4::P0], "frodo");
@@ -404,7 +420,7 @@ impl<T, const N: usize> IndexMut<PlayerIndex<N>> for PerPlayer<T, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::core::{for4, PerPlayer};
+    /// use tft::{for4, PerPlayer};
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
     /// pp[for4::P1] = "samwise";

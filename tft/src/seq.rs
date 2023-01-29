@@ -1,7 +1,12 @@
-use crate::core::PlayerIndex;
-use crate::game::Game;
+use crate::per_player::PlayerIndex;
 
-pub trait Seq<const N: usize>: Game<N> {
+pub trait Seq<const N: usize> {
+    /// The type of moves played during the game.
+    type Move: IsMove;
+
+    /// The type of utility value awarded to each player in the payoff at the end of the game.
+    type Util: IsUtil;
+
     /// The type of state maintained while executing an iteration of this game.
     type State: Clone;
 
@@ -16,5 +21,3 @@ pub trait Seq<const N: usize>: Game<N> {
         the_move: Self::Move,
     ) -> bool;
 }
-
-pub trait FinSeq<const N: usize>: Seq<N> {}

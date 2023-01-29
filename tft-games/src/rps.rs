@@ -1,6 +1,6 @@
 //! Rock-paper-scissors and related games.
 
-use tft::game::norm::Normal;
+use tft::norm::Normal;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum Move {
@@ -18,7 +18,7 @@ pub enum Move {
 ///
 /// # Examples
 /// ```
-/// use tft::game::norm::*;
+/// use tft::norm::*;
 /// use tft_games::rps;
 ///
 /// let rps = rps::rock_paper_scissors();
@@ -42,7 +42,7 @@ pub fn rock_paper_scissors() -> Normal<Move, i8, 2> {
 ///
 /// # Examples
 /// ```
-/// use tft::game::norm::*;
+/// use tft::norm::*;
 /// use tft_games::rps;
 ///
 /// let fw = rps::fire_water();
