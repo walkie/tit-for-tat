@@ -1,3 +1,4 @@
+pub(crate) mod distribution;
 pub(crate) mod dominated;
 pub(crate) mod moves;
 pub(crate) mod normal;
@@ -9,6 +10,7 @@ pub(crate) mod simultaneous;
 // pub(crate) mod ext;
 // pub(crate) mod seq;
 
+pub use distribution::*;
 pub use dominated::*;
 pub use moves::*;
 pub use normal::*;
