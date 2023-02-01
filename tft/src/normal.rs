@@ -19,6 +19,7 @@ use crate::norm::*;
 /// - `N` -- The number of players that play the game.
 ///
 /// # Examples
+#[derive(Clone)]
 pub struct Normal<Move, Util, const N: usize> {
     moves: PerPlayer<Vec<Move>, N>,
     payoff_fn: Rc<dyn Fn(Profile<Move, N>) -> Payoff<Util, N>>,

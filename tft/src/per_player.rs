@@ -294,8 +294,8 @@ impl<'a, T, const N: usize> IntoIterator for &'a mut PerPlayer<T, N> {
     }
 }
 
-/// An index into a [`PerPlayer`] collection that is guaranteed to be in-range for a game with `N`
-/// players.
+/// An index into a [per-player](PerPlayer) collection that is guaranteed to be in-range for a game
+/// with `N` players.
 ///
 /// This type is used in the implementations of the [`Index`] and [`IndexMut`] traits and ensures
 /// that their operations will not fail.

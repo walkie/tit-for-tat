@@ -28,6 +28,7 @@ use rand_distr::WeightedAliasIndex;
 /// let dist = Distribution::new(vec![('A', 2.5), ('B', 1.0), ('C', 0.5)]).unwrap();
 /// let abc = dist.sample();
 /// ```
+#[derive(Clone, Debug)]
 pub struct Distribution<T> {
     elements: Vec<T>,
     dist: WeightedAliasIndex<f64>,
