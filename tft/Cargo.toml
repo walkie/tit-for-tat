@@ -1,10 +1,11 @@
 [package]
 name = "tft"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Eric Walkingshaw <eric@walkingshaw.net>"]
 edition = "2021"
 description = "Tit-for-tat: a game theory toolbox."
 repository = "https://github.com/walkie/tit-for-tat/"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 derive_more = "0.99.17"

@@ -1,10 +1,11 @@
 [package]
 name = "tft-games"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Eric Walkingshaw <eric@walkingshaw.net>"]
 edition = "2021"
 description = "A library of games and strategies built with tft."
 repository = "https://github.com/walkie/tit-for-tat/"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 log = "0.4.17"
