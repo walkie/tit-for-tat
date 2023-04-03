@@ -12,5 +12,5 @@ log = "0.4.17"
 tft = { path = "../tft" }
 
 [dev-dependencies]
-env_logger = "0.9.0"
-test-log = "0.2.10"
+env_logger = "0.10.0"
+test-log = "0.2.11"
