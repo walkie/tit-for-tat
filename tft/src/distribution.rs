@@ -61,14 +61,31 @@ impl<T> Distribution<T> {
 
     /// Sample a random value from the distribution using `rng` as the source of randomness.
     pub fn sample_using<R: rand::Rng>(&self, rng: &mut R) -> &T {
-        let index =
-            <WeightedAliasIndex<f64> as rand_distr::Distribution<usize>>::sample(&self.dist, rng);
+        let index = self.weighted_index(rng);
         &self.elements[index]
+    }
+
+    /// Sample a random value from the distribution using `rng` as the source of randomness,
+    /// returning a mutable reference to the sampled element.
+    pub fn sample_using_mut<R: rand::Rng>(&mut self, rng: &mut R) -> &mut T {
+        let index = self.weighted_index(rng);
+        &mut self.elements[index]
     }
 
     /// Sample a random value from the distribution using `rand::thread_rng()` as the source of
     /// randomness.
     pub fn sample(&self) -> &T {
         self.sample_using(&mut rand::thread_rng())
+    }
+
+    /// Sample a random value from the distribution using `rand::thread_rng()` as the source of
+    /// randomness, returning a mutable reference to the sampled element.
+    pub fn sample_mut(&mut self) -> &mut T {
+        self.sample_using_mut(&mut rand::thread_rng())
+    }
+
+    /// Get an index into the element list according to the probability distribution.
+    fn weighted_index<R: rand::Rng>(&self, rng: &mut R) -> usize {
+        <WeightedAliasIndex<f64> as rand_distr::Distribution<usize>>::sample(&self.dist, rng)
     }
 }
