@@ -5,6 +5,7 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::norm::*;
+use crate::simultaneous::Simultaneous;
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
@@ -304,6 +305,16 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
             PerPlayer::init_with(moves),
             payoff_fn,
         ))
+    }
+
+    /// Get this normal form game as a simultaneous move game.
+    pub fn as_simultaneous(&self) -> Simultaneous<Move, Util, N> {
+        let moves = self.moves.clone();
+        let payoff_fn = self.payoff_fn.clone();
+        Simultaneous::from_payoff_fn(
+            move |player, the_move| moves[player].contains(&the_move),
+            move |profile| payoff_fn(profile)
+        )
     }
 
     /// The number of players this game is for.
