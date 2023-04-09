@@ -10,7 +10,7 @@ use crate::simultaneous::Simultaneous;
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
 /// In a normal-form game, each player plays a single move from a finite set of available moves,
-/// without knowledge of other players' moves, and the payoff is determined by refering to a table
+/// without knowledge of other players' moves, and the payoff is determined by referring to a table
 /// of possible outcomes.
 ///
 /// # Type variables
@@ -313,7 +313,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
         let payoff_fn = self.payoff_fn.clone();
         Simultaneous::from_payoff_fn(
             move |player, the_move| moves[player].contains(&the_move),
-            move |profile| payoff_fn(profile)
+            move |profile| payoff_fn(profile),
         )
     }
 

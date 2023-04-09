@@ -19,6 +19,13 @@ pub struct Outcome<Move, Util, const N: usize> {
     pub payoff: Payoff<Util, N>,
 }
 
+impl<Move, Util, const N: usize> Outcome<Move, Util, N> {
+    /// Construct a new outcome.
+    pub fn new(profile: Profile<Move, N>, payoff: Payoff<Util, N>) -> Self {
+        Outcome { profile, payoff }
+    }
+}
+
 /// An iterator over all possible outcomes of a [normal-form](crate::Normal) game.
 ///
 /// This enumerates the cells of the payoff
@@ -102,7 +109,7 @@ impl<'g, Move: IsMove, Util: IsUtil, const N: usize> Iterator for OutcomeIter<'g
     fn next(&mut self) -> Option<Self::Item> {
         self.profile_iter.next().map(|profile| {
             let payoff = (*self.payoff_fn)(profile);
-            Outcome { profile, payoff }
+            Outcome::new(profile, payoff)
         })
     }
 }
