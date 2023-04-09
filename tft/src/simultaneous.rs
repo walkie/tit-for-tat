@@ -3,7 +3,7 @@ use crate::sim::*;
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
 ///
-/// This is the most general form of simultaneous move game. It consists of two functions:
+/// This is the most general form of simultaneous move game. It is defined by two functions:
 /// 1. A predicate that recognizes valid moves for each player.
 /// 2. A function that yields the payoff given the moves played by each player.
 ///
@@ -18,21 +18,21 @@ use crate::sim::*;
 ///
 /// # Example
 ///
-/// A simple game where two player's pick each other's score. Player `P0` must pick an even score
+/// A simple game where two players pick each other's score. Player `P0` must pick an even score
 /// for player `P1`, while `P1` must pick an odd score for `P0`.
 ///
 /// ```
 /// use tft::sim::*;
 ///
 /// let valid_move = |p, n: i32| {
-///   if p == for2::P0 {
-///     n.rem_euclid(2) == 0 // P0 must pick an even number
-///   } else {
-///     n.rem_euclid(2) == 1 // P1 must pick an odd number
-///   }
+///     if p == for2::P0 {
+///         n.rem_euclid(2) == 0 // P0 must pick an even number
+///     } else {
+///         n.rem_euclid(2) == 1 // P1 must pick an odd number
+///     }
 /// };
 /// let payoff = |profile: Profile<i32, 2>| {
-///   Payoff::from([profile[for2::P1], profile[for2::P0]])
+///     Payoff::from([profile[for2::P1], profile[for2::P0]])
 /// };
 /// let pick_em = Simultaneous::from_payoff_fn(valid_move, payoff);
 ///
@@ -82,10 +82,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Simultaneous<Move, Util, N> {
                 util_fns[player](profile[player])
             }))
         };
-        Simultaneous {
-            move_fn: Box::new(move_fn),
-            payoff_fn: Box::new(payoff_fn),
-        }
+        Self::from_payoff_fn(move_fn, payoff_fn)
     }
 
     /// The number of players this game is for.
