@@ -367,8 +367,8 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     }
 
     /// An iterator over all possible outcomes of the game.
-    pub fn outcomes(&self) -> OutcomeIter<'_, Move, Util, N> {
-        OutcomeIter::new(self.profiles(), self.payoff_fn.clone())
+    pub fn outcomes(&self) -> SimOutcomeIter<'_, Move, Util, N> {
+        SimOutcomeIter::new(self.profiles(), self.payoff_fn.clone())
     }
 
     /// Is this game zero-sum? In a zero-sum game, the utility values of each payoff sum to zero.

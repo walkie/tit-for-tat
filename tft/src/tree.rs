@@ -5,7 +5,6 @@ use std::rc::Rc;
 use crate::distribution::Distribution;
 use crate::moves::IsMove;
 use crate::normal::Normal;
-use crate::outcome::Outcome;
 use crate::payoff::{IsUtil, Payoff};
 use crate::per_player::{PerPlayer, PlayerIndex};
 use crate::simultaneous::Simultaneous;
@@ -32,14 +31,16 @@ pub enum Node<Move, Util, State, const N: usize> {
     },
 }
 
-pub type Edges<Move, Util, State, const N: usize> =
-    Rc<dyn Fn(Move) -> Option<GameTree<Move, Util, State, N>>>;
-
+/// The moves available from a position in a game.
 #[derive(Clone)]
 pub enum Moves<Move> {
-    Discrete(Vec<Move>),
-    Continuous(Rc<dyn Fn(Move) -> bool>),
+    /// A finite domain of moves.
+    Finite(Vec<Move>),
+    NonFinite(Rc<dyn Fn(Move) -> bool>),
 }
+
+pub type Edges<Move, Util, State, const N: usize> =
+    Rc<dyn Fn(Move) -> Option<GameTree<Move, Util, State, N>>>;
 
 impl<Move: IsMove, Util: IsUtil, State, const N: usize> GameTree<Move, Util, State, N> {
     pub fn new(state: State, node: Node<Move, Util, State, N>) -> Self {
@@ -55,22 +56,22 @@ impl<Move: IsMove, Util: IsUtil, State, const N: usize> GameTree<Move, Util, Sta
         GameTree::new(state, Node::turn(player, moves, edge_fn))
     }
 
-    pub fn discrete_turn(
+    pub fn turn_finite(
         state: State,
         player: PlayerIndex<N>,
         moves: Vec<Move>,
         edge_fn: impl Fn(Move) -> Option<GameTree<Move, Util, State, N>> + 'static,
     ) -> Self {
-        GameTree::new(state, Node::discrete_turn(player, moves, edge_fn))
+        GameTree::new(state, Node::turn_finite(player, moves, edge_fn))
     }
 
-    pub fn continuous_turn(
+    pub fn turn_nonfinite(
         state: State,
         player: PlayerIndex<N>,
         move_fn: impl Fn(Move) -> bool + 'static,
         edge_fn: impl Fn(Move) -> Option<GameTree<Move, Util, State, N>> + 'static,
     ) -> Self {
-        GameTree::new(state, Node::continuous_turn(player, move_fn, edge_fn))
+        GameTree::new(state, Node::turn_nonfinite(player, move_fn, edge_fn))
     }
 
     pub fn chance(
@@ -107,20 +108,20 @@ impl<Move: IsMove, Util: IsUtil, State, const N: usize> Node<Move, Util, State, 
         }
     }
 
-    pub fn discrete_turn(
+    pub fn turn_finite(
         player: PlayerIndex<N>,
         moves: Vec<Move>,
         edge_fn: impl Fn(Move) -> Option<GameTree<Move, Util, State, N>> + 'static,
     ) -> Self {
-        Node::turn(player, Moves::Discrete(moves), edge_fn)
+        Node::turn(player, Moves::Finite(moves), edge_fn)
     }
 
-    pub fn continuous_turn(
+    pub fn turn_nonfinite(
         player: PlayerIndex<N>,
         move_fn: impl Fn(Move) -> bool + 'static,
         edge_fn: impl Fn(Move) -> Option<GameTree<Move, Util, State, N>> + 'static,
     ) -> Self {
-        Node::turn(player, Moves::Continuous(Rc::new(move_fn)), edge_fn)
+        Node::turn(player, Moves::NonFinite(Rc::new(move_fn)), edge_fn)
     }
 
     pub fn chance(
@@ -141,8 +142,8 @@ impl<Move: IsMove, Util: IsUtil, State, const N: usize> Node<Move, Util, State, 
 impl<Move: IsMove> Moves<Move> {
     pub fn is_valid_move(&self, the_move: Move) -> bool {
         match self {
-            Moves::Discrete(moves) => moves.contains(&the_move),
-            Moves::Continuous(valid) => valid(the_move),
+            Moves::Finite(moves) => moves.contains(&the_move),
+            Moves::NonFinite(valid) => valid(the_move),
         }
     }
 }
