@@ -1,6 +1,6 @@
 //! 2x2 simultaneous, symmetric, cooperation/defection games, e.g. prisoner's dilemma.
 
-use tft::norm::Normal;
+use tft::normal::Normal;
 
 /// In a social dilemma game, each player may either cooperate or defect.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -49,7 +49,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     /// use tft_games::dilemma::*;
     ///
     /// let g = Dilemma::prisoners_dilemma();
@@ -80,7 +80,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     /// use tft_games::dilemma::*;
     ///
     /// let g = Dilemma::stag_hunt();
@@ -100,7 +100,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     /// use tft_games::dilemma::*;
     ///
     /// let g = Dilemma::assurance_game();
@@ -137,7 +137,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     /// use tft_games::dilemma::*;
     ///
     /// let more_dove = Dilemma::hawk_dove(2, 3);
@@ -173,7 +173,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     /// use tft_games::dilemma::*;
     ///
     /// let g = Dilemma::chicken(100);
@@ -197,7 +197,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     /// use tft_games::dilemma::*;
     ///
     /// let g = Dilemma::snowdrift();

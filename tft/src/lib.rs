@@ -1,72 +1,80 @@
 pub(crate) mod distribution;
-pub(crate) mod dominated;
-// pub(crate) mod iterated;
 pub(crate) mod moves;
-pub(crate) mod normal;
-pub(crate) mod outcome;
 pub(crate) mod payoff;
 pub(crate) mod per_player;
 // pub(crate) mod play;
-pub(crate) mod profile;
-pub(crate) mod simultaneous;
 pub(crate) mod strategy;
-pub(crate) mod transcript;
-pub(crate) mod tree;
 
-// pub(crate) mod extensive;
-// pub(crate) mod seq;
+// pub(crate) mod game;
 
 pub use distribution::*;
-pub use dominated::*;
-// pub use iterated::*;
 pub use moves::*;
-pub use normal::*;
-pub use outcome::*;
 pub use payoff::*;
 pub use per_player::*;
 // pub use play::*;
-pub use profile::*;
-pub use simultaneous::*;
 pub use strategy::*;
-pub use transcript::*;
-pub use tree::*;
 
-// pub use extensive::*;
-// pub use seq::*;
+/// Definitions specific to sequential games.
+pub mod seq {
+    pub(crate) mod outcome;
+    pub(crate) mod transcript;
+    pub(crate) mod tree;
 
-/// A prelude that includes all of the definitions used in defining and executing
-/// [extensive-form games](crate::Extensive).
-pub mod ext {
-    pub use crate::transcript::*;
+    // pub(crate) mod extensive;
+
+    pub use outcome::*;
+    pub use transcript::*;
+    pub use tree::*;
 }
 
+/// Definitions specific to simultaneous games.
+pub mod sim {
+    pub(crate) mod dominated;
+    pub(crate) mod normal;
+    pub(crate) mod outcome;
+    pub(crate) mod profile;
+    // pub(crate) mod repeated;
+    pub(crate) mod simultaneous;
+
+    pub use dominated::*;
+    pub use normal::*;
+    pub use outcome::*;
+    pub use profile::*;
+    // pub use repeated::*;
+    pub use simultaneous::*;
+}
+
+// /// A prelude that includes all of the definitions used in defining and executing
+// /// [extensive-form games](crate::Extensive).
+// pub mod extensive {
+//
+// }
+
 /// A prelude that includes all of the definitions used in defining and executing (possibly
-/// iterated) [normal-form games](crate::Normal).
-pub mod norm {
+/// repeated) [normal-form games](crate::Normal).
+pub mod normal {
     pub use crate::distribution::*;
-    pub use crate::dominated::*;
-    // pub use crate::iterated::*;
     pub use crate::moves::*;
-    pub use crate::normal::*;
-    pub use crate::outcome::*;
     pub use crate::payoff::*;
     pub use crate::per_player::*;
-    // pub use crate::play::*;
-    pub use crate::profile::*;
     pub use crate::strategy::*;
+
+    pub use crate::sim::dominated::*;
+    pub use crate::sim::normal::*;
+    pub use crate::sim::outcome::*;
+    pub use crate::sim::profile::*;
 }
 
 /// A prelude that includes all of the definitions used in defining and executing (non-finite,
-/// possibly iterated) [simultaneous-move games](crate::Simultaneous).
-pub mod sim {
+/// possibly repeated) [simultaneous-move games](crate::Simultaneous).
+pub mod simultaneous {
     pub use crate::distribution::*;
-    // pub use crate::iterated::*;
     pub use crate::moves::IsMove;
-    pub use crate::outcome::SimOutcome;
     pub use crate::payoff::*;
     pub use crate::per_player::*;
-    // pub use crate::play::*;
-    pub use crate::profile::*;
-    pub use crate::simultaneous::*;
     pub use crate::strategy::*;
+
+    pub use crate::sim::outcome::Outcome;
+    pub use crate::sim::profile::*;
+    pub use crate::sim::simultaneous::*;
 }

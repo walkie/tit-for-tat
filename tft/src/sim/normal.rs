@@ -4,8 +4,14 @@ use std::collections::HashMap;
 use std::iter::Iterator;
 use std::rc::Rc;
 
-use crate::norm::*;
-use crate::simultaneous::Simultaneous;
+use crate::moves::{IsMove, MoveIter};
+use crate::per_player::{PerPlayer, PlayerIndex};
+use crate::payoff::{IsUtility, Payoff};
+
+use crate::sim::dominated::Dominated;
+use crate::sim::outcome::OutcomeIter;
+use crate::sim::profile::{Profile, ProfileIter};
+use crate::sim::simultaneous::Simultaneous;
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
@@ -100,7 +106,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let g = Normal::from_payoff_vec(
     ///     PerPlayer::new([vec!['A', 'B'], vec!['C', 'D'], vec!['E']]),
@@ -160,7 +166,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// The classic [prisoner's dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma) is an
     /// example of a symmetric 2-player game:
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let pd = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -178,7 +184,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// where each player's moves and payoffs are symmetric:
     ///
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let pd3 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -198,7 +204,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// And similarly, a 4-player prisoner's dilemma:
     ///
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let pd4 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -367,15 +373,15 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     }
 
     /// An iterator over all possible outcomes of the game.
-    pub fn outcomes(&self) -> SimOutcomeIter<'_, Move, Util, N> {
-        SimOutcomeIter::new(self.profiles(), self.payoff_fn.clone())
+    pub fn outcomes(&self) -> OutcomeIter<'_, Move, Util, N> {
+        OutcomeIter::new(self.profiles(), self.payoff_fn.clone())
     }
 
     /// Is this game zero-sum? In a zero-sum game, the utility values of each payoff sum to zero.
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let rps: Normal<_, _, 2> = Normal::symmetric(
     ///     vec!["Rock", "Paper", "Scissors"],
@@ -404,7 +410,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
     /// enum RPS { Rock, Paper, Scissors };
@@ -462,7 +468,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -502,7 +508,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -577,7 +583,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let g = Normal::from_payoff_vec(
     ///     PerPlayer::new([
@@ -650,7 +656,7 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let g = Normal::matrix(
     ///     ['A', 'B', 'C'],
@@ -694,7 +700,7 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let g = Normal::bimatrix(
     ///     ['A', 'B', 'C'],
@@ -734,7 +740,7 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let pd = Normal::symmetric_for2(
     ///     ['C', 'D'],
@@ -770,7 +776,7 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 3> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let pd3 = Normal::symmetric_for3(
     ///     ['C', 'D'],
@@ -815,7 +821,7 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 4> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::normal::*;
     ///
     /// let pd4 = Normal::symmetric_for4(
     ///     ['C', 'D'],

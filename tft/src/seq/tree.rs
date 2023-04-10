@@ -1,5 +1,3 @@
-//! General game trees.
-
 use std::rc::Rc;
 
 use crate::distribution::Distribution;

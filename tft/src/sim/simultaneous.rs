@@ -1,4 +1,7 @@
-use crate::sim::*;
+use crate::moves::IsMove;
+use crate::per_player::{PerPlayer, PlayerIndex};
+use crate::payoff::{IsUtility, Payoff};
+use crate::sim::profile::Profile;
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
@@ -22,7 +25,7 @@ use crate::sim::*;
 /// for player `P1`, while `P1` must pick an odd score for `P0`.
 ///
 /// ```
-/// use tft::sim::*;
+/// use tft::simultaneous::*;
 ///
 /// let valid_move = |p, n: i32| {
 ///     if p == for2::P0 {
