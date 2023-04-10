@@ -11,7 +11,7 @@ pub struct PlayedMove<Move, const N: usize> {
     pub the_move: Move,
 }
 
-/// A transcript of the moves played (so far) in a game.
+/// A transcript of the moves played (so far) in a sequential game.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Transcript<Move, const N: usize> {
     /// The sequence of played moves.
@@ -154,5 +154,29 @@ impl<Move: IsMove, const N: usize> Transcript<Move, N> {
         } else {
             None
         }
+    }
+}
+
+impl<Move, const N: usize> IntoIterator for Transcript<Move, N> {
+    type Item = <Vec<PlayedMove<Move, N>> as IntoIterator>::Item;
+    type IntoIter = <Vec<PlayedMove<Move, N>> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <Vec<PlayedMove<Move, N>> as IntoIterator>::IntoIter {
+        self.moves.into_iter()
+    }
+}
+
+impl<'a, Move, const N: usize> IntoIterator for &'a Transcript<Move, N> {
+    type Item = <&'a Vec<PlayedMove<Move, N>> as IntoIterator>::Item;
+    type IntoIter = <&'a Vec<PlayedMove<Move, N>> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a Vec<PlayedMove<Move, N>> as IntoIterator>::IntoIter {
+        self.moves.iter()
+    }
+}
+
+impl<'a, Move, const N: usize> IntoIterator for &'a mut Transcript<Move, N> {
+    type Item = <&'a mut Vec<PlayedMove<Move, N>> as IntoIterator>::Item;
+    type IntoIter = <&'a mut Vec<PlayedMove<Move, N>> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a mut Vec<PlayedMove<Move, N>> as IntoIterator>::IntoIter {
+        self.moves.iter_mut()
     }
 }
