@@ -2,7 +2,6 @@ use crate::moves::IsMove;
 use crate::outcome::Outcome;
 use crate::payoff::{IsUtil, Payoff};
 use crate::play::*;
-use crate::player::Players;
 use crate::simultaneous::Simultaneous;
 
 /// For iterated games, a record of previously played games.
@@ -43,7 +42,6 @@ impl<Outcome: HasPayoff<Util, N>, Util: IsUtil, const N: usize> History<Outcome,
 }
 
 pub struct IteratedState<Game: Playable<N>, const N: usize> {
-    // history: History<<Game as Playable<N>>::Outcome, <Game as Playable<N>>::Util, N>,
     history: History<Game::Outcome, Game::Util, N>,
     game_state: Game::State,
 }
