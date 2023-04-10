@@ -4,10 +4,8 @@ use std::rc::Rc;
 
 use crate::distribution::Distribution;
 use crate::moves::IsMove;
-use crate::normal::Normal;
-use crate::payoff::{IsUtil, Payoff};
-use crate::per_player::{PerPlayer, PlayerIndex};
-use crate::simultaneous::Simultaneous;
+use crate::payoff::{IsUtility, Payoff};
+use crate::per_player::PlayerIndex;
 
 #[derive(Clone)]
 pub struct GameTree<Move, Util, State, const N: usize> {
@@ -42,7 +40,7 @@ pub enum Moves<Move> {
 pub type Edges<Move, Util, State, const N: usize> =
     Rc<dyn Fn(Move) -> Option<GameTree<Move, Util, State, N>>>;
 
-impl<Move: IsMove, Util: IsUtil, State, const N: usize> GameTree<Move, Util, State, N> {
+impl<Move: IsMove, Util: IsUtility, State, const N: usize> GameTree<Move, Util, State, N> {
     pub fn new(state: State, node: Node<Move, Util, State, N>) -> Self {
         GameTree { state, node }
     }
@@ -95,7 +93,7 @@ impl<Move: IsMove, Util: IsUtil, State, const N: usize> GameTree<Move, Util, Sta
     }
 }
 
-impl<Move: IsMove, Util: IsUtil, State, const N: usize> Node<Move, Util, State, N> {
+impl<Move: IsMove, Util: IsUtility, State, const N: usize> Node<Move, Util, State, N> {
     pub fn turn(
         player: PlayerIndex<N>,
         moves: Moves<Move>,

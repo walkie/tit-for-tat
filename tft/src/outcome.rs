@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::moves::IsMove;
-use crate::payoff::{IsUtil, Payoff};
+use crate::payoff::{IsUtility, Payoff};
 use crate::per_player::PlayerIndex;
 use crate::profile::{Profile, ProfileIter};
 use crate::transcript::{PlayedMove, Transcript};
@@ -44,7 +44,7 @@ pub struct SimOutcomeIter<'g, Move: Copy, Util, const N: usize> {
     payoff_fn: Rc<dyn Fn(Profile<Move, N>) -> Payoff<Util, N> + 'g>,
 }
 
-impl<Move: IsMove, Util: IsUtil, const N: usize> SeqOutcome<Move, Util, N> {
+impl<Move: IsMove, Util: IsUtility, const N: usize> SeqOutcome<Move, Util, N> {
     /// Construct a new outcome.
     pub fn new(transcript: Transcript<Move, N>, payoff: Payoff<Util, N>) -> Self {
         SeqOutcome { transcript, payoff }
@@ -60,7 +60,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> SeqOutcome<Move, Util, N> {
     }
 }
 
-impl<Move: IsMove, Util: IsUtil, const N: usize> SimOutcome<Move, Util, N> {
+impl<Move: IsMove, Util: IsUtility, const N: usize> SimOutcome<Move, Util, N> {
     /// Construct a new outcome.
     pub fn new(profile: Profile<Move, N>, payoff: Payoff<Util, N>) -> Self {
         SimOutcome { profile, payoff }
@@ -77,7 +77,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> SimOutcome<Move, Util, N> {
     }
 }
 
-impl<'g, Move: IsMove, Util: IsUtil, const N: usize> SimOutcomeIter<'g, Move, Util, N> {
+impl<'g, Move: IsMove, Util: IsUtility, const N: usize> SimOutcomeIter<'g, Move, Util, N> {
     /// Construct a new outcome iterator given an iterator over profiles and a payoff function.
     pub fn new(
         profile_iter: ProfileIter<'g, Move, N>,
@@ -145,7 +145,7 @@ impl<'g, Move: IsMove, Util: IsUtil, const N: usize> SimOutcomeIter<'g, Move, Ut
     }
 }
 
-impl<'g, Move: IsMove, Util: IsUtil, const N: usize> Iterator
+impl<'g, Move: IsMove, Util: IsUtility, const N: usize> Iterator
     for SimOutcomeIter<'g, Move, Util, N>
 {
     type Item = SimOutcome<Move, Util, N>;

@@ -11,8 +11,8 @@ use crate::per_player::{PerPlayer, PlayerIndex};
 ///
 /// A blanket implementation covers all types that meet the requirements, so this trait should not
 /// be implemented directly.
-pub trait IsUtil: Copy + Debug + Default + Num + PartialOrd + 'static {}
-impl<T: Copy + Debug + Default + Num + PartialOrd + 'static> IsUtil for T {}
+pub trait IsUtility: Copy + Debug + Default + Num + PartialOrd + 'static {}
+impl<T: Copy + Debug + Default + Num + PartialOrd + 'static> IsUtility for T {}
 
 /// A collection containing the utility values awarded to each player at the end of a game.
 ///
@@ -103,7 +103,7 @@ pub struct Payoff<Util, const N: usize> {
     utilities: PerPlayer<Util, N>,
 }
 
-impl<Util: IsUtil, const N: usize> Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Payoff<Util, N> {
     /// Construct a new payoff from a `PerPlayer` collection of utilities.
     ///
     /// Use [`Payoff::from`] to construct a payoff from a simple array of utilities.
@@ -305,7 +305,7 @@ impl<Util: IsUtil, const N: usize> Payoff<Util, N> {
     }
 }
 
-impl<Util: IsUtil + FromPrimitive, const N: usize> Payoff<Util, N> {
+impl<Util: IsUtility + FromPrimitive, const N: usize> Payoff<Util, N> {
     /// Construct a zero-sum payoff in which one player "loses" by receiving a utility of
     /// `1-N` while all other players receive a utility of `1`.
     ///
@@ -353,7 +353,7 @@ impl<Util: IsUtil + FromPrimitive, const N: usize> Payoff<Util, N> {
     }
 }
 
-impl<Util: IsUtil, const N: usize> From<[Util; N]> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> From<[Util; N]> for Payoff<Util, N> {
     /// Construct a payoff from an array of utility values.
     ///
     /// # Examples
@@ -370,7 +370,7 @@ impl<Util: IsUtil, const N: usize> From<[Util; N]> for Payoff<Util, N> {
     }
 }
 
-impl<Util: IsUtil, const N: usize> Add<Util> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Add<Util> for Payoff<Util, N> {
     type Output = Self;
 
     /// Add a constant value to each utility in a payoff.
@@ -387,7 +387,7 @@ impl<Util: IsUtil, const N: usize> Add<Util> for Payoff<Util, N> {
     }
 }
 
-impl<Util: IsUtil, const N: usize> Sub<Util> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Sub<Util> for Payoff<Util, N> {
     type Output = Self;
 
     /// Subtract a constant value from each utility in a payoff.
@@ -404,7 +404,7 @@ impl<Util: IsUtil, const N: usize> Sub<Util> for Payoff<Util, N> {
     }
 }
 
-impl<Util: IsUtil, const N: usize> Mul<Util> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Mul<Util> for Payoff<Util, N> {
     type Output = Self;
 
     /// Multiply a constant value to each utility in a payoff.
@@ -421,7 +421,7 @@ impl<Util: IsUtil, const N: usize> Mul<Util> for Payoff<Util, N> {
     }
 }
 
-impl<Util: IsUtil, const N: usize> Add<Self> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Add<Self> for Payoff<Util, N> {
     type Output = Self;
 
     /// Combine two payoffs by adding the corresponding utilities in each.
@@ -440,7 +440,7 @@ impl<Util: IsUtil, const N: usize> Add<Self> for Payoff<Util, N> {
     }
 }
 
-impl<Util: IsUtil, const N: usize> Sub<Self> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Sub<Self> for Payoff<Util, N> {
     type Output = Self;
 
     /// Combine two payoffs by subtracting the corresponding utilities in the second payoff from
@@ -460,7 +460,7 @@ impl<Util: IsUtil, const N: usize> Sub<Self> for Payoff<Util, N> {
     }
 }
 
-impl<Util: IsUtil, const N: usize> Mul<Self> for Payoff<Util, N> {
+impl<Util: IsUtility, const N: usize> Mul<Self> for Payoff<Util, N> {
     type Output = Self;
 
     /// Combine two payoffs by multiplying the corresponding utilities in each.

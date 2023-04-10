@@ -26,7 +26,7 @@ pub struct Normal<Move, Util, const N: usize> {
     payoff_fn: Rc<dyn Fn(Profile<Move, N>) -> Payoff<Util, N>>,
 }
 
-impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
+impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// Construct a normal-form game given the moves available to each player and a function that
     /// yields the game's payoff given a profile containing a move played by each player.
     ///
@@ -641,7 +641,7 @@ impl<Move: IsMove, Util: IsUtil, const N: usize> Normal<Move, Util, N> {
     }
 }
 
-impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
+impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
     /// Construct a matrix game, a two-player zero-sum game where the payoffs are defined by a
     /// single matrix of utility values.
     ///
@@ -763,7 +763,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 2> {
     }
 }
 
-impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 3> {
+impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 3> {
     /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) three-player
     /// normal-form game. Constructed from a list of moves available to all players and the utility
     /// values for player `P0`.
@@ -808,7 +808,7 @@ impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 3> {
     }
 }
 
-impl<Move: IsMove, Util: IsUtil> Normal<Move, Util, 4> {
+impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 4> {
     /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) four-player
     /// normal-form game. Constructed from a list of moves available to all players and the utility
     /// values for player `P0`.

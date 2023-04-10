@@ -55,7 +55,7 @@ pub struct Simultaneous<Move, Util, const N: usize> {
     payoff_fn: Box<dyn Fn(Profile<Move, N>) -> Payoff<Util, N>>,
 }
 
-impl<Move: IsMove, Util: IsUtil, const N: usize> Simultaneous<Move, Util, N> {
+impl<Move: IsMove, Util: IsUtility, const N: usize> Simultaneous<Move, Util, N> {
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a function that yields the payoff given a profile
     /// containing a valid move played by each player.
