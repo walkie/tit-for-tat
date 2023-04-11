@@ -59,6 +59,17 @@ impl<T> Distribution<T> {
         }
     }
 
+    /// Create a new flat distribution over the given elements.
+    ///
+    /// # Errors
+    ///
+    /// Logs an error and returns `None` if:
+    /// - The vector is empty.
+    /// - The vector is longer than u32::MAX.
+    pub fn flat(elements: Vec<T>) -> Option<Self> {
+        Distribution::new(std::iter::zip(elements, std::iter::repeat(1.0)).collect())
+    }
+
     /// Sample a random value from the distribution using `rng` as the source of randomness.
     pub fn sample_using<R: rand::Rng>(&self, rng: &mut R) -> &T {
         let index = self.weighted_index(rng);
