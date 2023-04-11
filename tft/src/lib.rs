@@ -2,16 +2,14 @@ pub(crate) mod distribution;
 pub(crate) mod moves;
 pub(crate) mod payoff;
 pub(crate) mod per_player;
-// pub(crate) mod play;
+pub(crate) mod player;
 pub(crate) mod strategy;
-
-// pub(crate) mod game;
 
 pub use distribution::*;
 pub use moves::*;
 pub use payoff::*;
 pub use per_player::*;
-// pub use play::*;
+pub use player::*;
 pub use strategy::*;
 
 /// Definitions specific to sequential games.
@@ -57,6 +55,7 @@ pub mod normal {
     pub use crate::moves::*;
     pub use crate::payoff::*;
     pub use crate::per_player::*;
+    pub use crate::player::*;
     pub use crate::strategy::*;
 
     pub use crate::sim::dominated::*;
@@ -72,6 +71,7 @@ pub mod simultaneous {
     pub use crate::moves::IsMove;
     pub use crate::payoff::*;
     pub use crate::per_player::*;
+    pub use crate::player::*;
     pub use crate::strategy::*;
 
     pub use crate::sim::outcome::Outcome;

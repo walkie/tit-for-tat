@@ -41,7 +41,8 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Outcome<Move, Util, N> {
     /// Returns `None` if the sequential outcome's transcript does not contain exactly one move
     /// per player.
     pub fn from_seq_outcome(seq_outcome: crate::seq::Outcome<Move, Util, N>) -> Option<Self> {
-        seq_outcome.transcript
+        seq_outcome
+            .transcript
             .to_profile()
             .map(|profile| Outcome::new(profile, seq_outcome.payoff))
     }

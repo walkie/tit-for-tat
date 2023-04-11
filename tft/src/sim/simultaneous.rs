@@ -1,6 +1,9 @@
 use crate::moves::IsMove;
-use crate::per_player::{PerPlayer, PlayerIndex};
 use crate::payoff::{IsUtility, Payoff};
+use crate::per_player::{PerPlayer, PlayerIndex};
+use crate::player::Players;
+
+use crate::sim::outcome::Outcome;
 use crate::sim::profile::Profile;
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
@@ -58,6 +61,10 @@ pub struct Simultaneous<Move, Util, const N: usize> {
     payoff_fn: Box<dyn Fn(Profile<Move, N>) -> Payoff<Util, N>>,
 }
 
+/// Game execution failed because a player played an invalid move.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct InvalidMove<Move, const N: usize>(PlayerIndex<N>, Move);
+
 impl<Move: IsMove, Util: IsUtility, const N: usize> Simultaneous<Move, Util, N> {
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a function that yields the payoff given a profile
@@ -110,5 +117,19 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Simultaneous<Move, Util, N> 
     /// corresponding player.
     pub fn is_valid_profile(&self, profile: Profile<Move, N>) -> bool {
         PlayerIndex::all_indexes().all(|pi| self.is_valid_move_for_player(pi, profile[pi]))
+    }
+
+    /// Play this game with the given players.
+    pub fn play(
+        &self,
+        players: &Players<Move, (), N>
+    ) -> Result<Outcome<Move, Util, N>, InvalidMove<Move, N>> {
+        let profile = PerPlayer::generate(|i| players[i].next_move(&()));
+        for i in PlayerIndex::all_indexes() {
+            if !self.is_valid_move_for_player(i, profile[i]) {
+                return Err(InvalidMove(i, profile[i]));
+            }
+        }
+        Ok(Outcome::new(profile, self.payoff(profile)))
     }
 }

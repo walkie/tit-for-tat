@@ -5,13 +5,14 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::moves::{IsMove, MoveIter};
-use crate::per_player::{PerPlayer, PlayerIndex};
 use crate::payoff::{IsUtility, Payoff};
+use crate::per_player::{PerPlayer, PlayerIndex};
+use crate::player::Players;
 
 use crate::sim::dominated::Dominated;
-use crate::sim::outcome::OutcomeIter;
+use crate::sim::outcome::{Outcome, OutcomeIter};
 use crate::sim::profile::{Profile, ProfileIter};
-use crate::sim::simultaneous::Simultaneous;
+use crate::sim::simultaneous::{InvalidMove, Simultaneous};
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
@@ -313,16 +314,6 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
         ))
     }
 
-    /// Get this normal form game as a simultaneous move game.
-    pub fn as_simultaneous(&self) -> Simultaneous<Move, Util, N> {
-        let moves = self.moves.clone();
-        let payoff_fn = self.payoff_fn.clone();
-        Simultaneous::from_payoff_fn(
-            move |player, the_move| moves[player].contains(&the_move),
-            move |profile| payoff_fn(profile),
-        )
-    }
-
     /// The number of players this game is for.
     pub fn num_players(&self) -> usize {
         N
@@ -364,6 +355,54 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// the payoff matrix.
     pub fn dimensions(&self) -> PerPlayer<usize, N> {
         self.available_moves().map(|ms| ms.count())
+    }
+
+    /// Get this normal form game as a simultaneous move game.
+    pub fn as_simultaneous(&self) -> Simultaneous<Move, Util, N> {
+        let moves = self.moves.clone();
+        let payoff_fn = self.payoff_fn.clone();
+        Simultaneous::from_payoff_fn(
+            move |player, the_move| moves[player].contains(&the_move),
+            move |profile| payoff_fn(profile),
+        )
+    }
+
+    /// Play this game with the given players.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::normal::*;
+    ///
+    /// let pd = Normal::symmetric(
+    ///     vec!['C', 'D'],
+    ///     vec![2, 0, 3, 1],
+    /// ).unwrap();
+    ///
+    /// let nice = Player::new("Nice".to_string(), Pure::new('C'));
+    /// let mean = Player::new("Mean".to_string(), Pure::new('D'));
+    ///
+    /// assert_eq!(
+    ///     pd.play(&PerPlayer::new([nice.clone(), nice.clone()])),
+    ///     Ok(Outcome::new(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
+    /// );
+    /// assert_eq!(
+    ///     pd.play(&PerPlayer::new([nice.clone(), mean.clone()])),
+    ///     Ok(Outcome::new(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
+    /// );
+    /// assert_eq!(
+    ///     pd.play(&PerPlayer::new([mean.clone(), nice])),
+    ///     Ok(Outcome::new(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
+    /// );
+    /// assert_eq!(
+    ///     pd.play(&PerPlayer::new([mean.clone(), mean])),
+    ///     Ok(Outcome::new(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
+    /// );
+    /// ```
+    pub fn play(
+        &self,
+        players: &Players<Move, (), N>
+    ) -> Result<Outcome<Move, Util, N>, InvalidMove<Move, N>> {
+        self.as_simultaneous().play(players)
     }
 
     /// An iterator over all of the [valid](Normal::is_valid_profile) pure strategy profiles for
