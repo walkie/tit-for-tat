@@ -43,13 +43,13 @@ pub mod sim {
 }
 
 // /// A prelude that includes all of the definitions used in defining and executing
-// /// [extensive-form games](crate::Extensive).
+// /// [extensive-form games](crate::seq::Extensive).
 // pub mod extensive {
 //
 // }
 
 /// A prelude that includes all of the definitions used in defining and executing (possibly
-/// repeated) [normal-form games](crate::Normal).
+/// repeated) [normal-form games](crate::sim::Normal).
 pub mod normal {
     pub use crate::distribution::*;
     pub use crate::moves::*;
@@ -65,7 +65,7 @@ pub mod normal {
 }
 
 /// A prelude that includes all of the definitions used in defining and executing (non-finite,
-/// possibly repeated) [simultaneous-move games](crate::Simultaneous).
+/// possibly repeated) [simultaneous-move games](crate::sim::Simultaneous).
 pub mod simultaneous {
     pub use crate::distribution::*;
     pub use crate::moves::IsMove;

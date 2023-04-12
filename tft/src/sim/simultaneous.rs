@@ -14,7 +14,7 @@ use crate::sim::profile::Profile;
 /// 2. A function that yields the payoff given the moves played by each player.
 ///
 /// This representation is best used for games with non-finite domains of moves. For games with
-/// finite domains of moves, use [`Normal`](crate::Normal).
+/// finite domains of moves, use [`Normal`](crate::sim::Normal).
 ///
 /// # Type variables
 ///

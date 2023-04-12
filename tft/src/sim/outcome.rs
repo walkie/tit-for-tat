@@ -20,7 +20,7 @@ pub struct Outcome<Move, Util, const N: usize> {
     pub payoff: Payoff<Util, N>,
 }
 
-/// An iterator over all possible outcomes of a [normal-form](crate::Normal) game.
+/// An iterator over all possible outcomes of a [normal-form](crate::sim::Normal) game.
 ///
 /// This enumerates the cells of the payoff
 /// table in [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
@@ -70,7 +70,7 @@ impl<'g, Move: IsMove, Util: IsUtility, const N: usize> OutcomeIter<'g, Move, Ut
     /// [`exclude`](OutcomeIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
-    /// See the documentation for [`ProfileIter::include`](crate::norm::ProfileIter::include) for
+    /// See the documentation for [`ProfileIter::include`](crate::sim::ProfileIter::include) for
     /// examples and more info.
     pub fn include(self, player: PlayerIndex<N>, the_move: Move) -> Self {
         OutcomeIter {
@@ -88,7 +88,7 @@ impl<'g, Move: IsMove, Util: IsUtility, const N: usize> OutcomeIter<'g, Move, Ut
     /// [`exclude`](OutcomeIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
-    /// See the documentation for [`ProfileIter::exclude`](crate::norm::ProfileIter::exclude) for
+    /// See the documentation for [`ProfileIter::exclude`](crate::sim::ProfileIter::exclude) for
     /// examples and more info.
     pub fn exclude(self, player: PlayerIndex<N>, the_move: Move) -> Self {
         OutcomeIter {
@@ -106,7 +106,7 @@ impl<'g, Move: IsMove, Util: IsUtility, const N: usize> OutcomeIter<'g, Move, Ut
     /// Note that this doesn't correspond to adjacency in the payoff table, but rather an entire
     /// row or column, minus the provided profile.
     ///
-    /// See the documentation for [`ProfileIter::adjacent`](crate::norm::ProfileIter::adjacent)
+    /// See the documentation for [`ProfileIter::adjacent`](crate::sim::ProfileIter::adjacent)
     /// for examples and more info.
     pub fn adjacent(self, player: PlayerIndex<N>, profile: Profile<Move, N>) -> Self {
         OutcomeIter {

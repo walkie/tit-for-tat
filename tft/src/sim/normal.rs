@@ -346,7 +346,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
         MoveIter::new(self.moves[player].clone().into_iter())
     }
 
-    /// Get iterators for moves available to each player.
+    /// Get iterators for the moves available to each player.
     pub fn available_moves(&self) -> PerPlayer<MoveIter<'_, Move>, N> {
         PerPlayer::generate(|player| self.available_moves_for_player(player))
     }
@@ -618,7 +618,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// Get all dominated move relationships for the given player. If a move is dominated by
     /// multiple different moves, it will contain multiple entries in the returned vector.
     ///
-    /// See the documentation for [`Dominated`](crate::norm::Dominated) for more info.
+    /// See the documentation for [`Dominated`](crate::sim::Dominated) for more info.
     ///
     /// # Examples
     /// ```
