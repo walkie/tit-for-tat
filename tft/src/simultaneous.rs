@@ -1,10 +1,9 @@
 use crate::moves::IsMove;
+use crate::outcome::Outcome;
 use crate::payoff::{IsUtility, Payoff};
 use crate::per_player::{PerPlayer, PlayerIndex};
 use crate::player::Players;
-
-use crate::sim::outcome::Outcome;
-use crate::sim::profile::Profile;
+use crate::profile::Profile;
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
@@ -14,7 +13,7 @@ use crate::sim::profile::Profile;
 /// 2. A function that yields the payoff given the moves played by each player.
 ///
 /// This representation is best used for games with non-finite domains of moves. For games with
-/// finite domains of moves, use [`Normal`](crate::sim::Normal).
+/// finite domains of moves, use [`Normal`](crate::Normal).
 ///
 /// # Type variables
 ///
@@ -28,7 +27,7 @@ use crate::sim::profile::Profile;
 /// for player `P1`, while `P1` must pick an odd score for `P0`.
 ///
 /// ```
-/// use tft::simultaneous::*;
+/// use tft::sim::*;
 ///
 /// let valid_move = |p, n: i32| {
 ///     if p == for2::P0 {

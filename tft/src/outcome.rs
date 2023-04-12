@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::moves::IsMove;
 use crate::payoff::{IsUtility, Payoff};
 use crate::per_player::PlayerIndex;
-use crate::sim::profile::{Profile, ProfileIter};
+use crate::profile::{Profile, ProfileIter};
 
 /// A (potential) outcome of a simultaneous game. A payoff combined with the strategy profile
 /// that produced it.
@@ -20,7 +20,7 @@ pub struct Outcome<Move, Util, const N: usize> {
     pub payoff: Payoff<Util, N>,
 }
 
-/// An iterator over all possible outcomes of a [normal-form](crate::sim::Normal) game.
+/// An iterator over all possible outcomes of a [normal-form](crate::Normal) game.
 ///
 /// This enumerates the cells of the payoff
 /// table in [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
@@ -34,17 +34,6 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Outcome<Move, Util, N> {
     /// Construct a new outcome.
     pub fn new(profile: Profile<Move, N>, payoff: Payoff<Util, N>) -> Self {
         Outcome { profile, payoff }
-    }
-
-    /// Construct a new outcome from the outcome of a sequential game, if possible.
-    ///
-    /// Returns `None` if the sequential outcome's transcript does not contain exactly one move
-    /// per player.
-    pub fn from_seq_outcome(seq_outcome: crate::seq::Outcome<Move, Util, N>) -> Option<Self> {
-        seq_outcome
-            .transcript
-            .to_profile()
-            .map(|profile| Outcome::new(profile, seq_outcome.payoff))
     }
 }
 
@@ -70,7 +59,7 @@ impl<'g, Move: IsMove, Util: IsUtility, const N: usize> OutcomeIter<'g, Move, Ut
     /// [`exclude`](OutcomeIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
-    /// See the documentation for [`ProfileIter::include`](crate::sim::ProfileIter::include) for
+    /// See the documentation for [`ProfileIter::include`](crate::ProfileIter::include) for
     /// examples and more info.
     pub fn include(self, player: PlayerIndex<N>, the_move: Move) -> Self {
         OutcomeIter {
@@ -88,7 +77,7 @@ impl<'g, Move: IsMove, Util: IsUtility, const N: usize> OutcomeIter<'g, Move, Ut
     /// [`exclude`](OutcomeIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
-    /// See the documentation for [`ProfileIter::exclude`](crate::sim::ProfileIter::exclude) for
+    /// See the documentation for [`ProfileIter::exclude`](crate::ProfileIter::exclude) for
     /// examples and more info.
     pub fn exclude(self, player: PlayerIndex<N>, the_move: Move) -> Self {
         OutcomeIter {
@@ -106,7 +95,7 @@ impl<'g, Move: IsMove, Util: IsUtility, const N: usize> OutcomeIter<'g, Move, Ut
     /// Note that this doesn't correspond to adjacency in the payoff table, but rather an entire
     /// row or column, minus the provided profile.
     ///
-    /// See the documentation for [`ProfileIter::adjacent`](crate::sim::ProfileIter::adjacent)
+    /// See the documentation for [`ProfileIter::adjacent`](crate::ProfileIter::adjacent)
     /// for examples and more info.
     pub fn adjacent(self, player: PlayerIndex<N>, profile: Profile<Move, N>) -> Self {
         OutcomeIter {

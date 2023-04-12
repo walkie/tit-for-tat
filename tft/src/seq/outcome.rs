@@ -1,6 +1,6 @@
 use crate::moves::IsMove;
 use crate::payoff::{IsUtility, Payoff};
-use crate::seq::transcript::{PlayedMove, Transcript};
+use crate::transcript::{PlayedMove, Transcript};
 
 /// A (potential) outcome of a sequential game. A payoff combined with the transcript of moves that
 /// produced it.

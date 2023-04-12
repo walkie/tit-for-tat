@@ -1,6 +1,6 @@
 use crate::moves::IsMove;
 use crate::per_player::{PerPlayer, PlayerIndex};
-use crate::sim::profile::Profile;
+use crate::profile::Profile;
 
 /// A move played during a game.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -60,6 +60,22 @@ impl<Move: IsMove, const N: usize> Transcript<Move, N> {
     /// Construct a transcript from a vector of played moves.
     pub fn from_played_moves(moves: Vec<PlayedMove<Move, N>>) -> Self {
         Transcript { moves }
+    }
+
+    /// Construct a transcript from the given profile.
+    pub fn from_profile(profile: Profile<Move, N>) -> Transcript<Move, N> {
+        profile.to_transcript()
+    }
+
+    /// Convert this transcript to a profile, if possible.
+    ///
+    /// Returns `None` if the transcript does not contain exactly one move per player.
+    pub fn to_profile(&self) -> Option<Profile<Move, N>> {
+        if self.moves.len() == N {
+            PerPlayer::generate(|player| self.first_move_by_player(player)).all_some()
+        } else {
+            None
+        }
     }
 
     /// Add a played move to the transcript.
@@ -143,17 +159,6 @@ impl<Move: IsMove, const N: usize> Transcript<Move, N> {
     /// Returns `None` if the given player has not played any moves.
     pub fn last_move_by_player(&self, player: PlayerIndex<N>) -> Option<Move> {
         self.last_move_by(Some(player))
-    }
-
-    /// Convert this transcript to a profile, if possible.
-    ///
-    /// Returns `None` if the transcript does not contain exactly one move per player.
-    pub fn to_profile(&self) -> Option<Profile<Move, N>> {
-        if self.moves.len() == N {
-            PerPlayer::generate(|player| self.first_move_by_player(player)).all_some()
-        } else {
-            None
-        }
     }
 }
 
