@@ -40,6 +40,12 @@ impl<Move> Mixed<Move> {
     pub fn new(dist: Distribution<Move>) -> Self {
         Mixed { dist }
     }
+
+    /// Construct a mixed strategy from a flat distribution over the given moves. This strategy
+    /// will pick one move randomly, each with equal probability.
+    pub fn flat(moves: Vec<Move>) -> Self {
+        Mixed::new(Distribution::flat(moves))
+    }
 }
 
 impl<Move: IsMove, State> Strategy<Move, State> for Mixed<Move> {
