@@ -6,12 +6,14 @@ use std::rc::Rc;
 
 use crate::dominated::Dominated;
 use crate::moves::{IsMove, MoveIter};
-use crate::outcome::{Outcome, OutcomeIter};
+use crate::outcome::OutcomeIter;
 use crate::payoff::{IsUtility, Payoff};
 use crate::per_player::{PerPlayer, PlayerIndex};
+use crate::play::{Playable, PlayError, PlayResult, PlayState};
 use crate::player::Players;
 use crate::profile::{Profile, ProfileIter};
-use crate::simultaneous::{InvalidMove, Simultaneous};
+use crate::record::Record;
+use crate::simultaneous::Simultaneous;
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
@@ -364,44 +366,6 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
             move |player, the_move| moves[player].contains(&the_move),
             move |profile| payoff_fn(profile),
         )
-    }
-
-    /// Play this game with the given players.
-    ///
-    /// # Examples
-    /// ```
-    /// use tft::norm::*;
-    ///
-    /// let pd = Normal::symmetric(
-    ///     vec!['C', 'D'],
-    ///     vec![2, 0, 3, 1],
-    /// ).unwrap();
-    ///
-    /// let nice = Player::new("Nice".to_string(), Pure::new('C'));
-    /// let mean = Player::new("Mean".to_string(), Pure::new('D'));
-    ///
-    /// assert_eq!(
-    ///     pd.play(&PerPlayer::new([nice.clone(), nice.clone()])),
-    ///     Ok(Outcome::new(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
-    /// );
-    /// assert_eq!(
-    ///     pd.play(&PerPlayer::new([nice.clone(), mean.clone()])),
-    ///     Ok(Outcome::new(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
-    /// );
-    /// assert_eq!(
-    ///     pd.play(&PerPlayer::new([mean.clone(), nice])),
-    ///     Ok(Outcome::new(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
-    /// );
-    /// assert_eq!(
-    ///     pd.play(&PerPlayer::new([mean.clone(), mean])),
-    ///     Ok(Outcome::new(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
-    /// );
-    /// ```
-    pub fn play(
-        &self,
-        players: &Players<Move, (), N>
-    ) -> Result<Outcome<Move, Util, N>, InvalidMove<Move, N>> {
-        self.as_simultaneous().play(players)
     }
 
     /// An iterator over all of the [valid](Normal::is_valid_profile) pure strategy profiles for
@@ -906,5 +870,58 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 4> {
             }
         }
         Normal::from_payoff_map(all_moves, payoff_map)
+    }
+}
+
+impl<Move: IsMove, Util: IsUtility, const N: usize> Playable<N> for Normal<Move, Util, N> {
+    type Move = Move;
+    type Utility = Util;
+    type GameState = ();
+
+    fn initial_state(&self) {}
+
+    /// Play this game with the given players.
+    ///
+    /// # Examples
+    /// ```
+    /// use tft::norm::*;
+    ///
+    /// let pd = Normal::symmetric(
+    ///     vec!['C', 'D'],
+    ///     vec![2, 0, 3, 1],
+    /// ).unwrap();
+    ///
+    /// let nice = Player::new("Nice".to_string(), Pure::new('C'));
+    /// let mean = Player::new("Mean".to_string(), Pure::new('D'));
+    ///
+    /// assert_eq!(
+    ///     pd.play_once(&PerPlayer::new([nice.clone(), nice.clone()])),
+    ///     Ok(Record::simultaneous(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
+    /// );
+    /// assert_eq!(
+    ///     pd.play_once(&PerPlayer::new([nice.clone(), mean.clone()])),
+    ///     Ok(Record::simultaneous(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
+    /// );
+    /// assert_eq!(
+    ///     pd.play_once(&PerPlayer::new([mean.clone(), nice])),
+    ///     Ok(Record::simultaneous(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
+    /// );
+    /// assert_eq!(
+    ///     pd.play_once(&PerPlayer::new([mean.clone(), mean])),
+    ///     Ok(Record::simultaneous(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
+    /// );
+    /// ```
+    fn play(
+        &self,
+        players: &mut Players<Self, N>,
+        exec_state: &mut PlayState<Self, N>,
+    ) -> PlayResult<Move, Util, N> {
+        let profile = PerPlayer::generate(|i| players[i].next_move(exec_state));
+        for i in PlayerIndex::all_indexes() {
+            if !self.is_valid_move_for_player(i, profile[i]) {
+                return Err(PlayError::InvalidMove(i, profile[i]));
+            }
+        }
+        Ok(Record::simultaneous(profile, self.payoff(profile)))
     }
 }

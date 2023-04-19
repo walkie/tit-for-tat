@@ -1,34 +1,24 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
-use crate::moves::IsMove;
 use crate::per_player::PerPlayer;
+use crate::play::{Playable, PlayState};
 use crate::strategy::Strategy;
 
 /// A [per-player](crate::PerPlayer) collection of [players](Player), ready to play a game.
-pub type Players<Move, State, const N: usize> = PerPlayer<Player<Move, State>, N>;
+pub type Players<Game, const N: usize> = PerPlayer<Player<Game, N>, N>;
 
 /// A player consists of a name and a [strategy](crate::Strategy).
 ///
 /// A player's name should usually be unique with respect to all players playing the same game.
-///
-/// # Type variables
-///
-/// - `Move` -- The type of moves this player plays.
-/// - `State` -- The type of the intermediate game state this player understands. Values of this
-///   type may be used by the player's strategy to determine the player's next move.
-#[derive(Clone)]
-pub struct Player<Move: IsMove, State> {
+pub struct Player<Game: Playable<N>, const N: usize> {
     name: String,
-    strategy: Rc<RefCell<dyn Strategy<Move, State>>>,
+    strategy: Box<dyn Strategy<Game::Move, PlayState<Game, N>>>,
 }
 
-impl<Move: IsMove, State> Player<Move, State> {
+impl<Game: Playable<N>, const N: usize> Player<Game, N> {
     /// Construct a new player with the given name and strategy.
-    pub fn new(name: String, strategy: impl Strategy<Move, State> + 'static) -> Self {
+    pub fn new(name: String, strategy: impl Strategy<Game::Move, PlayState<Game, N>> + 'static) -> Self {
         Player {
             name,
-            strategy: Rc::new(RefCell::new(strategy)),
+            strategy: Box::new(strategy),
         }
     }
 
@@ -38,7 +28,7 @@ impl<Move: IsMove, State> Player<Move, State> {
     }
 
     /// Get the player's next move to play given a particular game state.
-    pub fn next_move(&self, game_state: &State) -> Move {
-        self.strategy.borrow_mut().next_move(game_state)
+    pub fn next_move(&mut self, state: &PlayState<Game, N>) -> Game::Move {
+        self.strategy.next_move(state)
     }
 }

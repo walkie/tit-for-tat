@@ -6,7 +6,7 @@ use crate::moves::IsMove;
 /// # Type variables
 ///
 /// - `Move` -- The type of moves yielded by this strategy.
-/// - `State` -- The type of the game state used to compute the next move.
+/// - `State` -- The [game execution state][tft::PlayState].
 pub trait Strategy<Move: IsMove, State> {
     /// Get the next move to play given a particular game state.
     fn next_move(&mut self, state: &State) -> Move;
@@ -25,7 +25,7 @@ impl<Move> Pure<Move> {
 }
 
 impl<Move: IsMove, State> Strategy<Move, State> for Pure<Move> {
-    fn next_move(&mut self, _game_state: &State) -> Move {
+    fn next_move(&mut self, _state: &State) -> Move {
         self.the_move
     }
 }
@@ -43,13 +43,19 @@ impl<Move> Mixed<Move> {
 
     /// Construct a mixed strategy from a flat distribution over the given moves. This strategy
     /// will pick one move randomly, each with equal probability.
-    pub fn flat(moves: Vec<Move>) -> Self {
-        Mixed::new(Distribution::flat(moves))
+    ///
+    /// # Errors
+    ///
+    /// Logs an error and returns `None` if:
+    /// - The vector is empty.
+    /// - The vector is longer than u32::MAX.
+    pub fn flat(moves: Vec<Move>) -> Option<Self> {
+        Distribution::flat(moves).map(|dist| Mixed::new(dist))
     }
 }
 
 impl<Move: IsMove, State> Strategy<Move, State> for Mixed<Move> {
-    fn next_move(&mut self, _game_state: &State) -> Move {
+    fn next_move(&mut self, _state: &State) -> Move {
         self.dist.sample().to_owned()
     }
 }
@@ -69,8 +75,8 @@ impl<Move, State> Probabilistic<Move, State> {
 }
 
 impl<Move: IsMove, State> Strategy<Move, State> for Probabilistic<Move, State> {
-    fn next_move(&mut self, game_state: &State) -> Move {
-        self.dist.sample_mut().next_move(game_state)
+    fn next_move(&mut self, state: &State) -> Move {
+        self.dist.sample_mut().next_move(state)
     }
 }
 
@@ -104,8 +110,8 @@ impl<Move: IsMove, State> Periodic<Move, State> {
 }
 
 impl<Move: IsMove, State> Strategy<Move, State> for Periodic<Move, State> {
-    fn next_move(&mut self, game_state: &State) -> Move {
-        let the_move = self.strategies[self.next_index].next_move(game_state);
+    fn next_move(&mut self, state: &State) -> Move {
+        let the_move = self.strategies[self.next_index].next_move(state);
         self.next_index = (self.next_index + 1) % self.strategies.len();
         the_move
     }
