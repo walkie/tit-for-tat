@@ -38,4 +38,17 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Record<Move, Util, N> {
     pub fn from_outcome(outcome: Outcome<Move, Util, N>) -> Self {
         Record::simultaneous(outcome.profile, outcome.payoff)
     }
+
+    /// Get a transcript of all moves played during the game.
+    pub fn transcript(&self) -> Transcript<Move, N> {
+        match &self.moves {
+            Moves::Sequential(transcript) => transcript.clone(),
+            Moves::Simultaneous(profile) => profile.to_transcript(),
+        }
+    }
+
+    /// Get the payoff awarded at the end of this game.
+    pub fn payoff(&self) -> Payoff<Util, N> {
+        self.payoff
+    }
 }

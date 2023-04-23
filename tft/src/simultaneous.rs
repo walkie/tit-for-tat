@@ -1,7 +1,7 @@
 use crate::moves::IsMove;
 use crate::payoff::{IsUtility, Payoff};
 use crate::per_player::{PerPlayer, PlayerIndex};
-use crate::play::{Playable, PlayError, PlayResult, PlayState};
+use crate::play::{PlayError, PlayResult, PlayState, Playable};
 use crate::player::Players;
 use crate::profile::Profile;
 use crate::record::Record;
@@ -127,13 +127,15 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Playable<N> for Simultaneous
         &self,
         players: &mut Players<Self, N>,
         exec_state: &mut PlayState<Self, N>,
-    ) -> PlayResult<Move, Util, N> {
+    ) -> PlayResult<Record<Move, Util, N>, Move, N> {
         let profile = PerPlayer::generate(|i| players[i].next_move(exec_state));
         for i in PlayerIndex::all_indexes() {
             if !self.is_valid_move_for_player(i, profile[i]) {
                 return Err(PlayError::InvalidMove(i, profile[i]));
             }
         }
-        Ok(Record::simultaneous(profile, self.payoff(profile)))
+        let record = Record::simultaneous(profile, self.payoff(profile));
+        exec_state.add_record(record.clone());
+        Ok(record)
     }
 }

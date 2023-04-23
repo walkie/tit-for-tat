@@ -23,4 +23,15 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> History<Move, Util, N> {
     pub fn new() -> Self {
         History::default()
     }
+
+    /// Update the history by adding a new completed game record.
+    pub fn add_record(&mut self, record: Record<Move, Util, N>) {
+        self.score = self.score + record.payoff();
+        self.records.push(record);
+    }
+
+    /// Get the current score of the game.
+    pub fn score(&self) -> Payoff<Util, N> {
+        self.score
+    }
 }

@@ -1,6 +1,6 @@
 use crate::history::History;
 use crate::moves::IsMove;
-use crate::payoff::IsUtility;
+use crate::payoff::{IsUtility, Payoff};
 use crate::per_player::PlayerIndex;
 use crate::player::Players;
 use crate::record::Record;
@@ -8,7 +8,6 @@ use crate::transcript::Transcript;
 
 /// An interface for playing games.
 pub trait Playable<const N: usize>: Sized {
-
     /// The type of moves played by players in this game.
     type Move: IsMove;
 
@@ -22,17 +21,50 @@ pub trait Playable<const N: usize>: Sized {
     /// The initial state of the game.
     fn initial_state(&self) -> Self::GameState;
 
-    /// Play one iteration of the game, returning a record of the completed game or an error.
-    fn play(&self, players: &mut Players<Self, N>, exec_state: &mut PlayState<Self, N>) -> PlayResult<Self::Move, Self::Utility, N>;
+    /// Play one iteration of the game and update the execution state accordingly. Returns the
+    /// record of this game iteration, if successful.
+    ///
+    /// # Note to implementors
+    ///
+    /// In addition to returning the completed game record, this method should add the record to
+    /// the execution state using [PlayState::add_record]. For sequential games, it will also need
+    /// to update the current game's transcript using [PlayState::add_move] after getting and
+    /// executing each player's move.
+    fn play(
+        &self,
+        players: &mut Players<Self, N>,
+        state: &mut PlayState<Self, N>,
+    ) -> PlayResult<Record<Self::Move, Self::Utility, N>, Self::Move, N>;
 
-    fn play_once(&self, players: &mut Players<Self, N>) -> PlayResult<Self::Move, Self::Utility, N> {
+    /// Play a game once with the given players, starting from the initial state.
+    fn play_once(
+        &self,
+        players: &mut Players<Self, N>,
+    ) -> PlayResult<Record<Self::Move, Self::Utility, N>, Self::Move, N> {
         let mut state = PlayState::new(self);
         self.play(players, &mut state)
+    }
+
+    /// Play a given number of iterations of a game with the given players, starting from the
+    /// initial state. Returns the final execution state, if successful.
+    fn play_repeatedly(
+        &self,
+        players: &mut Players<Self, N>,
+        iterations: u32,
+    ) -> PlayResult<PlayState<Self, N>, Self::Move, N> {
+        let mut state = PlayState::new(self);
+        for _ in 0..iterations {
+            match self.play(players, &mut state) {
+                Ok(record) => state.completed.add_record(record),
+                Err(err) => return Err(err),
+            }
+        }
+        Ok(state)
     }
 }
 
 /// Result of playing a game. Either a record of the completed game or an error.
-pub type PlayResult<Move, Util, const N: usize> = Result<Record<Move, Util, N>, PlayError<Move, N>>;
+pub type PlayResult<T, Move, const N: usize> = Result<T, PlayError<Move, N>>;
 
 /// An error during game execution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -62,5 +94,9 @@ impl<Game: Playable<N>, const N: usize> PlayState<Game, N> {
             in_progress: Transcript::new(),
             completed: History::new(),
         }
+    }
+
+    pub fn add_record(&mut self, record: Record<Game::Move, Game::Utility, N>) {
+        self.completed.add_record(record);
     }
 }

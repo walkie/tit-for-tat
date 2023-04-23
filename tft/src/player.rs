@@ -1,5 +1,5 @@
 use crate::per_player::PerPlayer;
-use crate::play::{Playable, PlayState};
+use crate::play::{PlayState, Playable};
 use crate::strategy::Strategy;
 
 /// A [per-player](crate::PerPlayer) collection of [players](Player), ready to play a game.
@@ -15,7 +15,10 @@ pub struct Player<Game: Playable<N>, const N: usize> {
 
 impl<Game: Playable<N>, const N: usize> Player<Game, N> {
     /// Construct a new player with the given name and strategy.
-    pub fn new(name: String, strategy: impl Strategy<Game::Move, PlayState<Game, N>> + 'static) -> Self {
+    pub fn new(
+        name: String,
+        strategy: impl Strategy<Game::Move, PlayState<Game, N>> + 'static,
+    ) -> Self {
         Player {
             name,
             strategy: Box::new(strategy),
