@@ -9,19 +9,19 @@
 /// Note that `m1` and `m2` may weakly dominate each other if the two moves are equivalent, that
 /// is, if they always yield the same utility in otherwise identical profiles.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct Dominated<Move> {
+pub struct Dominated<M> {
     /// The move that is dominated, i.e. yields a worse utility.
-    pub dominated: Move,
+    pub dominated: M,
     /// The move that is dominates the dominated move, i.e. yields a better utility.
-    pub dominator: Move,
+    pub dominator: M,
     /// Is the domination relationship strict? If `true`, the `dominator` always yields a greater
     /// utility. If `false`, the `dominator` always yields a greater or equal utility.
     pub is_strict: bool,
 }
 
-impl<Move> Dominated<Move> {
+impl<M> Dominated<M> {
     /// Construct a strict domination relationship.
-    pub fn strict(dominated: Move, dominator: Move) -> Self {
+    pub fn strict(dominated: M, dominator: M) -> Self {
         Dominated {
             dominated,
             dominator,
@@ -30,7 +30,7 @@ impl<Move> Dominated<Move> {
     }
 
     /// Construct a weak domination relationship.
-    pub fn weak(dominated: Move, dominator: Move) -> Self {
+    pub fn weak(dominated: M, dominator: M) -> Self {
         Dominated {
             dominated,
             dominator,

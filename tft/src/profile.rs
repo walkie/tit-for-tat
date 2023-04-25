@@ -1,31 +1,63 @@
 //! This module defines the types related to pure strategy profiles for simultaneous games.
 
+use dyn_clone::DynClone;
 use itertools::structs::MultiProduct;
 use itertools::Itertools;
 use std::iter::Iterator;
 
-use crate::moves::{IsMove, MoveIter};
+use crate::game::Move;
 use crate::per_player::{PerPlayer, PlayerIndex};
-use crate::transcript::{PlayedMove, Transcript};
+use crate::transcript::{Played, Transcript};
 
 /// A pure strategy profile for a simultaneous game: one move played by each player.
-pub type Profile<Move, const N: usize> = PerPlayer<Move, N>;
+pub type Profile<M, const P: usize> = PerPlayer<M, P>;
 
-impl<Move: IsMove, const N: usize> Profile<Move, N> {
+impl<M: Move, const P: usize> Profile<M, P> {
     /// Attempt to construct a profile from the given transcript.
     ///
     /// Returns `None` if the transcript does not contain exactly one move per player.
-    pub fn from_transcript(transcript: Transcript<Move, N>) -> Option<Self> {
+    pub fn from_transcript(transcript: Transcript<M, P>) -> Option<Self> {
         transcript.to_profile()
     }
 
     /// Convert this profile into a transcript.
-    pub fn to_transcript(&self) -> Transcript<Move, N> {
+    pub fn to_transcript(&self) -> Transcript<M, P> {
         let moves = self
-            .map_with_index(|p, m| PlayedMove::player(p, m))
+            .map_with_index(|p, m| Played::player(p, m))
             .into_iter()
             .collect();
         Transcript::from_played_moves(moves)
+    }
+}
+
+/// An iterator over available moves in a game with a finite move set.
+#[derive(Clone)]
+pub struct MoveIter<'a, M> {
+    iter: Box<dyn CloneableIterator<M> + 'a>,
+}
+
+/// An iterator that can be cloned, enabling it to be used multiple times.
+///
+/// A blanket implementation covers all types that meet the requirements, so this trait should not
+/// be implemented directly.
+trait CloneableIterator<I>: DynClone + Iterator<Item = I> {}
+impl<I, T: DynClone + Iterator<Item = I>> CloneableIterator<I> for T {}
+
+dyn_clone::clone_trait_object!(<I> CloneableIterator<I>);
+
+impl<'a, M> MoveIter<'a, M> {
+    /// Construct a new move iterator.
+    pub fn new(iter: impl Clone + Iterator<Item = M> + 'a) -> Self {
+        MoveIter {
+            iter: Box::new(iter),
+        }
+    }
+}
+
+impl<'a, M> Iterator for MoveIter<'a, M> {
+    type Item = M;
+    fn next(&mut self) -> Option<M> {
+        self.iter.next()
     }
 }
 
@@ -35,16 +67,16 @@ impl<Move: IsMove, const N: usize> Profile<Move, N> {
 /// This iterator enumerates all profiles that can be produced from the moves available to each
 /// player.
 #[derive(Clone)]
-pub struct ProfileIter<'g, Move: Copy, const N: usize> {
+pub struct ProfileIter<'g, M: Copy, const P: usize> {
     /// Moves that must be included in any generated profile, for each player.
-    includes: PerPlayer<Vec<Move>, N>,
+    includes: PerPlayer<Vec<M>, P>,
     /// Moves that must be excluded from any generated profile, for each player.
-    excludes: PerPlayer<Vec<Move>, N>,
+    excludes: PerPlayer<Vec<M>, P>,
     /// The multi-product iterator used to generate each profile.
-    multi_iter: MultiProduct<MoveIter<'g, Move>>,
+    multi_iter: MultiProduct<MoveIter<'g, M>>,
 }
 
-impl<'g, Move: IsMove, const N: usize> ProfileIter<'g, Move, N> {
+impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     /// Construct a new profile iterator from a per-player collection of iterators over the moves
     /// available to each player.
     ///
@@ -70,7 +102,7 @@ impl<'g, Move: IsMove, const N: usize> ProfileIter<'g, Move, N> {
     ///     ],
     /// );
     /// ```
-    pub fn from_move_iters(move_iters: PerPlayer<MoveIter<'g, Move>, N>) -> Self {
+    pub fn from_move_iters(move_iters: PerPlayer<MoveIter<'g, M>, P>) -> Self {
         ProfileIter {
             includes: PerPlayer::init_with(Vec::new()),
             excludes: PerPlayer::init_with(Vec::new()),
@@ -96,7 +128,7 @@ impl<'g, Move: IsMove, const N: usize> ProfileIter<'g, Move, N> {
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['D', 'F'])));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub fn from_move_vecs(move_vecs: PerPlayer<Vec<Move>, N>) -> ProfileIter<'static, Move, N> {
+    pub fn from_move_vecs(move_vecs: PerPlayer<Vec<M>, P>) -> ProfileIter<'static, M, P> {
         ProfileIter::from_move_iters(move_vecs.map(|v| MoveIter::new(v.into_iter())))
     }
 
@@ -147,7 +179,7 @@ impl<'g, Move: IsMove, const N: usize> ProfileIter<'g, Move, N> {
     ///     ],
     /// );
     /// ```
-    pub fn symmetric(move_iter: MoveIter<'g, Move>) -> Self {
+    pub fn symmetric(move_iter: MoveIter<'g, M>) -> Self {
         ProfileIter::from_move_iters(PerPlayer::init_with(move_iter))
     }
 
@@ -217,7 +249,7 @@ impl<'g, Move: IsMove, const N: usize> ProfileIter<'g, Move, N> {
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D', 'H'])));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub fn include(self, player: PlayerIndex<N>, the_move: Move) -> Self {
+    pub fn include(self, player: PlayerIndex<P>, the_move: M) -> Self {
         let mut includes = self.includes;
         includes[player].push(the_move);
         ProfileIter { includes, ..self }
@@ -286,7 +318,7 @@ impl<'g, Move: IsMove, const N: usize> ProfileIter<'g, Move, N> {
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['C', 'C', 'C'])));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub fn exclude(self, player: PlayerIndex<N>, the_move: Move) -> Self {
+    pub fn exclude(self, player: PlayerIndex<P>, the_move: M) -> Self {
         let mut excludes = self.excludes;
         excludes[player].push(the_move);
         ProfileIter { excludes, ..self }
@@ -311,7 +343,7 @@ impl<'g, Move: IsMove, const N: usize> ProfileIter<'g, Move, N> {
     /// assert_eq!(iter.next(), Some(PerPlayer::new([5, 4, 3, 5, 1])));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub fn adjacent(self, player: PlayerIndex<N>, profile: Profile<Move, N>) -> Self {
+    pub fn adjacent(self, player: PlayerIndex<P>, profile: Profile<M, P>) -> Self {
         let mut iter = self;
         for i in PlayerIndex::all_indexes() {
             if i == player {
@@ -324,10 +356,10 @@ impl<'g, Move: IsMove, const N: usize> ProfileIter<'g, Move, N> {
     }
 }
 
-impl<'g, Move: IsMove, const N: usize> Iterator for ProfileIter<'g, Move, N> {
-    type Item = Profile<Move, N>;
+impl<'g, M: Move, const P: usize> Iterator for ProfileIter<'g, M, P> {
+    type Item = Profile<M, P>;
 
-    fn next(&mut self) -> Option<Profile<Move, N>> {
+    fn next(&mut self) -> Option<Profile<M, P>> {
         for moves in self.multi_iter.by_ref() {
             let profile = PerPlayer::new(moves.try_into().unwrap());
             let mut good = true;

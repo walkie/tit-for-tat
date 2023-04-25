@@ -5,14 +5,14 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::dominated::Dominated;
-use crate::moves::{IsMove, MoveIter};
+use crate::game::{Game, Move, Utility};
+use crate::history::Record;
 use crate::outcome::OutcomeIter;
-use crate::payoff::{IsUtility, Payoff};
+use crate::payoff::Payoff;
 use crate::per_player::{PerPlayer, PlayerIndex};
-use crate::play::{PlayError, PlayResult, PlayState, Playable};
+use crate::play::{PlayError, PlayResult, PlayState};
 use crate::player::Players;
-use crate::profile::{Profile, ProfileIter};
-use crate::record::Record;
+use crate::profile::{MoveIter, Profile, ProfileIter};
 use crate::simultaneous::Simultaneous;
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
@@ -23,18 +23,18 @@ use crate::simultaneous::Simultaneous;
 ///
 /// # Type variables
 ///
-/// - `Move` -- The type of moves played during the game.
-/// - `Util` -- The type of utility value awarded to each player in a payoff.
-/// - `N` -- The number of players that play the game.
+/// - `M` -- The type of moves played during the game.
+/// - `U` -- The type of utility value awarded to each player in a payoff.
+/// - `P` -- The number of players that play the game.
 ///
 /// # Examples
 #[derive(Clone)]
-pub struct Normal<Move, Util, const N: usize> {
-    moves: PerPlayer<Vec<Move>, N>,
-    payoff_fn: Rc<dyn Fn(Profile<Move, N>) -> Payoff<Util, N>>,
+pub struct Normal<M, U, const P: usize> {
+    moves: PerPlayer<Vec<M>, P>,
+    payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P>>,
 }
 
-impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
+impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// Construct a normal-form game given the moves available to each player and a function that
     /// yields the game's payoff given a profile containing a move played by each player.
     ///
@@ -42,8 +42,8 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// large normal-form games where it would be intractable to represent the payoff map/table
     /// directly.
     pub fn from_payoff_fn(
-        moves: PerPlayer<Vec<Move>, N>,
-        payoff_fn: impl Fn(Profile<Move, N>) -> Payoff<Util, N> + 'static,
+        moves: PerPlayer<Vec<M>, P>,
+        payoff_fn: impl Fn(Profile<M, P>) -> Payoff<U, P> + 'static,
     ) -> Self {
         Normal {
             moves,
@@ -58,10 +58,10 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// large normal-form games where it would be intractable to represent the payoff map/table
     /// directly.
     pub fn from_utility_fns(
-        moves: PerPlayer<Vec<Move>, N>,
-        util_fns: PerPlayer<impl Fn(Move) -> Util + 'static, N>,
+        moves: PerPlayer<Vec<M>, P>,
+        util_fns: PerPlayer<impl Fn(M) -> U + 'static, P>,
     ) -> Self {
-        let payoff_fn = move |profile: Profile<Move, N>| {
+        let payoff_fn = move |profile: Profile<M, P>| {
             Payoff::new(PerPlayer::generate(|player| {
                 util_fns[player](profile[player])
             }))
@@ -77,8 +77,8 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// The resulting game will log an error and return a [zero payoff](crate::Payoff::zeros) for
     /// any profile not contained in the map.
     pub fn from_payoff_map(
-        moves: PerPlayer<Vec<Move>, N>,
-        payoff_map: HashMap<Profile<Move, N>, Payoff<Util, N>>,
+        moves: PerPlayer<Vec<M>, P>,
+        payoff_map: HashMap<Profile<M, P>, Payoff<U, P>>,
     ) -> Self {
         let payoff_fn = move |profile| {
             if let Some(payoff) = payoff_map.get(&profile).copied() {
@@ -125,10 +125,10 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// assert_eq!(g.payoff(PerPlayer::new(['B', 'D', 'E'])), Payoff::from([6, 5, 4]));
     /// ```
     pub fn from_payoff_vec(
-        moves: PerPlayer<Vec<Move>, N>,
-        payoffs: Vec<Payoff<Util, N>>,
+        moves: PerPlayer<Vec<M>, P>,
+        payoffs: Vec<Payoff<U, P>>,
     ) -> Option<Self> {
-        let profiles: Vec<Profile<Move, N>> = ProfileIter::from_move_vecs(moves.clone()).collect();
+        let profiles: Vec<Profile<M, P>> = ProfileIter::from_move_vecs(moves.clone()).collect();
         let num_profiles = profiles.len();
         let num_payoffs = payoffs.len();
         match num_profiles.cmp(&num_payoffs) {
@@ -231,16 +231,16 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'D'])), Payoff::from([3, 3, 3, 3]));
     /// ```
     #[allow(clippy::needless_range_loop)]
-    pub fn symmetric(moves: Vec<Move>, utils: Vec<Util>) -> Option<Self> {
+    pub fn symmetric(moves: Vec<M>, utils: Vec<U>) -> Option<Self> {
         let num_moves = moves.len();
-        let size = num_moves.pow(N as u32);
+        let size = num_moves.pow(P as u32);
         let num_utils = utils.len();
         match size.cmp(&num_utils) {
             Ordering::Greater => {
                 log::error!(
                     "Normal::symmetric: not enough utility values provided; expected {}^{}={}, got {}",
                     num_moves,
-                    N,
+                    P,
                     size,
                     num_utils,
                 );
@@ -250,7 +250,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
                 log::warn!(
                     "Normal::symmetric: too many utility values provided; expected {}^{}={}, got {}",
                     num_moves,
-                    N,
+                    P,
                     size,
                     num_utils,
                 );
@@ -266,23 +266,23 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
 
         // vector used to translate a profile's move indexes into an index that retrieves player
         // P0's utility from the payoff vector
-        let mut translate_p0 = [0; N];
-        for i in 0..N {
-            translate_p0[i] = num_moves.pow((N - 1 - i) as u32);
+        let mut translate_p0 = [0; P];
+        for i in 0..P {
+            translate_p0[i] = num_moves.pow((P - 1 - i) as u32);
         }
 
-        // vectors as above, but for all N players
-        let mut translate = [[0; N]; N];
-        for p in 0..N {
-            for i in 0..N {
-                translate[p][i] = translate_p0[(N + i - p) % N];
+        // vectors as above, but for all P players
+        let mut translate = [[0; P]; P];
+        for p in 0..P {
+            for i in 0..P {
+                translate[p][i] = translate_p0[(P + i - p) % P];
             }
         }
 
         // payoff function
-        let payoff_fn = move |profile: Profile<Move, N>| {
+        let payoff_fn = move |profile: Profile<M, P>| {
             // get the profile's move indexes
-            let mut move_indexes = [0; N];
+            let mut move_indexes = [0; P];
             for p in PlayerIndex::all_indexes() {
                 let the_move = profile[p];
                 if let Some(i) = move_index_map.get(&the_move).copied() {
@@ -295,8 +295,8 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
                 }
             }
 
-            let mut payoff_utils = [Util::zero(); N];
-            for p in 0..N {
+            let mut payoff_utils = [U::zero(); P];
+            for p in 0..P {
                 // compute dot product of translation vector and profile's move indexes to get
                 // index into the utility vector
                 let util_index: usize = translate[p]
@@ -317,25 +317,25 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
 
     /// The number of players this game is for.
     pub fn num_players(&self) -> usize {
-        N
+        P
     }
 
     /// Get the payoff for the given strategy profile.
     ///
     /// This method may return an arbitrary payoff if given an
     /// [invalid profile](Normal::is_valid_profile).
-    pub fn payoff(&self, profile: Profile<Move, N>) -> Payoff<Util, N> {
+    pub fn payoff(&self, profile: Profile<M, P>) -> Payoff<U, P> {
         (*self.payoff_fn)(profile)
     }
 
     /// Is this a valid move for the given player?
-    pub fn is_valid_move_for_player(&self, player: PlayerIndex<N>, the_move: Move) -> bool {
+    pub fn is_valid_move_for_player(&self, player: PlayerIndex<P>, the_move: M) -> bool {
         self.moves[player].contains(&the_move)
     }
 
     /// Is this a valid strategy profile? A profile is valid if each move is valid for the
     /// corresponding player.
-    pub fn is_valid_profile(&self, profile: Profile<Move, N>) -> bool {
+    pub fn is_valid_profile(&self, profile: Profile<M, P>) -> bool {
         PlayerIndex::all_indexes().all(|pi| self.is_valid_move_for_player(pi, profile[pi]))
     }
 
@@ -343,23 +343,23 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     ///
     /// Implementations of this method should produce every valid move for the given player exactly
     /// once.
-    pub fn available_moves_for_player(&self, player: PlayerIndex<N>) -> MoveIter<'_, Move> {
+    pub fn available_moves_for_player(&self, player: PlayerIndex<P>) -> MoveIter<'_, M> {
         MoveIter::new(self.moves[player].clone().into_iter())
     }
 
     /// Get iterators for the moves available to each player.
-    pub fn available_moves(&self) -> PerPlayer<MoveIter<'_, Move>, N> {
+    pub fn available_moves(&self) -> PerPlayer<MoveIter<'_, M>, P> {
         PerPlayer::generate(|player| self.available_moves_for_player(player))
     }
 
     /// Get the number of moves available to each player, which corresponds to the dimensions of
     /// the payoff matrix.
-    pub fn dimensions(&self) -> PerPlayer<usize, N> {
+    pub fn dimensions(&self) -> PerPlayer<usize, P> {
         self.available_moves().map(|ms| ms.count())
     }
 
     /// Get this normal form game as a simultaneous move game.
-    pub fn as_simultaneous(&self) -> Simultaneous<Move, Util, N> {
+    pub fn as_simultaneous(&self) -> Simultaneous<M, U, P> {
         let moves = self.moves.clone();
         let payoff_fn = self.payoff_fn.clone();
         Simultaneous::from_payoff_fn(
@@ -370,12 +370,12 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
 
     /// An iterator over all of the [valid](Normal::is_valid_profile) pure strategy profiles for
     /// this game.
-    pub fn profiles(&self) -> ProfileIter<'_, Move, N> {
+    pub fn profiles(&self) -> ProfileIter<'_, M, P> {
         ProfileIter::from_move_iters(self.available_moves())
     }
 
     /// An iterator over all possible outcomes of the game.
-    pub fn outcomes(&self) -> OutcomeIter<'_, Move, Util, N> {
+    pub fn outcomes(&self) -> OutcomeIter<'_, M, U, P> {
         OutcomeIter::new(self.profiles(), self.payoff_fn.clone())
     }
 
@@ -439,9 +439,9 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// ```
     pub fn unilaterally_improve(
         &self,
-        player: PlayerIndex<N>,
-        profile: Profile<Move, N>,
-    ) -> Option<Move> {
+        player: PlayerIndex<P>,
+        profile: Profile<M, P>,
+    ) -> Option<M> {
         let mut best_move = None;
         if self.is_valid_profile(profile) {
             let mut best_util = self.payoff(profile)[player];
@@ -466,7 +466,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// improve their utility.
     ///
     /// A stable profile is a pure
-    /// [Nash equilibrium](https://en.wikipedia.org/wiki/Nash_equilibrium) of the game.
+    /// [Pash equilibrium](https://en.wikipedia.org/wiki/Pash_equilibrium) of the game.
     ///
     /// # Examples
     /// ```
@@ -497,12 +497,12 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// assert!(!hunt.is_stable(dc));
     /// assert!(hunt.is_stable(dd));
     /// ```
-    pub fn is_stable(&self, profile: Profile<Move, N>) -> bool {
+    pub fn is_stable(&self, profile: Profile<M, P>) -> bool {
         PlayerIndex::all_indexes()
             .all(|player| self.unilaterally_improve(player, profile).is_none())
     }
 
-    /// All pure [Nash equilibria](https://en.wikipedia.org/wiki/Nash_equilibrium) solutions of a
+    /// All pure [Pash equilibria](https://en.wikipedia.org/wiki/Pash_equilibrium) solutions of a
     /// finite simultaneous game.
     ///
     /// This function simply enumerates all profiles and checks to see if each one is
@@ -531,7 +531,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     ///     vec![PerPlayer::new(['C', 'C']), PerPlayer::new(['D', 'D'])],
     /// );
     /// ```
-    pub fn pure_nash_equilibria(&self) -> Vec<Profile<Move, N>> {
+    pub fn pure_nash_equilibria(&self) -> Vec<Profile<M, P>> {
         let mut nash = Vec::new();
         for profile in self.profiles() {
             if self.is_stable(profile) {
@@ -541,11 +541,11 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
         nash
     }
 
-    pub fn pareto_improve(&self, profile: Profile<Move, N>) -> Option<Profile<Move, N>> {
+    pub fn pareto_improve(&self, profile: Profile<M, P>) -> Option<Profile<M, P>> {
         if self.is_valid_profile(profile) {
             let payoff = self.payoff(profile);
             let mut best_profile = None;
-            let mut best_improvement = <Util as Zero>::zero();
+            let mut best_improvement = <U as Zero>::zero();
             for outcome in self.outcomes() {
                 if let Some(improvement) = payoff.pareto_improvement(outcome.payoff) {
                     if improvement.gt(&best_improvement) {
@@ -564,11 +564,11 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
         }
     }
 
-    pub fn is_pareto_optimal(&self, profile: Profile<Move, N>) -> bool {
+    pub fn is_pareto_optimal(&self, profile: Profile<M, P>) -> bool {
         self.pareto_improve(profile).is_none()
     }
 
-    pub fn pareto_optimal_solutions(&self) -> Vec<Profile<Move, N>> {
+    pub fn pareto_optimal_solutions(&self) -> Vec<Profile<M, P>> {
         let mut pareto = Vec::new();
         for profile in self.profiles() {
             if self.is_pareto_optimal(profile) {
@@ -602,7 +602,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     /// assert_eq!(g.dominated_moves_for(for2::P0), vec![Dominated::weak('B', 'A')]);
     /// assert_eq!(g.dominated_moves_for(for2::P1), vec![Dominated::strict('D', 'E')]);
     /// ```
-    pub fn dominated_moves_for(&self, player: PlayerIndex<N>) -> Vec<Dominated<Move>> {
+    pub fn dominated_moves_for(&self, player: PlayerIndex<P>) -> Vec<Dominated<M>> {
         let mut dominated = Vec::new();
 
         for maybe_ted in self.available_moves_for_player(player) {
@@ -644,12 +644,12 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Normal<Move, Util, N> {
     }
 
     /// Get all dominated move relationships for each player.
-    pub fn dominated_moves(&self) -> PerPlayer<Vec<Dominated<Move>>, N> {
+    pub fn dominated_moves(&self) -> PerPlayer<Vec<Dominated<M>>, P> {
         PerPlayer::generate(|index| self.dominated_moves_for(index))
     }
 }
 
-impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
+impl<M: Move, U: Utility> Normal<M, U, 2> {
     /// Construct a matrix game, a two-player zero-sum game where the payoffs are defined by a
     /// single matrix of utility values.
     ///
@@ -677,16 +677,16 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
     /// assert_eq!(g.payoff(PerPlayer::new(['C', 'E'])), Payoff::from([6, -6]));
     /// ```
     pub fn matrix<const ROWS: usize, const COLS: usize>(
-        row_moves: [Move; ROWS],
-        col_moves: [Move; COLS],
-        row_utils: [[Util; COLS]; ROWS],
+        row_moves: [M; ROWS],
+        col_moves: [M; COLS],
+        row_utils: [[U; COLS]; ROWS],
     ) -> Self {
         let moves = PerPlayer::new([row_moves.to_vec(), col_moves.to_vec()]);
         let mut payoff_map = HashMap::with_capacity(ROWS * COLS);
         for (r, row_move) in row_moves.into_iter().enumerate() {
             for (c, col_move) in col_moves.into_iter().enumerate() {
                 let row_util = row_utils[r][c];
-                let payoff = Payoff::from([row_util, Util::zero().sub(row_util)]);
+                let payoff = Payoff::from([row_util, U::zero().sub(row_util)]);
                 let profile = PerPlayer::new([row_move, col_move]);
                 payoff_map.insert(profile, payoff);
             }
@@ -719,10 +719,10 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
     /// assert_eq!(g.payoff(PerPlayer::new(['C', 'E'])), Payoff::from([1, 3]));
     /// ```
     pub fn bimatrix<const ROWS: usize, const COLS: usize>(
-        row_moves: [Move; ROWS],
-        col_moves: [Move; COLS],
-        row_utils: [[Util; COLS]; ROWS],
-        col_utils: [[Util; COLS]; ROWS],
+        row_moves: [M; ROWS],
+        col_moves: [M; COLS],
+        row_utils: [[U; COLS]; ROWS],
+        col_utils: [[U; COLS]; ROWS],
     ) -> Self {
         let moves = PerPlayer::new([row_moves.to_vec(), col_moves.to_vec()]);
         let mut payoff_map = HashMap::with_capacity(ROWS * COLS);
@@ -755,8 +755,8 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
     /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'D'])), Payoff::from([1, 1]));
     /// ```
     pub fn symmetric_for2<const SIZE: usize>(
-        moves: [Move; SIZE],
-        row_utils: [[Util; SIZE]; SIZE],
+        moves: [M; SIZE],
+        row_utils: [[U; SIZE]; SIZE],
     ) -> Self {
         let all_moves = PerPlayer::init_with(moves.to_vec());
         let mut payoff_map = HashMap::with_capacity(SIZE * SIZE);
@@ -771,7 +771,7 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 2> {
     }
 }
 
-impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 3> {
+impl<M: Move, U: Utility> Normal<M, U, 3> {
     /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) three-player
     /// normal-form game. Constructed from a list of moves available to all players and the utility
     /// values for player `P0`.
@@ -795,8 +795,8 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 3> {
     /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'D'])), Payoff::from([2, 2, 2]));
     /// ```
     pub fn symmetric_for3<const SIZE: usize>(
-        moves: [Move; SIZE],
-        p0_utils: [[[Util; SIZE]; SIZE]; SIZE],
+        moves: [M; SIZE],
+        p0_utils: [[[U; SIZE]; SIZE]; SIZE],
     ) -> Self {
         let all_moves = PerPlayer::init_with(moves.to_vec());
         let mut payoff_map = HashMap::with_capacity(SIZE.pow(3));
@@ -816,7 +816,7 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 3> {
     }
 }
 
-impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 4> {
+impl<M: Move, U: Utility> Normal<M, U, 4> {
     /// Construct a [symmetric](https://en.wikipedia.org/wiki/Symmetric_game) four-player
     /// normal-form game. Constructed from a list of moves available to all players and the utility
     /// values for player `P0`.
@@ -849,8 +849,8 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 4> {
     /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'D'])), Payoff::from([3, 3, 3, 3]));
     /// ```
     pub fn symmetric_for4<const SIZE: usize>(
-        moves: [Move; SIZE],
-        p0_utils: [[[[Util; SIZE]; SIZE]; SIZE]; SIZE],
+        moves: [M; SIZE],
+        p0_utils: [[[[U; SIZE]; SIZE]; SIZE]; SIZE],
     ) -> Self {
         let all_moves = PerPlayer::init_with(moves.to_vec());
         let mut payoff_map = HashMap::with_capacity(SIZE.pow(4));
@@ -873,10 +873,11 @@ impl<Move: IsMove, Util: IsUtility> Normal<Move, Util, 4> {
     }
 }
 
-impl<Move: IsMove, Util: IsUtility, const N: usize> Playable<N> for Normal<Move, Util, N> {
-    type Move = Move;
-    type Utility = Util;
-    type GameState = ();
+impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
+    type Move = M;
+    type Utility = U;
+    type State = ();
+    type Moves = Profile<M, P>;
 
     fn initial_state(&self) {}
 
@@ -891,7 +892,7 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Playable<N> for Normal<Move,
     ///     vec![2, 0, 3, 1],
     /// ).unwrap();
     ///
-    /// let nice = Player::new("Nice".to_string(), Pure::new('C'));
+    /// let nice = Player::new("Pice".to_string(), Pure::new('C'));
     /// let mean = Player::new("Mean".to_string(), Pure::new('D'));
     ///
     /// assert_eq!(
@@ -913,17 +914,15 @@ impl<Move: IsMove, Util: IsUtility, const N: usize> Playable<N> for Normal<Move,
     /// ```
     fn play(
         &self,
-        players: &mut Players<Self, N>,
-        state: &mut PlayState<Self, N>,
-    ) -> PlayResult<Record<Move, Util, N>, Move, N> {
+        players: &mut Players<Self, P>,
+        state: &mut PlayState<Self, P>,
+    ) -> PlayResult<Record<Self, P>, Self, P> {
         let profile = PerPlayer::generate(|i| players[i].next_move(state));
         for i in PlayerIndex::all_indexes() {
             if !self.is_valid_move_for_player(i, profile[i]) {
                 return Err(PlayError::InvalidMove(i, profile[i]));
             }
         }
-        let record = Record::simultaneous(profile, self.payoff(profile));
-        state.add_record(record.clone());
-        Ok(record)
+        Ok(*state.complete(profile, self.payoff(profile)))
     }
 }

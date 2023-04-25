@@ -1,43 +1,39 @@
 use crate::distribution::Distribution;
-use crate::moves::IsMove;
+use crate::game::{Game, Move};
+use crate::play::PlayState;
 
 /// A strategy is a function from an intermediate game state to a move.
-///
-/// # Type variables
-///
-/// - `Move` -- The type of moves yielded by this strategy.
-/// - `State` -- The [game execution state][tft::PlayState].
-pub trait Strategy<Move: IsMove, State> {
+pub trait Strategy<G: Game<P>, const P: usize> {
     /// Get the next move to play given a particular game state.
-    fn next_move(&mut self, state: &State) -> Move;
+    fn next_move(&mut self, state: &PlayState<G, P>) -> G::Move;
 }
 
 /// A pure strategy simply plays a given move regardless of the game state.
-pub struct Pure<Move> {
-    the_move: Move,
+pub struct Pure<M> {
+    the_move: M,
 }
 
-impl<Move> Pure<Move> {
+impl<M> Pure<M> {
     /// Construct a pure strategy that plays the given move.
-    pub fn new(the_move: Move) -> Self {
+    pub fn new(the_move: M) -> Self {
         Pure { the_move }
     }
 }
 
-impl<Move: IsMove, State> Strategy<Move, State> for Pure<Move> {
-    fn next_move(&mut self, _state: &State) -> Move {
+impl<M: Move, G: Game<P, Move = M>, const P: usize> Strategy<G, P> for Pure<M> {
+    fn next_move(&mut self, _state: &PlayState<G, P>) -> M {
         self.the_move
     }
 }
 
 /// A mixed strategy plays a move according to a given probability distribution.
-pub struct Mixed<Move> {
-    dist: Distribution<Move>,
+pub struct Mixed<M> {
+    dist: Distribution<M>,
 }
 
-impl<Move> Mixed<Move> {
+impl<M> Mixed<M> {
     /// Construct a mixed strategy from a probability distrubtion over moves.
-    pub fn new(dist: Distribution<Move>) -> Self {
+    pub fn new(dist: Distribution<M>) -> Self {
         Mixed { dist }
     }
 
@@ -49,13 +45,13 @@ impl<Move> Mixed<Move> {
     /// Logs an error and returns `None` if:
     /// - The vector is empty.
     /// - The vector is longer than u32::MAX.
-    pub fn flat(moves: Vec<Move>) -> Option<Self> {
+    pub fn flat(moves: Vec<M>) -> Option<Self> {
         Distribution::flat(moves).map(|dist| Mixed::new(dist))
     }
 }
 
-impl<Move: IsMove, State> Strategy<Move, State> for Mixed<Move> {
-    fn next_move(&mut self, _state: &State) -> Move {
+impl<M: Move, G: Game<P, Move = M>, const P: usize> Strategy<G, P> for Mixed<M> {
+    fn next_move(&mut self, _state: &PlayState<G, P>) -> M {
         self.dist.sample().to_owned()
     }
 }
@@ -63,32 +59,32 @@ impl<Move: IsMove, State> Strategy<Move, State> for Mixed<Move> {
 /// A probabilistic strategy plays another strategy according to a given probability distribution.
 ///
 /// A distribution of pure strategies is equivalent to a [Mixed] strategy.
-pub struct Probabilistic<Move, State> {
-    dist: Distribution<Box<dyn Strategy<Move, State>>>,
+pub struct Probabilistic<G, const P: usize> {
+    dist: Distribution<Box<dyn Strategy<G, P>>>,
 }
 
-impl<Move, State> Probabilistic<Move, State> {
+impl<G: Game<P>, const P: usize> Probabilistic<G, P> {
     /// Construct a probabilistic strategy from a distrubtion of strategies.
-    pub fn new(dist: Distribution<Box<dyn Strategy<Move, State>>>) -> Self {
+    pub fn new(dist: Distribution<Box<dyn Strategy<G, P>>>) -> Self {
         Probabilistic { dist }
     }
 }
 
-impl<Move: IsMove, State> Strategy<Move, State> for Probabilistic<Move, State> {
-    fn next_move(&mut self, state: &State) -> Move {
+impl<G: Game<P>, const P: usize> Strategy<G, P> for Probabilistic<G, P> {
+    fn next_move(&mut self, state: &PlayState<G, P>) -> G::Move {
         self.dist.sample_mut().next_move(state)
     }
 }
 
 /// A periodic strategy plays a sequence of strategies in order, then repeats.
-pub struct Periodic<Move, State> {
-    strategies: Vec<Box<dyn Strategy<Move, State>>>,
+pub struct Periodic<G, const P: usize> {
+    strategies: Vec<Box<dyn Strategy<G, P>>>,
     next_index: usize,
 }
 
-impl<Move, State> Periodic<Move, State> {
+impl<G: Game<P>, const P: usize> Periodic<G, P> {
     /// Construct a pediodic strategy that repeats the given vector of strategies in order.
-    pub fn new(strategies: Vec<Box<dyn Strategy<Move, State>>>) -> Self {
+    pub fn new(strategies: Vec<Box<dyn Strategy<G, P>>>) -> Self {
         Periodic {
             strategies,
             next_index: 0,
@@ -96,21 +92,21 @@ impl<Move, State> Periodic<Move, State> {
     }
 }
 
-impl<Move: IsMove, State> Periodic<Move, State> {
+impl<G: Game<P>, const P: usize> Periodic<G, P> {
     /// Construct a pediodic strategy of pure strategies. That is, play the given moves in order
     /// and repeat indefinitely.
-    pub fn of_pures(moves: &[Move]) -> Self {
+    pub fn of_pures(moves: &[G::Move]) -> Self {
         let strategies = Vec::from_iter(
             moves
                 .iter()
-                .map(|m| Box::new(Pure::new(m.to_owned())) as Box<dyn Strategy<Move, State>>),
+                .map(|m| Box::new(Pure::new(m.to_owned())) as Box<dyn Strategy<G, P>>),
         );
         Periodic::new(strategies)
     }
 }
 
-impl<Move: IsMove, State> Strategy<Move, State> for Periodic<Move, State> {
-    fn next_move(&mut self, state: &State) -> Move {
+impl<G: Game<P>, const P: usize> Strategy<G, P> for Periodic<G, P> {
+    fn next_move(&mut self, state: &PlayState<G, P>) -> G::Move {
         let the_move = self.strategies[self.next_index].next_move(state);
         self.next_index = (self.next_index + 1) % self.strategies.len();
         the_move
