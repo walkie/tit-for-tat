@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use crate::dominated::Dominated;
 use crate::game::{Game, Move, Utility};
-use crate::history::Record;
+use crate::history::GameRecord;
 use crate::outcome::OutcomeIter;
 use crate::payoff::Payoff;
 use crate::per_player::{PerPlayer, PlayerIndex};
@@ -877,7 +877,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type Move = M;
     type Utility = U;
     type State = ();
-    type Moves = Profile<M, P>;
+    type MoveRecord = Profile<M, P>;
 
     fn initial_state(&self) {}
 
@@ -916,13 +916,13 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
         &self,
         players: &mut Players<Self, P>,
         state: &mut PlayState<Self, P>,
-    ) -> PlayResult<Record<Self, P>, Self, P> {
+    ) -> PlayResult<GameRecord<Self, P>, Self, P> {
         let profile = PerPlayer::generate(|i| players[i].next_move(state));
         for i in PlayerIndex::all_indexes() {
             if !self.is_valid_move_for_player(i, profile[i]) {
                 return Err(PlayError::InvalidMove(i, profile[i]));
             }
         }
-        Ok(*state.complete(profile, self.payoff(profile)))
+        Ok(state.complete(profile, self.payoff(profile)).clone())
     }
 }

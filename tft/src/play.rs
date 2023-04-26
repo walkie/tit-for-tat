@@ -1,11 +1,11 @@
 use crate::game::Game;
-use crate::history::{History, Record};
+use crate::history::{GameRecord, History};
 use crate::payoff::Payoff;
 use crate::per_player::PlayerIndex;
 use crate::transcript::Transcript;
 
 /// Result of playing a game. Either a record of the completed game or an error.
-pub type PlayResult<T, G: Game<P>, const P: usize> = Result<T, PlayError<G, P>>;
+pub type PlayResult<T, G, const P: usize> = Result<T, PlayError<G, P>>;
 
 /// An error during game execution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -39,9 +39,9 @@ impl<G: Game<P>, const P: usize> PlayState<G, P> {
 
     pub fn complete(
         &mut self,
-        moves: G::Moves,
+        moves: G::MoveRecord,
         payoff: Payoff<G::Utility, P>,
-    ) -> &Record<G, P> {
+    ) -> &GameRecord<G, P> {
         self.history.add(moves, payoff)
     }
 }

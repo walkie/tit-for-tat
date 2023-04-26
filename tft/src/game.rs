@@ -2,7 +2,7 @@ use num::Num;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-use crate::history::Record;
+use crate::history::GameRecord;
 use crate::play::{PlayResult, PlayState};
 use crate::player::Players;
 use crate::profile::Profile;
@@ -19,17 +19,17 @@ impl<T: Copy + Debug + Eq + Hash + 'static> Move for T {}
 ///
 /// A blanket implementation covers all types that meet the requirements, so this trait should not
 /// be implemented directly.
-pub trait Utility: Copy + Debug + Default + Num + PartialOrd + 'static {}
+pub trait Utility: Copy + Debug + Default + Num + PartialOrd + Sized + 'static {}
 impl<T: Copy + Debug + Default + Num + PartialOrd + 'static> Utility for T {}
 
 /// The moves played during a single iteration of this game.
 ///
 /// Although not enforced, this should probably be viewed as a "sealed" trait with two instances:
-/// - [Profile][tft::Profile] for simultaneous games
-/// - [Transcript][tft::Transcript] for sequential games
-pub trait Moves<G: Game<P>, const P: usize>: Clone + Debug + Eq + Hash {}
-impl<G: Game<P>, const P: usize> Moves<G, P> for Profile<G::Move, P> {}
-impl<G: Game<P>, const P: usize> Moves<G, P> for Transcript<G::Move, P> {}
+/// - [Profile][crate::Profile] for simultaneous games
+/// - [Transcript][crate::Transcript] for sequential games
+pub trait MoveRecord<M: Move, const P: usize>: Clone + Debug + Eq + Hash + Sized + 'static {}
+impl<M: Move, const P: usize> MoveRecord<M, P> for Profile<M, P> {}
+impl<M: Move, const P: usize> MoveRecord<M, P> for Transcript<M, P> {}
 
 /// An interface for playing games.
 pub trait Game<const P: usize>: Sized {
@@ -46,12 +46,12 @@ pub trait Game<const P: usize>: Sized {
     /// The type of intermediate state used to support the execution of a single iteration of the
     /// game.
     ///
-    /// For [simultaneous][tft::Simultaneous] and [normal-form][tft::Normal] games, this will be
-    /// `()`, since no intermediate state is required. For [extensive-form] games, the state will
-    /// be the location in the game tree. For state-based games, the state type will be whatever
-    /// state is used to define the game.
+    /// For [simultaneous][crate::Simultaneous] and [normal-form][crate::Normal] games, this will
+    /// be `()`, since no intermediate state is required. For [extensive-form] games, the state
+    /// will be the location in the game tree. For state-based games, the state type will be
+    /// whatever state is used to define the game.
     ///
-    /// Note that this type is different from the similarly named [`PlayState`][tft::PlayState]
+    /// Note that this type is different from the similarly named [`PlayState`][crate::PlayState]
     /// type, which is used to support and track the results of repeated game execution.
     ///
     /// A `PlayState<G, P>` contains a value of type `G::State` as a component, representing the
@@ -59,8 +59,8 @@ pub trait Game<const P: usize>: Sized {
     type State;
 
     /// The type used to record the moves played during a single iteration of this game. See the
-    /// documentation at [tft::Moves].
-    type Moves: Moves<Self, P>;
+    /// documentation at [crate::MoveRecord].
+    type MoveRecord: MoveRecord<Self::Move, P>;
 
     /// The number of players this game is for.
     fn num_players(&self) -> usize {
@@ -75,17 +75,17 @@ pub trait Game<const P: usize>: Sized {
     /// # Note to implementors
     ///
     /// In addition to returning the completed game record, this method should add the record to
-    /// the execution state using [PlayState::add_record]. For sequential games, it will also need
-    /// to update the current game's transcript using [PlayState::add_move] after getting and
-    /// executing each player's move.
-    fn play<'s>(
+    /// the execution state using [crate::PlayState::add_record]. For sequential games, it will
+    /// also need to update the current game's transcript using [crate::PlayState::add_move] after
+    /// getting and executing each player's move.
+    fn play(
         &self,
         players: &mut Players<Self, P>,
         state: &mut PlayState<Self, P>,
-    ) -> PlayResult<Record<Self, P>, Self, P>;
+    ) -> PlayResult<GameRecord<Self, P>, Self, P>;
 
     /// Play a game once with the given players, starting from the initial state.
-    fn play_once(&self, players: &mut Players<Self, P>) -> PlayResult<Record<Self, P>, Self, P> {
+    fn play_once(&self, players: &mut Players<Self, P>) -> PlayResult<GameRecord<Self, P>, Self, P> {
         let mut state = PlayState::new(self);
         self.play(players, &mut state)
     }
@@ -99,9 +99,7 @@ pub trait Game<const P: usize>: Sized {
     ) -> PlayResult<PlayState<Self, P>, Self, P> {
         let mut state = PlayState::new(self);
         for _ in 0..iterations {
-            if let Err(err) = self.play(players, &mut state) {
-                return Err(err)
-            }
+           self.play(players, &mut state)?;
         }
         Ok(state)
     }

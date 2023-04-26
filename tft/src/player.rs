@@ -4,7 +4,7 @@ use crate::play::PlayState;
 use crate::strategy::Strategy;
 
 /// A [per-player](crate::PerPlayer) collection of [players](Player), ready to play a game.
-pub type Players<G: Game<P>, const P: usize> = PerPlayer<Player<G, P>, P>;
+pub type Players<G, const P: usize> = PerPlayer<Player<G, P>, P>;
 
 /// A player consists of a name and a [strategy](crate::Strategy).
 ///
