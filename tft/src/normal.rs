@@ -897,19 +897,19 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     ///
     /// assert_eq!(
     ///     pd.play_once(&PerPlayer::new([nice.clone(), nice.clone()])),
-    ///     Ok(Record::simultaneous(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
+    ///     Ok(GameRecord::simultaneous(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
     /// );
     /// assert_eq!(
     ///     pd.play_once(&PerPlayer::new([nice.clone(), mean.clone()])),
-    ///     Ok(Record::simultaneous(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
+    ///     Ok(GameRecord::simultaneous(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
     /// );
     /// assert_eq!(
     ///     pd.play_once(&PerPlayer::new([mean.clone(), nice])),
-    ///     Ok(Record::simultaneous(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
+    ///     Ok(GameRecord::simultaneous(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
     /// );
     /// assert_eq!(
     ///     pd.play_once(&PerPlayer::new([mean.clone(), mean])),
-    ///     Ok(Record::simultaneous(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
+    ///     Ok(GameRecord::simultaneous(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
     /// );
     /// ```
     fn play(

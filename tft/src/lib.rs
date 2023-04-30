@@ -42,11 +42,13 @@ pub mod norm {
     pub use crate::distribution::*;
     pub use crate::dominated::*;
     pub use crate::game::*;
+    pub use crate::history::*;
     pub use crate::normal::*;
     pub use crate::outcome::*;
     pub use crate::payoff::*;
     pub use crate::per_player::*;
-    // pub use crate::play::*;
+    pub use crate::play::*;
+    pub use crate::player::*;
     pub use crate::profile::*;
     pub use crate::strategy::*;
 }
@@ -56,10 +58,11 @@ pub mod norm {
 pub mod sim {
     pub use crate::distribution::*;
     pub use crate::game::*;
-    pub use crate::outcome::Outcome;
+    pub use crate::history::*;
     pub use crate::payoff::*;
     pub use crate::per_player::*;
-    // pub use crate::play::*;
+    pub use crate::play::*;
+    pub use crate::player::*;
     pub use crate::profile::*;
     pub use crate::simultaneous::*;
     pub use crate::strategy::*;
