@@ -1,14 +1,23 @@
+use crate::context::Context;
 use crate::distribution::Distribution;
 use crate::game::{Game, Move};
-use crate::play::PlayState;
 
-/// A strategy is a function from an intermediate game state to a move.
+/// A strategy is a function from an intermediate game context to a move.
 pub trait Strategy<G: Game<P>, const P: usize> {
-    /// Get the next move to play given a particular game state.
-    fn next_move(&mut self, state: &PlayState<G, P>) -> G::Move;
+    /// Get the next move to play given the current play context.
+    fn next_move(&mut self, context: &Context<G, P>) -> G::Move;
+
+    fn new_game(&mut self) {}
+
+    /// Reset t
+    fn reset(&mut self) {}
+
+    // TODO: add methods (empty by default) to tell strategy we're starting a new game or a new
+    // repeated game session
+
 }
 
-/// A pure strategy simply plays a given move regardless of the game state.
+/// A pure strategy simply plays a given move regardless of the game context.
 pub struct Pure<M> {
     the_move: M,
 }
@@ -21,7 +30,7 @@ impl<M> Pure<M> {
 }
 
 impl<M: Move, G: Game<P, Move = M>, const P: usize> Strategy<G, P> for Pure<M> {
-    fn next_move(&mut self, _state: &PlayState<G, P>) -> M {
+    fn next_move(&mut self, _context: &Context<G, P>) -> M {
         self.the_move
     }
 }
@@ -51,7 +60,7 @@ impl<M> Mixed<M> {
 }
 
 impl<M: Move, G: Game<P, Move = M>, const P: usize> Strategy<G, P> for Mixed<M> {
-    fn next_move(&mut self, _state: &PlayState<G, P>) -> M {
+    fn next_move(&mut self, _context: &Context<G, P>) -> M {
         self.dist.sample().to_owned()
     }
 }
@@ -71,8 +80,8 @@ impl<G: Game<P>, const P: usize> Probabilistic<G, P> {
 }
 
 impl<G: Game<P>, const P: usize> Strategy<G, P> for Probabilistic<G, P> {
-    fn next_move(&mut self, state: &PlayState<G, P>) -> G::Move {
-        self.dist.sample_mut().next_move(state)
+    fn next_move(&mut self, context: &Context<G, P>) -> G::Move {
+        self.dist.sample_mut().next_move(context)
     }
 }
 
@@ -106,8 +115,8 @@ impl<G: Game<P>, const P: usize> Periodic<G, P> {
 }
 
 impl<G: Game<P>, const P: usize> Strategy<G, P> for Periodic<G, P> {
-    fn next_move(&mut self, state: &PlayState<G, P>) -> G::Move {
-        let the_move = self.strategies[self.next_index].next_move(state);
+    fn next_move(&mut self, context: &Context<G, P>) -> G::Move {
+        let the_move = self.strategies[self.next_index].next_move(context);
         self.next_index = (self.next_index + 1) % self.strategies.len();
         the_move
     }

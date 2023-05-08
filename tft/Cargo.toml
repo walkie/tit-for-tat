@@ -15,6 +15,7 @@ log = "0.4.17"
 num = "0.4.0"
 rand = "0.8.5"
 rand_distr = "0.4.3"
+thiserror = "1.0.40"
 
 [dev-dependencies]
 env_logger = "0.10.0"

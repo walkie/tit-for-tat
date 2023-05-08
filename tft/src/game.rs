@@ -3,6 +3,8 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use crate::history::GameRecord;
+use crate::payoff::Payoff;
+use crate::per_player::PlayerIndex;
 use crate::play::{PlayResult, PlayState};
 use crate::player::Players;
 use crate::profile::Profile;
@@ -43,21 +45,6 @@ pub trait Game<const P: usize>: Sized {
     /// The type of utility values awarded to each player at the end of the game.
     type Utility: Utility;
 
-    /// The type of intermediate state used to support the execution of a single iteration of the
-    /// game.
-    ///
-    /// For [simultaneous][crate::Simultaneous] and [normal-form][crate::Normal] games, this will
-    /// be `()`, since no intermediate state is required. For [extensive-form] games, the state
-    /// will be the location in the game tree. For state-based games, the state type will be
-    /// whatever state is used to define the game.
-    ///
-    /// Note that this type is different from the similarly named [`PlayState`][crate::PlayState]
-    /// type, which is used to support and track the results of repeated game execution.
-    ///
-    /// A `PlayState<G, P>` contains a value of type `G::State` as a component, representing the
-    /// intermediate state of the current game iteration.
-    type State;
-
     /// The type used to record the moves played during a single iteration of this game. See the
     /// documentation at [crate::MoveRecord].
     type MoveRecord: MoveRecord<Self::Move, P>;
@@ -66,9 +53,6 @@ pub trait Game<const P: usize>: Sized {
     fn num_players(&self) -> usize {
         P
     }
-
-    /// The initial game state.
-    fn initial_state(&self) -> Self::State;
 
     /// Play one iteration of the game and return the record of this game iteration, if successful.
     ///
@@ -103,4 +87,45 @@ pub trait Game<const P: usize>: Sized {
         }
         Ok(state)
     }
+}
+
+pub trait Simultaneous<const P: usize>:
+    Game<P, MoveRecord = Profile<<Self as Game<P>>::Move, P>> + Sized
+{
+    /// Get the payoff for the given strategy profile.
+    ///
+    /// This method may return an arbitrary payoff if given an
+    /// [invalid profile](Simultaneous::is_valid_profile).
+    fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P>;
+
+    /// Is this a valid move for the given player?
+    fn is_valid_move_for_player(&self, player: PlayerIndex<P>, the_move: Self::Move);
+
+    /// Is this a valid strategy profile? A profile is valid if each move is valid for the
+    /// corresponding player.
+    fn is_valid_profile(&self, profile: Profile<Self::Move, P>) -> bool;
+}
+
+pub trait Sequential<const P: usize>:
+    Game<P, MoveRecord = Transcript<<Self as Game<P>>::Move, P>> + Sized
+{
+    /// The type of intermediate state used to support the execution of a single iteration of the
+    /// game.
+    ///
+    /// For [simultaneous][crate::Simultaneous] and [normal-form][crate::Normal] games, this will
+    /// be `()`, since no intermediate state is required. For [extensive-form] games, the state
+    /// will be the location in the game tree. For state-based games, the state type will be
+    /// whatever state is used to define the game.
+    ///
+    /// Note that this type is different from the similarly named [`PlayState`][crate::PlayState]
+    /// type, which is used to support and track the results of repeated game execution.
+    ///
+    /// A `PlayState<G, P>` contains a value of type `G::State` as a component, representing the
+    /// intermediate state of the current game iteration.
+    type State;
+
+    /// The initial game state.
+    fn initial_state(&self) -> Self::State;
+
+
 }

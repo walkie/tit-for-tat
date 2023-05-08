@@ -4,32 +4,23 @@ use crate::payoff::Payoff;
 use crate::per_player::PlayerIndex;
 use crate::transcript::Transcript;
 
-/// Result of playing a game. Either a record of the completed game or an error.
-pub type PlayResult<T, G, const P: usize> = Result<T, PlayError<G, P>>;
-
-/// An error during game execution.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub enum PlayError<G: Game<P>, const P: usize> {
-    /// A player played an invalid move.
-    InvalidMove(PlayerIndex<P>, G::Move),
-
-    /// An apparently valid move did not produce the next node in the game tree. This is likely an
-    /// error in the construction of the game.
-    MalformedGame(G::Move),
-}
-
-/// A state tracking all aspects of repeated game execution.
+/// The strategic context in which a player makes a move.
+///
+/// This type includes all of the information, besides the definition of the stage game, that a
+/// repeated game strategy may use to compute its next move. It inclues the history of past games
+/// played, as well as the game state and a transcript of moves played so far in the current game
+/// iteration.
 #[derive(Clone, Debug, PartialEq)]
-pub struct PlayState<G: Game<P>, const P: usize> {
+pub struct Context<G: Game<P>, const P: usize> {
     current_player: Option<PlayerIndex<P>>,
     game_state: G::State,
     in_progress: Transcript<G::Move, P>,
     history: History<G, P>,
 }
 
-impl<G: Game<P>, const P: usize> PlayState<G, P> {
+impl<G: Game<P>, const P: usize> Context<G, P> {
     pub fn new(game: &G) -> Self {
-        PlayState {
+        Context {
             current_player: None,
             game_state: game.initial_state(),
             in_progress: Transcript::new(),
