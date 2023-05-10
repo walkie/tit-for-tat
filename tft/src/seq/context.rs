@@ -1,15 +1,18 @@
 use crate::game::Game;
-use crate::history::{GameRecord, History};
-use crate::payoff::Payoff;
+use crate::moves::Move;
+use crate::payoff::{Payoff, Utility};
 use crate::per_player::PlayerIndex;
+use crate::seq::outcome::Outcome;
 use crate::transcript::Transcript;
 
-/// The strategic context in which a player makes a move.
+pub type History<M: Move, U: Utility, const P: usize> = crate::History<Outcome<M, U, P>, P>;
+
+/// The strategic context in which a player makes a move during a repeated sequential game.
 ///
 /// This type includes all of the information, besides the definition of the stage game, that a
-/// repeated game strategy may use to compute its next move. It inclues the history of past games
-/// played, as well as the game state and a transcript of moves played so far in the current game
-/// iteration.
+/// repeated sequential game strategy may use to compute its next move. It inclues the history of
+/// past games played, the game state of the current iteration, and a transcript of moves played
+/// so far in the current iteration.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Context<G: Game<P>, const P: usize> {
     current_player: Option<PlayerIndex<P>>,

@@ -1,10 +1,10 @@
-use crate::game::{Game, Move, Utility};
-use crate::history::GameRecord;
-use crate::payoff::Payoff;
+use crate::moves::Move;
+use crate::payoff::{Payoff, Utility};
 use crate::per_player::{PerPlayer, PlayerIndex};
-use crate::play::{PlayError, PlayResult, PlayState};
-use crate::player::Players;
-use crate::profile::Profile;
+// use crate::play::{PlayError, PlayResult, PlayState};
+// use crate::player::Players;
+// use crate::sim::game::Game;
+use crate::sim::profile::Profile;
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
@@ -111,25 +111,25 @@ impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
     }
 }
 
-impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
-    type Move = M;
-    type Utility = U;
-    type State = ();
-    type MoveRecord = Profile<M, P>;
-
-    fn initial_state(&self) {}
-
-    fn play(
-        &self,
-        players: &mut Players<Self, P>,
-        state: &mut PlayState<Self, P>,
-    ) -> PlayResult<GameRecord<Self, P>, Self, P> {
-        let profile = PerPlayer::generate(|i| players[i].next_move(state));
-        for i in PlayerIndex::all_indexes() {
-            if !self.is_valid_move_for_player(i, profile[i]) {
-                return Err(PlayError::InvalidMove(i, profile[i]));
-            }
-        }
-        Ok(state.complete(profile, self.payoff(profile)).clone())
-    }
-}
+// impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
+//     type Move = M;
+//     type Utility = U;
+//     type State = ();
+//     type MoveRecord = Profile<M, P>;
+//
+//     fn initial_state(&self) {}
+//
+//     fn play(
+//         &self,
+//         players: &mut Players<Self, P>,
+//         state: &mut PlayState<Self, P>,
+//     ) -> PlayResult<GameRecord<Self, P>, Self, P> {
+//         let profile = PerPlayer::generate(|i| players[i].next_move(state));
+//         for i in PlayerIndex::all_indexes() {
+//             if !self.is_valid_move_for_player(i, profile[i]) {
+//                 return Err(PlayError::InvalidMove(i, profile[i]));
+//             }
+//         }
+//         Ok(state.complete(profile, self.payoff(profile)).clone())
+//     }
+// }

@@ -1,9 +1,10 @@
 use std::rc::Rc;
 
-use crate::game::{Move, Utility};
-use crate::payoff::Payoff;
+use crate::history::Record;
+use crate::moves::Move;
+use crate::payoff::{Payoff, Utility};
 use crate::per_player::PlayerIndex;
-use crate::profile::{Profile, ProfileIter};
+use crate::sim::profile::{Profile, ProfileIter};
 
 /// A (potential) outcome of a simultaneous game. A payoff combined with the strategy profile
 /// that produced it.
@@ -11,13 +12,19 @@ use crate::profile::{Profile, ProfileIter};
 /// For normal-form games, an outcome corresponds to a cell in the payoff table. The profile is the
 /// address of the cell and the payoff is its value.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Outcome<M, U, const N: usize> {
+pub struct Outcome<M: Move, U: Utility, const P: usize> {
     /// The profile that produced (or would produce) this outcome. Addresses a particular cell in
     /// the payoff table.
-    pub profile: Profile<M, N>,
+    pub profile: Profile<M, P>,
     /// The payoff associated with this outcome. The value of the corresponding cell in the payoff
     /// table.
-    pub payoff: Payoff<U, N>,
+    pub payoff: Payoff<U, P>,
+}
+
+impl<M: Move, U: Utility, const P: usize> Record<U, P> for Outcome<M, U, P> {
+    fn payoff(&self) -> Payoff<U, P> {
+        self.payoff
+    }
 }
 
 /// An iterator over all possible outcomes of a [normal-form](crate::Normal) game.
@@ -25,23 +32,23 @@ pub struct Outcome<M, U, const N: usize> {
 /// This enumerates the cells of the payoff
 /// table in [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
 #[derive(Clone)]
-pub struct OutcomeIter<'g, M: Copy, U, const N: usize> {
-    profile_iter: ProfileIter<'g, M, N>,
-    payoff_fn: Rc<dyn Fn(Profile<M, N>) -> Payoff<U, N> + 'g>,
+pub struct OutcomeIter<'g, M: Move, U: Utility, const P: usize> {
+    profile_iter: ProfileIter<'g, M, P>,
+    payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + 'g>,
 }
 
-impl<M: Move, U: Utility, const N: usize> Outcome<M, U, N> {
+impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> {
     /// Construct a new outcome.
-    pub fn new(profile: Profile<M, N>, payoff: Payoff<U, N>) -> Self {
+    pub fn new(profile: Profile<M, P>, payoff: Payoff<U, P>) -> Self {
         Outcome { profile, payoff }
     }
 }
 
-impl<'g, M: Move, U: Utility, const N: usize> OutcomeIter<'g, M, U, N> {
+impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
     /// Construct a new outcome iterator given an iterator over profiles and a payoff function.
     pub fn new(
-        profile_iter: ProfileIter<'g, M, N>,
-        payoff_fn: Rc<dyn Fn(Profile<M, N>) -> Payoff<U, N> + 'g>,
+        profile_iter: ProfileIter<'g, M, P>,
+        payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + 'g>,
     ) -> Self {
         OutcomeIter {
             profile_iter,
@@ -61,7 +68,7 @@ impl<'g, M: Move, U: Utility, const N: usize> OutcomeIter<'g, M, U, N> {
     ///
     /// See the documentation for [`ProfileIter::include`](crate::ProfileIter::include) for
     /// examples and more info.
-    pub fn include(self, player: PlayerIndex<N>, the_move: M) -> Self {
+    pub fn include(self, player: PlayerIndex<P>, the_move: M) -> Self {
         OutcomeIter {
             profile_iter: self.profile_iter.include(player, the_move),
             ..self
@@ -79,7 +86,7 @@ impl<'g, M: Move, U: Utility, const N: usize> OutcomeIter<'g, M, U, N> {
     ///
     /// See the documentation for [`ProfileIter::exclude`](crate::ProfileIter::exclude) for
     /// examples and more info.
-    pub fn exclude(self, player: PlayerIndex<N>, the_move: M) -> Self {
+    pub fn exclude(self, player: PlayerIndex<P>, the_move: M) -> Self {
         OutcomeIter {
             profile_iter: self.profile_iter.exclude(player, the_move),
             ..self
@@ -97,7 +104,7 @@ impl<'g, M: Move, U: Utility, const N: usize> OutcomeIter<'g, M, U, N> {
     ///
     /// See the documentation for [`ProfileIter::adjacent`](crate::ProfileIter::adjacent)
     /// for examples and more info.
-    pub fn adjacent(self, player: PlayerIndex<N>, profile: Profile<M, N>) -> Self {
+    pub fn adjacent(self, player: PlayerIndex<P>, profile: Profile<M, P>) -> Self {
         OutcomeIter {
             profile_iter: self.profile_iter.adjacent(player, profile),
             ..self
@@ -105,8 +112,8 @@ impl<'g, M: Move, U: Utility, const N: usize> OutcomeIter<'g, M, U, N> {
     }
 }
 
-impl<'g, M: Move, U: Utility, const N: usize> Iterator for OutcomeIter<'g, M, U, N> {
-    type Item = Outcome<M, U, N>;
+impl<'g, M: Move, U: Utility, const P: usize> Iterator for OutcomeIter<'g, M, U, P> {
+    type Item = Outcome<M, U, P>;
     fn next(&mut self) -> Option<Self::Item> {
         self.profile_iter.next().map(|profile| {
             let payoff = (*self.payoff_fn)(profile);

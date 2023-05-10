@@ -1,10 +1,17 @@
 use derive_more::{AsMut, AsRef, Index, IndexMut};
-use num::FromPrimitive;
+use num::{FromPrimitive, Num};
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::ops::{Add, Mul, Sub};
 
-use crate::game::Utility;
 use crate::per_player::{PerPlayer, PlayerIndex};
+
+/// A trait that collects the trait requirements of payoff utility values.
+///
+/// A blanket implementation covers all types that meet the requirements, so this trait should not
+/// be implemented directly.
+pub trait Utility: Copy + Debug + Default + Num + PartialOrd + Sized + 'static {}
+impl<T: Copy + Debug + Default + Num + PartialOrd + 'static> Utility for T {}
 
 /// A collection containing the utility values awarded to each player at the end of a game.
 ///

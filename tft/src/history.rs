@@ -1,49 +1,21 @@
 use std::fmt::Debug;
 
-use crate::game::Game;
-use crate::payoff::Payoff;
+use crate::payoff::{Payoff, Utility};
 
-/// Record of a completed game.
-#[derive(Debug, PartialEq)]
-pub struct GameRecord<G: Game<P>, const P: usize> {
-    moves: G::MoveRecord,
-    payoff: Payoff<G::Utility, P>,
+/// A record of a completed game.
+pub trait Record<U: Utility, const P: usize>: Clone + Debug + PartialEq {
+    /// The payoff awarded at the end of the game.
+    fn payoff(&self) -> Payoff<U, P>;
 }
 
-impl<G: Game<P>, const P: usize> Clone for GameRecord<G, P> {
-    fn clone(&self) -> Self {
-        GameRecord {
-            moves: self.moves.clone(),
-            payoff: self.payoff,
-        }
-    }
-}
-
-/// For repeated games, a record of previously played games.
+/// For repeated games, a history of previously played games.
 #[derive(Clone, Debug, PartialEq)]
-pub struct History<G: Game<P>, const P: usize> {
-    records: Vec<GameRecord<G, P>>,
-    score: Payoff<G::Utility, P>,
+pub struct History<U: Utility, R: Record<U, P>, const P: usize> {
+    records: Vec<R>,
+    score: Payoff<U, P>,
 }
 
-impl<G: Game<P>, const P: usize> GameRecord<G, P> {
-    /// Construct a new game record.
-    pub fn new(moves: G::MoveRecord, payoff: Payoff<G::Utility, P>) -> Self {
-        GameRecord { moves, payoff }
-    }
-
-    /// Get the moves played during this game.
-    pub fn moves(&self) -> &G::MoveRecord {
-        &self.moves
-    }
-
-    /// Get the payoff awarded at the end of this game.
-    pub fn payoff(&self) -> Payoff<G::Utility, P> {
-        self.payoff
-    }
-}
-
-impl<G: Game<P>, const P: usize> Default for History<G, P> {
+impl<U: Utility, R: Record<U, P>, const P: usize> Default for History<U, R, P> {
     fn default() -> Self {
         History {
             records: Vec::new(),
@@ -52,26 +24,27 @@ impl<G: Game<P>, const P: usize> Default for History<G, P> {
     }
 }
 
-impl<G: Game<P>, const P: usize> History<G, P> {
+impl<U: Utility, R: Record<U, P>, const P: usize> History<U, R, P> {
     /// Construct a new, empty history.
     pub fn new() -> Self {
         History::default()
     }
 
-    /// Update the history by adding a new completed game record. Returns a reference to the newly
-    /// created record.
-    pub fn add(
-        &mut self,
-        moves: G::MoveRecord,
-        payoff: Payoff<G::Utility, P>,
-    ) -> &GameRecord<G, P> {
-        self.score = self.score + payoff;
-        self.records.push(GameRecord::new(moves, payoff));
+    /// Update the history by adding a new completed game record.
+    pub fn add(&mut self, record: R) -> &R {
+        self.score = self.score + record.payoff();
+        self.records.push(record);
         self.records.last().unwrap()
     }
 
     /// Get the current score of the game.
-    pub fn score(&self) -> Payoff<G::Utility, P> {
+    pub fn score(&self) -> Payoff<U, P> {
         self.score
+    }
+}
+
+impl<U: Utility, R: Record<U, P>, const P: usize> Record<U, P> for History<U, R, P> {
+    fn payoff(&self) -> Payoff<U, P> {
+        self.score()
     }
 }

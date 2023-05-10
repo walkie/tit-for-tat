@@ -1,13 +1,12 @@
 //! This module defines the types related to pure strategy profiles for simultaneous games.
 
-use dyn_clone::DynClone;
 use itertools::structs::MultiProduct;
 use itertools::Itertools;
 use std::iter::Iterator;
 
-use crate::game::Move;
+use crate::moves::{Move, MoveIter};
 use crate::per_player::{PerPlayer, PlayerIndex};
-use crate::transcript::{Played, Transcript};
+use crate::seq::transcript::{Played, Transcript};
 
 /// A pure strategy profile for a simultaneous game: one move played by each player.
 pub type Profile<M, const P: usize> = PerPlayer<M, P>;
@@ -27,37 +26,6 @@ impl<M: Move, const P: usize> Profile<M, P> {
             .into_iter()
             .collect();
         Transcript::from_played_moves(moves)
-    }
-}
-
-/// An iterator over available moves in a game with a finite move set.
-#[derive(Clone)]
-pub struct MoveIter<'a, M> {
-    iter: Box<dyn CloneableIterator<M> + 'a>,
-}
-
-/// An iterator that can be cloned, enabling it to be used multiple times.
-///
-/// A blanket implementation covers all types that meet the requirements, so this trait should not
-/// be implemented directly.
-trait CloneableIterator<I>: DynClone + Iterator<Item = I> {}
-impl<I, T: DynClone + Iterator<Item = I>> CloneableIterator<I> for T {}
-
-dyn_clone::clone_trait_object!(<I> CloneableIterator<I>);
-
-impl<'a, M> MoveIter<'a, M> {
-    /// Construct a new move iterator.
-    pub fn new(iter: impl Clone + Iterator<Item = M> + 'a) -> Self {
-        MoveIter {
-            iter: Box::new(iter),
-        }
-    }
-}
-
-impl<'a, M> Iterator for MoveIter<'a, M> {
-    type Item = M;
-    fn next(&mut self) -> Option<M> {
-        self.iter.next()
     }
 }
 
