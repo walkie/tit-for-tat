@@ -8,11 +8,10 @@ use crate::sim::outcome::Outcome;
 use crate::sim::profile::Profile;
 
 /// A player of a simultaneous game. Consists of a name and a [strategy](crate::Strategy).
-pub type Player<G, const P: usize> =
-    crate::Player<Context<<G as Game<P>>::Move, <G as Game<P>>::Utility, P>, <G as Game<P>>::Move>;
+pub type Player<M, U, const P: usize> = crate::Player<Context<M, U, P>, M>;
 
 /// A [per-player](crate::PerPlayer) collection of simultaneous game [players](Player).
-pub type Players<G, const P: usize> = PerPlayer<Player<G, P>, P>;
+pub type Players<M, U, const P: usize> = PerPlayer<Player<M, U, P>, P>;
 
 /// Result of playing a game. Eite
 // pub type PlayResult<T, G, const P: usize> = Result<T, Error<<G as Game<P>>::Move, P>>;
@@ -32,7 +31,7 @@ pub trait Game<const P: usize>: Sized {
     /// Get the payoff for the given strategy profile.
     ///
     /// This method may return an arbitrary payoff if given an
-    /// [invalid profile](Simultaneous::is_valid_profile).
+    /// [invalid profile](crate::sim::Simultaneous::is_valid_profile).
     fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P>;
 
     /// Is this a valid move for the given player?
@@ -54,29 +53,29 @@ pub trait Game<const P: usize>: Sized {
     #[allow(clippy::type_complexity)]
     fn play_in_context<'c>(
         &self,
-        players: &mut Players<Self, P>,
-        context: &'c mut Context<Self::Move, Self::Utility, P>
+        players: &mut Players<Self::Move, Self::Utility, P>,
+        context: &'c mut Context<Self::Move, Self::Utility, P>,
     ) -> Result<&'c Outcome<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
-         let profile = PerPlayer::generate(|i| {
-             context.set_current_player(i);
-             players[i].next_move(context)
-         });
-         context.unset_current_player();
+        let profile = PerPlayer::generate(|i| {
+            context.set_current_player(i);
+            players[i].next_move(context)
+        });
+        context.unset_current_player();
 
-         for i in PlayerIndex::all_indexes() {
-             if !self.is_valid_move(i, profile[i]) {
-                 return Err(Error::InvalidMove(i, profile[i]));
-             }
-         }
+        for i in PlayerIndex::all_indexes() {
+            if !self.is_valid_move(i, profile[i]) {
+                return Err(Error::InvalidMove(i, profile[i]));
+            }
+        }
 
-         Ok(context.complete(profile, self.payoff(profile)))
+        Ok(context.complete(profile, self.payoff(profile)))
     }
 
     /// Play a game once with the given players, returning the outcome if successful.
     #[allow(clippy::type_complexity)]
     fn play_once(
         &self,
-        players: &mut Players<Self, P>
+        players: &mut Players<Self::Move, Self::Utility, P>,
     ) -> Result<Outcome<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
         let mut context = Context::new();
         let outcome = self.play_in_context(players, &mut context)?;
@@ -89,11 +88,11 @@ pub trait Game<const P: usize>: Sized {
     fn play_repeatedly(
         &self,
         iterations: u32,
-        players: &mut Players<Self, P>,
+        players: &mut Players<Self::Move, Self::Utility, P>,
     ) -> Result<Context<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
         let mut context = Context::new();
         for _ in 0..iterations {
-           self.play_in_context(players, &mut context)?;
+            self.play_in_context(players, &mut context)?;
         }
         Ok(context)
     }

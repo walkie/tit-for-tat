@@ -1,5 +1,5 @@
-use crate::moves::Move;
 use crate::distribution::Distribution;
+use crate::moves::Move;
 
 /// A strategy is a function from an intermediate game context to a move.
 pub trait Strategy<C, M: Move> {

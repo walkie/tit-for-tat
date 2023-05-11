@@ -5,13 +5,11 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::moves::{Move, MoveIter};
-// use crate::history::GameRecord;
-use crate::sim::outcome::OutcomeIter;
 use crate::payoff::{Payoff, Utility};
 use crate::per_player::{PerPlayer, PlayerIndex};
-// use crate::player::Players;
 use crate::sim::dominated::Dominated;
-// use crate::sim::game::Game;
+use crate::sim::game::Game;
+use crate::sim::outcome::OutcomeIter;
 use crate::sim::profile::{Profile, ProfileIter};
 use crate::sim::simultaneous::Simultaneous;
 
@@ -28,10 +26,51 @@ use crate::sim::simultaneous::Simultaneous;
 /// - `P` -- The number of players that play the game.
 ///
 /// # Examples
+/// ```
+/// use tft::prelude::norm::*;
+///
+/// let pd = Normal::symmetric(
+///     vec!['C', 'D'],
+///     vec![2, 0, 3, 1],
+/// ).unwrap();
+///
+/// let nice = || Player::new("Nice".to_string(), Pure::new('C'));
+/// let mean = || Player::new("Mean".to_string(), Pure::new('D'));
+///
+/// assert_eq!(
+///     pd.play_once(&mut PerPlayer::new([nice(), nice()])),
+///     Ok(Outcome::new(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
+/// );
+/// assert_eq!(
+///     pd.play_once(&mut PerPlayer::new([nice(), mean()])),
+///     Ok(Outcome::new(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
+/// );
+/// assert_eq!(
+///     pd.play_once(&mut PerPlayer::new([mean(), nice()])),
+///     Ok(Outcome::new(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
+/// );
+/// assert_eq!(
+///     pd.play_once(&mut PerPlayer::new([mean(), mean()])),
+///     Ok(Outcome::new(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
+/// );
+/// ```
 #[derive(Clone)]
 pub struct Normal<M, U, const P: usize> {
     moves: PerPlayer<Vec<M>, P>,
     payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P>>,
+}
+
+impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
+    type Move = M;
+    type Utility = U;
+
+    fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
+        (*self.payoff_fn)(profile)
+    }
+
+    fn is_valid_move(&self, player: PlayerIndex<P>, the_move: Self::Move) -> bool {
+        self.moves[player].contains(&the_move)
+    }
 }
 
 impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
@@ -108,7 +147,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let g = Normal::from_payoff_vec(
     ///     PerPlayer::new([vec!['A', 'B'], vec!['C', 'D'], vec!['E']]),
@@ -168,7 +207,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// The classic [prisoner's dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma) is an
     /// example of a symmetric 2-player game:
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -186,7 +225,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// where each player's moves and payoffs are symmetric:
     ///
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd3 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -206,7 +245,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// And similarly, a 4-player prisoner's dilemma:
     ///
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd4 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -315,30 +354,6 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         ))
     }
 
-    /// The number of players this game is for.
-    pub fn num_players(&self) -> usize {
-        P
-    }
-
-    /// Get the payoff for the given strategy profile.
-    ///
-    /// This method may return an arbitrary payoff if given an
-    /// [invalid profile](Normal::is_valid_profile).
-    pub fn payoff(&self, profile: Profile<M, P>) -> Payoff<U, P> {
-        (*self.payoff_fn)(profile)
-    }
-
-    /// Is this a valid move for the given player?
-    pub fn is_valid_move_for_player(&self, player: PlayerIndex<P>, the_move: M) -> bool {
-        self.moves[player].contains(&the_move)
-    }
-
-    /// Is this a valid strategy profile? A profile is valid if each move is valid for the
-    /// corresponding player.
-    pub fn is_valid_profile(&self, profile: Profile<M, P>) -> bool {
-        PlayerIndex::all_indexes().all(|pi| self.is_valid_move_for_player(pi, profile[pi]))
-    }
-
     /// Get an iterator over the available moves for the given player.
     ///
     /// Implementations of this method should produce every valid move for the given player exactly
@@ -383,7 +398,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let rps: Normal<_, _, 2> = Normal::symmetric(
     ///     vec!["Rock", "Paper", "Scissors"],
@@ -412,7 +427,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
     /// enum RPS { Rock, Paper, Scissors };
@@ -470,7 +485,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -510,7 +525,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -581,11 +596,11 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// Get all dominated move relationships for the given player. If a move is dominated by
     /// multiple different moves, it will contain multiple entries in the returned vector.
     ///
-    /// See the documentation for [`Dominated`](crate::Dominated) for more info.
+    /// See the documentation for [`Dominated`](crate::sim::Dominated) for more info.
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let g = Normal::from_payoff_vec(
     ///     PerPlayer::new([
@@ -658,7 +673,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let g = Normal::matrix(
     ///     ['A', 'B', 'C'],
@@ -702,7 +717,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let g = Normal::bimatrix(
     ///     ['A', 'B', 'C'],
@@ -742,7 +757,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd = Normal::symmetric_for2(
     ///     ['C', 'D'],
@@ -778,7 +793,7 @@ impl<M: Move, U: Utility> Normal<M, U, 3> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd3 = Normal::symmetric_for3(
     ///     ['C', 'D'],
@@ -823,7 +838,7 @@ impl<M: Move, U: Utility> Normal<M, U, 4> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd4 = Normal::symmetric_for4(
     ///     ['C', 'D'],
@@ -872,57 +887,3 @@ impl<M: Move, U: Utility> Normal<M, U, 4> {
         Normal::from_payoff_map(all_moves, payoff_map)
     }
 }
-
-// impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
-//     type Move = M;
-//     type Utility = U;
-//     type State = ();
-//     type MoveRecord = Profile<M, P>;
-//
-//     fn initial_state(&self) {}
-//
-//     /// Play this game with the given players.
-//     ///
-//     /// # Examples
-//     /// ```
-//     /// use tft::norm::*;
-//     ///
-//     /// let pd = Normal::symmetric(
-//     ///     vec!['C', 'D'],
-//     ///     vec![2, 0, 3, 1],
-//     /// ).unwrap();
-//     ///
-//     /// let nice = Player::new("Pice".to_string(), Pure::new('C'));
-//     /// let mean = Player::new("Mean".to_string(), Pure::new('D'));
-//     ///
-//     /// assert_eq!(
-//     ///     pd.play_once(&PerPlayer::new([nice.clone(), nice.clone()])),
-//     ///     Ok(GameRecord::simultaneous(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
-//     /// );
-//     /// assert_eq!(
-//     ///     pd.play_once(&PerPlayer::new([nice.clone(), mean.clone()])),
-//     ///     Ok(GameRecord::simultaneous(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
-//     /// );
-//     /// assert_eq!(
-//     ///     pd.play_once(&PerPlayer::new([mean.clone(), nice])),
-//     ///     Ok(GameRecord::simultaneous(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
-//     /// );
-//     /// assert_eq!(
-//     ///     pd.play_once(&PerPlayer::new([mean.clone(), mean])),
-//     ///     Ok(GameRecord::simultaneous(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
-//     /// );
-//     /// ```
-//     fn play(
-//         &self,
-//         players: &mut Players<Self, P>,
-//         state: &mut PlayState<Self, P>,
-//     ) -> PlayResult<GameRecord<Self, P>, Self, P> {
-//         let profile = PerPlayer::generate(|i| players[i].next_move(state));
-//         for i in PlayerIndex::all_indexes() {
-//             if !self.is_valid_move_for_player(i, profile[i]) {
-//                 return Err(PlayError::InvalidMove(i, profile[i]));
-//             }
-//         }
-//         Ok(state.complete(profile, self.payoff(profile)).clone())
-//     }
-// }

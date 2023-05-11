@@ -27,7 +27,7 @@ impl<M: Move, U: Utility, const P: usize> Record<U, P> for Outcome<M, U, P> {
     }
 }
 
-/// An iterator over all possible outcomes of a [normal-form](crate::Normal) game.
+/// An iterator over all possible outcomes of a [normal-form game](crate::sim::Normal).
 ///
 /// This enumerates the cells of the payoff
 /// table in [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
@@ -66,7 +66,7 @@ impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
     /// [`exclude`](OutcomeIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
-    /// See the documentation for [`ProfileIter::include`](crate::ProfileIter::include) for
+    /// See the documentation for [`ProfileIter::include`](crate::sim::ProfileIter::include) for
     /// examples and more info.
     pub fn include(self, player: PlayerIndex<P>, the_move: M) -> Self {
         OutcomeIter {
@@ -84,7 +84,7 @@ impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
     /// [`exclude`](OutcomeIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
-    /// See the documentation for [`ProfileIter::exclude`](crate::ProfileIter::exclude) for
+    /// See the documentation for [`ProfileIter::exclude`](crate::sim::ProfileIter::exclude) for
     /// examples and more info.
     pub fn exclude(self, player: PlayerIndex<P>, the_move: M) -> Self {
         OutcomeIter {
@@ -102,7 +102,7 @@ impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
     /// Note that this doesn't correspond to adjacency in the payoff table, but rather an entire
     /// row or column, minus the provided profile.
     ///
-    /// See the documentation for [`ProfileIter::adjacent`](crate::ProfileIter::adjacent)
+    /// See the documentation for [`ProfileIter::adjacent`](crate::sim::ProfileIter::adjacent)
     /// for examples and more info.
     pub fn adjacent(self, player: PlayerIndex<P>, profile: Profile<M, P>) -> Self {
         OutcomeIter {

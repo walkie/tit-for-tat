@@ -1,9 +1,7 @@
 use crate::moves::Move;
 use crate::payoff::{Payoff, Utility};
 use crate::per_player::{PerPlayer, PlayerIndex};
-// use crate::play::{PlayError, PlayResult, PlayState};
-// use crate::player::Players;
-// use crate::sim::game::Game;
+use crate::sim::game::Game;
 use crate::sim::profile::Profile;
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
@@ -14,7 +12,7 @@ use crate::sim::profile::Profile;
 /// 2. A function that yields the payoff given the moves played by each player.
 ///
 /// This representation is best used for games with non-finite domains of moves. For games with
-/// finite domains of moves, use [`Normal`](crate::Normal).
+/// finite domains of moves, use [`Normal`](crate::sim::Normal).
 ///
 /// # Type variables
 ///
@@ -28,7 +26,7 @@ use crate::sim::profile::Profile;
 /// for player `P1`, while `P1` must pick an odd score for `P0`.
 ///
 /// ```
-/// use tft::sim::*;
+/// use tft::prelude::sim::*;
 ///
 /// let valid_move = |p, n: i32| {
 ///     if p == for2::P0 {
@@ -44,10 +42,10 @@ use crate::sim::profile::Profile;
 ///
 /// assert_eq!(pick_em.num_players(), 2);
 ///
-/// assert!(pick_em.is_valid_move_for_player(for2::P0, 2));
-/// assert!(pick_em.is_valid_move_for_player(for2::P1, -3));
-/// assert!(!pick_em.is_valid_move_for_player(for2::P0, 5));
-/// assert!(!pick_em.is_valid_move_for_player(for2::P1, -4));
+/// assert!(pick_em.is_valid_move(for2::P0, 2));
+/// assert!(pick_em.is_valid_move(for2::P1, -3));
+/// assert!(!pick_em.is_valid_move(for2::P0, 5));
+/// assert!(!pick_em.is_valid_move(for2::P1, -4));
 ///
 /// assert!(pick_em.is_valid_profile(PerPlayer::new([-2, 3])));
 /// assert!(!pick_em.is_valid_profile(PerPlayer::new([-2, 4])));
@@ -59,6 +57,19 @@ use crate::sim::profile::Profile;
 pub struct Simultaneous<M, U, const P: usize> {
     move_fn: Box<dyn Fn(PlayerIndex<P>, M) -> bool>,
     payoff_fn: Box<dyn Fn(Profile<M, P>) -> Payoff<U, P>>,
+}
+
+impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
+    type Move = M;
+    type Utility = U;
+
+    fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
+        (*self.payoff_fn)(profile)
+    }
+
+    fn is_valid_move(&self, player: PlayerIndex<P>, the_move: Self::Move) -> bool {
+        (*self.move_fn)(player, the_move)
+    }
 }
 
 impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
@@ -90,46 +101,4 @@ impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
         };
         Self::from_payoff_fn(move_fn, payoff_fn)
     }
-
-    /// Get the payoff for the given strategy profile.
-    ///
-    /// This method may return an arbitrary payoff if given an
-    /// [invalid profile](Simultaneous::is_valid_profile).
-    pub fn payoff(&self, profile: Profile<M, P>) -> Payoff<U, P> {
-        (*self.payoff_fn)(profile)
-    }
-
-    /// Is this a valid move for the given player?
-    pub fn is_valid_move_for_player(&self, player: PlayerIndex<P>, the_move: M) -> bool {
-        (*self.move_fn)(player, the_move)
-    }
-
-    /// Is this a valid strategy profile? A profile is valid if each move is valid for the
-    /// corresponding player.
-    pub fn is_valid_profile(&self, profile: Profile<M, P>) -> bool {
-        PlayerIndex::all_indexes().all(|pi| self.is_valid_move_for_player(pi, profile[pi]))
-    }
 }
-
-// impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
-//     type Move = M;
-//     type Utility = U;
-//     type State = ();
-//     type MoveRecord = Profile<M, P>;
-//
-//     fn initial_state(&self) {}
-//
-//     fn play(
-//         &self,
-//         players: &mut Players<Self, P>,
-//         state: &mut PlayState<Self, P>,
-//     ) -> PlayResult<GameRecord<Self, P>, Self, P> {
-//         let profile = PerPlayer::generate(|i| players[i].next_move(state));
-//         for i in PlayerIndex::all_indexes() {
-//             if !self.is_valid_move_for_player(i, profile[i]) {
-//                 return Err(PlayError::InvalidMove(i, profile[i]));
-//             }
-//         }
-//         Ok(state.complete(profile, self.payoff(profile)).clone())
-//     }
-// }

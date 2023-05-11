@@ -32,11 +32,7 @@ impl<M: Move, U: Utility, const P: usize> Context<M, U, P> {
         self.current_player = None;
     }
 
-    pub fn complete(
-        &mut self,
-        profile: Profile<M, P>,
-        payoff: Payoff<U, P>,
-    ) -> &Outcome<M, U, P> {
+    pub fn complete(&mut self, profile: Profile<M, P>, payoff: Payoff<U, P>) -> &Outcome<M, U, P> {
         self.history.add(Outcome::new(profile, payoff))
     }
 
@@ -58,4 +54,3 @@ impl<M: Move, U: Utility, const P: usize> Default for Context<M, U, P> {
         Context::new()
     }
 }
-

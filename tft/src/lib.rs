@@ -37,55 +37,56 @@ pub mod sim {
 
 /// Definitions specific to sequential games.
 pub mod seq {
-//     pub(crate) mod context;
-//     pub(crate) mod game;
-//     pub(crate) mod outcome;
+    //     pub(crate) mod context;
+    //     pub(crate) mod game;
+    //     pub(crate) mod outcome;
     pub(crate) mod transcript;
-//     // pub(crate) mod tree;
-//
-//     pub use context::*;
-//     pub use game::*;
-//     pub use outcome::*;
+    //     // pub(crate) mod tree;
+    //
+    //     pub use context::*;
+    //     pub use game::*;
+    //     pub use outcome::*;
     pub use transcript::*;
-//     // pub use tree::*;
+    //     // pub use tree::*;
 }
 
-// /// A prelude that includes all of the definitions used in defining and executing
-// /// [extensive-form games](crate::seq::Extensive).
-// pub mod extensive {
-//
-// }
+/// Preludes for conveniently importing all definitions related to specific kinds of games.
+pub mod prelude {
 
-/// A prelude that includes all of the definitions used in defining and executing (possibly
-/// repeated) [normal-form games](crate::Normal).
-pub mod norm {
-    // pub use crate::context::*;
-    // pub use crate::distribution::*;
-    // pub use crate::dominated::*;
-    // pub use crate::engine::*;
-    // pub use crate::game::*;
-    // pub use crate::history::*;
-    // pub use crate::normal::*;
-    // pub use crate::outcome::*;
-    // pub use crate::payoff::*;
-    // pub use crate::per_player::*;
-    // pub use crate::player::*;
-    // pub use crate::profile::*;
-    // pub use crate::strategy::*;
+    /// All definitions needed to define and play [extensive-form games](crate::seq::Extensive).
+    pub mod ext {}
+
+    /// All definitions needed to define and play [normal-form games](crate::sim::Normal).
+    pub mod norm {
+        pub use crate::distribution::*;
+        pub use crate::error::*;
+        pub use crate::moves::*;
+        pub use crate::payoff::*;
+        pub use crate::per_player::*;
+        pub use crate::strategy::*;
+
+        pub use crate::sim::context::*;
+        pub use crate::sim::dominated::*;
+        pub use crate::sim::game::*;
+        pub use crate::sim::normal::*;
+        pub use crate::sim::outcome::*;
+        pub use crate::sim::profile::*;
+    }
+
+    /// All definitions needed to define and play (non-finite)
+    /// [simultaneous-move games](crate::sim::Simultaneous).
+    pub mod sim {
+        pub use crate::distribution::*;
+        pub use crate::error::*;
+        pub use crate::moves::Move;
+        pub use crate::payoff::*;
+        pub use crate::per_player::*;
+        pub use crate::strategy::*;
+
+        pub use crate::sim::context::*;
+        pub use crate::sim::game::*;
+        pub use crate::sim::outcome::Outcome;
+        pub use crate::sim::profile::Profile;
+        pub use crate::sim::simultaneous::*;
+    }
 }
-
-// /// A prelude that includes all of the definitions used in defining and executing (non-finite,
-// /// possibly repeated) [simultaneous-move games](crate::Simultaneous).
-// pub mod sim {
-//     pub use crate::context::*;
-//     pub use crate::distribution::*;
-//     pub use crate::engine::*;
-//     pub use crate::game::*;
-//     pub use crate::history::*;
-//     pub use crate::payoff::*;
-//     pub use crate::per_player::*;
-//     pub use crate::player::*;
-//     pub use crate::profile::*;
-//     pub use crate::simultaneous::*;
-//     pub use crate::strategy::*;
-// }
