@@ -13,10 +13,7 @@ pub type Player<M, U, const P: usize> = crate::Player<Context<M, U, P>, M>;
 /// A [per-player](crate::PerPlayer) collection of simultaneous game [players](Player).
 pub type Players<M, U, const P: usize> = PerPlayer<Player<M, U, P>, P>;
 
-/// Result of playing a game. Eite
-// pub type PlayResult<T, G, const P: usize> = Result<T, Error<<G as Game<P>>::Move, P>>;
-
-/// A simultaneous game.
+/// The main interface for playing simultaneous games.
 pub trait Game<const P: usize>: Sized {
     // TODO: Someday, when the assocated_const_equality and/or generic_const_exprs features are
     // implemented, replace this trait's const generic P with the following associated constant.

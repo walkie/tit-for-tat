@@ -2,7 +2,7 @@ use crate::moves::Move;
 use crate::payoff::{Payoff, Utility};
 use crate::per_player::{PerPlayer, PlayerIndex};
 
-/// A sequential game.
+/// The main interface for playing sequential games.
 pub trait Game<const P: usize>: Sized {
     // TODO: Someday, when the assocated_const_equality and/or generic_const_exprs features are
     // implemented, replace this trait's const generic P with the following associated constant.
