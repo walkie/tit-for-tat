@@ -37,17 +37,17 @@ pub mod sim {
 
 /// Definitions specific to sequential games.
 pub mod seq {
-    //     pub(crate) mod context;
-    //     pub(crate) mod game;
-    //     pub(crate) mod outcome;
+    pub(crate) mod context;
+    // pub(crate) mod game;
+    pub(crate) mod outcome;
     pub(crate) mod transcript;
-    //     // pub(crate) mod tree;
-    //
-    //     pub use context::*;
-    //     pub use game::*;
-    //     pub use outcome::*;
+    // pub(crate) mod tree;
+
+    pub use context::*;
+    // pub use game::*;
+    pub use outcome::*;
     pub use transcript::*;
-    //     // pub use tree::*;
+    // pub use tree::*;
 }
 
 /// Preludes for conveniently importing all definitions related to specific kinds of games.
