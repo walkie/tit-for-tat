@@ -1,26 +1,24 @@
 use crate::moves::Move;
 use crate::payoff::{Payoff, Utility};
 use crate::per_player::PlayerIndex;
-use crate::seq::outcome::Outcome;
 use crate::seq::transcript::Transcript;
+use crate::{History, Record};
 
-pub type History<M, U, const P: usize> = crate::History<U, Outcome<M, U, P>, P>;
-
-/// The strategic context in which a player makes a move during a repeated sequential game.
+/// The strategic context in which a player makes a move during a repeated game.
 ///
-/// This type includes all of the information, besides the definition of the stage game, that a
-/// repeated sequential game strategy may use to compute its next move. It inclues the history of
-/// past games played, the game state of the current iteration, and a transcript of moves played
-/// so far in the current iteration.
+/// This type includes all information, besides the definition of the stage game, that a strategy
+/// for a repeated game may use to compute its next move. It includes the history of past games
+/// played, the game state of the current iteration, and (for sequential games) the transcript of
+/// moves played so far in the current iteration.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Context<S, M: Move, U: Utility, const P: usize> {
+pub struct Context<S, M: Move, U: Utility, R: Record<U, P>, const P: usize> {
     current_player: Option<PlayerIndex<P>>,
     game_state: Option<S>,
     in_progress: Transcript<M, P>,
-    history: History<M, U, P>,
+    history: History<U, R, P>,
 }
 
-impl<S, M: Move, U: Utility, const P: usize> Context<S, M, U, P> {
+impl<S, M: Move, U: Utility, R: Record<U, P>, const P: usize> Context<S, M, U, R, P> {
     pub fn new(init_state: S) -> Self {
         Context {
             current_player: None,
@@ -46,17 +44,13 @@ impl<S, M: Move, U: Utility, const P: usize> Context<S, M, U, P> {
     where
         F: FnOnce(S) -> Option<S>,
     {
-        if let Some(state) = std::mem::replace(&mut self.game_state, None) {
+        if let Some(state) = Option::take(&mut self.game_state) {
             self.game_state = update(state);
         }
     }
 
-    pub fn complete(
-        &mut self,
-        transcript: Transcript<M, P>,
-        payoff: Payoff<U, P>,
-    ) -> &Outcome<M, U, P> {
-        self.history.add(Outcome::new(transcript, payoff))
+    pub fn complete(&mut self, record: R) -> &R {
+        self.history.add(record)
     }
 
     pub fn current_player(&self) -> Option<PlayerIndex<P>> {
@@ -67,7 +61,11 @@ impl<S, M: Move, U: Utility, const P: usize> Context<S, M, U, P> {
         self.game_state.as_ref()
     }
 
-    pub fn history(&self) -> &History<M, U, P> {
+    pub fn in_progress(&self) -> &Transcript<M, P> {
+        &self.in_progress
+    }
+
+    pub fn history(&self) -> &History<U, R, P> {
         &self.history
     }
 

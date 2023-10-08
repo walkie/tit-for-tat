@@ -21,6 +21,13 @@ pub struct Outcome<M: Move, U: Utility, const P: usize> {
     pub payoff: Payoff<U, P>,
 }
 
+impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> {
+    /// Construct a new outcome.
+    pub fn new(profile: Profile<M, P>, payoff: Payoff<U, P>) -> Self {
+        Outcome { profile, payoff }
+    }
+}
+
 impl<M: Move, U: Utility, const P: usize> Record<U, P> for Outcome<M, U, P> {
     fn payoff(&self) -> Payoff<U, P> {
         self.payoff
@@ -29,19 +36,12 @@ impl<M: Move, U: Utility, const P: usize> Record<U, P> for Outcome<M, U, P> {
 
 /// An iterator over all possible outcomes of a [normal-form game](crate::sim::Normal).
 ///
-/// This enumerates the cells of the payoff
-/// table in [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
+/// This enumerates the cells of the payoff table in
+/// [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
 #[derive(Clone)]
 pub struct OutcomeIter<'g, M: Move, U: Utility, const P: usize> {
     profile_iter: ProfileIter<'g, M, P>,
     payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + 'g>,
-}
-
-impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> {
-    /// Construct a new outcome.
-    pub fn new(profile: Profile<M, P>, payoff: Payoff<U, P>) -> Self {
-        Outcome { profile, payoff }
-    }
 }
 
 impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {

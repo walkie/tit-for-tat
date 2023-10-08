@@ -3,21 +3,30 @@ use crate::moves::Move;
 use crate::payoff::{Payoff, Utility};
 use crate::per_player::{PerPlayer, PlayerIndex};
 
-use crate::sim::context::Context;
 use crate::sim::outcome::Outcome;
 use crate::sim::profile::Profile;
 
+/// The strategic context in which a player makes a move during a repeated simultaneous game.
+///
+/// This type includes all information, besides the definition of the stage game, that a strategy
+/// for a repeated game may use to compute its next move. It includes the history of past games
+/// played, the game state of the current iteration, and (for sequential games) the transcript of
+/// moves played so far in the current iteration.
+pub type Context<M, U, const P: usize> = crate::Context<(), M, U, Outcome<M, U, P>, P>;
+
 /// A player of a simultaneous game. Consists of a name and a [strategy](crate::Strategy).
+///
+/// A player's name should usually be unique with respect to all players playing the same game.
 pub type Player<M, U, const P: usize> = crate::Player<Context<M, U, P>, M>;
 
-/// A [per-player](crate::PerPlayer) collection of simultaneous game [players](Player).
+/// A [per-player](PerPlayer) collection of simultaneous game [players](Player).
 pub type Players<M, U, const P: usize> = PerPlayer<Player<M, U, P>, P>;
 
 /// The main interface for playing simultaneous games.
 pub trait Game<const P: usize>: Sized {
-    // TODO: Someday, when the assocated_const_equality and/or generic_const_exprs features are
-    // implemented, replace this trait's const generic P with the following associated constant.
-    // const PLAYERS: usize;
+    // TODO: Someday, when the associated_const_equality and/or generic_const_exprs features are
+    //  implemented, replace this trait's const generic P with the following associated constant.
+    //  const PLAYERS: usize;
 
     /// The type of moves played by players in this game.
     type Move: Move;
@@ -65,7 +74,7 @@ pub trait Game<const P: usize>: Sized {
             }
         }
 
-        Ok(context.complete(profile, self.payoff(profile)))
+        Ok(context.complete(Outcome::new(profile, self.payoff(profile))))
     }
 
     /// Play a game once with the given players, returning the outcome if successful.
@@ -74,7 +83,7 @@ pub trait Game<const P: usize>: Sized {
         &self,
         players: &mut Players<Self::Move, Self::Utility, P>,
     ) -> Result<Outcome<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
-        let mut context = Context::new();
+        let mut context = Context::new(());
         let outcome = self.play_in_context(players, &mut context)?;
         Ok(outcome.clone())
     }
@@ -87,7 +96,7 @@ pub trait Game<const P: usize>: Sized {
         iterations: u32,
         players: &mut Players<Self::Move, Self::Utility, P>,
     ) -> Result<Context<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
-        let mut context = Context::new();
+        let mut context = Context::new(());
         for _ in 0..iterations {
             self.play_in_context(players, &mut context)?;
         }

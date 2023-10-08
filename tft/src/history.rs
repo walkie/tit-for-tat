@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::payoff::{Payoff, Utility};
 
-/// A record of a completed game.
+/// A record of a completed game iteration.
 pub trait Record<U: Utility, const P: usize>: Clone + Debug + PartialEq {
     /// The payoff awarded at the end of the game.
     fn payoff(&self) -> Payoff<U, P>;
