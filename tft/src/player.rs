@@ -1,6 +1,4 @@
-use crate::moves::Move;
-use crate::per_player::PerPlayer;
-use crate::strategy::Strategy;
+use crate::{Move, PerPlayer, Strategy};
 
 /// A [per-player](crate::PerPlayer) collection of [players](Player), ready to play a game.
 pub type Players<C, M, const P: usize> = PerPlayer<Player<C, M>, P>;

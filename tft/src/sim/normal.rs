@@ -4,14 +4,8 @@ use std::collections::HashMap;
 use std::iter::Iterator;
 use std::rc::Rc;
 
-use crate::moves::{Move, MoveIter};
-use crate::payoff::{Payoff, Utility};
-use crate::per_player::{PerPlayer, PlayerIndex};
-use crate::sim::dominated::Dominated;
-use crate::sim::game::Game;
-use crate::sim::outcome::OutcomeIter;
-use crate::sim::profile::{Profile, ProfileIter};
-use crate::sim::simultaneous::Simultaneous;
+use crate::sim::{Dominated, Game, OutcomeIter, Profile, ProfileIter, Simultaneous};
+use crate::{Move, MoveIter, Payoff, PerPlayer, PlayerIndex, Utility};
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///

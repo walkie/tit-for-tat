@@ -1,10 +1,5 @@
-use crate::error::Error;
-use crate::moves::Move;
-use crate::payoff::{Payoff, Utility};
-use crate::per_player::{PerPlayer, PlayerIndex};
-
-use crate::sim::outcome::Outcome;
-use crate::sim::profile::Profile;
+use crate::sim::{Outcome, Profile};
+use crate::{Error, Move, Payoff, PerPlayer, PlayerIndex, Utility};
 
 /// The strategic context in which a player makes a move during a repeated simultaneous game.
 ///

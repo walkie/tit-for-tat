@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::per_player::PlayerIndex;
+use crate::PlayerIndex;
 
 /// An error while playing a game.
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq, Hash)]

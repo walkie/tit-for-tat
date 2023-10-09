@@ -1,7 +1,5 @@
-use crate::history::Record;
-use crate::moves::Move;
-use crate::payoff::{Payoff, Utility};
-use crate::seq::transcript::Transcript;
+use crate::seq::Transcript;
+use crate::{Move, Payoff, Record, Utility};
 
 /// A (potential) outcome of a sequential game. A payoff combined with the transcript of moves that
 /// produced it.

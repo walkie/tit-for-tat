@@ -1,7 +1,5 @@
-use crate::moves::Move;
-use crate::payoff::Utility;
-use crate::per_player::PerPlayer;
 use crate::seq::Outcome;
+use crate::{Move, PerPlayer, Utility};
 
 /// The strategic context in which a player makes a move during a repeated simultaneous game.
 ///

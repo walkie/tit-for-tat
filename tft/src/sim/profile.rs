@@ -4,9 +4,8 @@ use itertools::structs::MultiProduct;
 use itertools::Itertools;
 use std::iter::Iterator;
 
-use crate::moves::{Move, MoveIter};
-use crate::per_player::{PerPlayer, PlayerIndex};
-use crate::seq::transcript::{Played, Transcript};
+use crate::seq::{Played, Transcript};
+use crate::{Move, MoveIter, PerPlayer, PlayerIndex};
 
 /// A pure strategy profile for a simultaneous game: one move played by each player.
 pub type Profile<M, const P: usize> = PerPlayer<M, P>;

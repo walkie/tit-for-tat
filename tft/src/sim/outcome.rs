@@ -1,10 +1,7 @@
 use std::rc::Rc;
 
-use crate::history::Record;
-use crate::moves::Move;
-use crate::payoff::{Payoff, Utility};
-use crate::per_player::PlayerIndex;
-use crate::sim::profile::{Profile, ProfileIter};
+use crate::sim::{Profile, ProfileIter};
+use crate::{Move, Payoff, PlayerIndex, Record, Utility};
 
 /// A (potential) outcome of a simultaneous game. A payoff combined with the strategy profile
 /// that produced it.

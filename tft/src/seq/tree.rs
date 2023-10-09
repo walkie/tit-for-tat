@@ -1,9 +1,6 @@
 use std::rc::Rc;
 
-use crate::distribution::Distribution;
-use crate::game::{Move, Utility};
-use crate::payoff::Payoff;
-use crate::per_player::PlayerIndex;
+use crate::{Distribution, Move, Payoff, PlayerIndex, Utility};
 
 #[derive(Clone)]
 pub struct GameTree<M, U, S, const P: usize> {
@@ -35,8 +32,7 @@ pub enum Moves<M> {
     NonFinite(Rc<dyn Fn(M) -> bool>),
 }
 
-pub type Edges<M, U, S, const P: usize> =
-    Rc<dyn Fn(M) -> Option<GameTree<M, U, S, P>>>;
+pub type Edges<M, U, S, const P: usize> = Rc<dyn Fn(M) -> Option<GameTree<M, U, S, P>>>;
 
 impl<M: Move, U: Utility, S, const P: usize> GameTree<M, U, S, P> {
     pub fn new(state: S, node: Node<M, U, S, P>) -> Self {

@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{Add, Mul, Sub};
 
-use crate::per_player::{PerPlayer, PlayerIndex};
+use crate::{PerPlayer, PlayerIndex};
 
 /// A trait that collects the trait requirements of payoff utility values.
 ///

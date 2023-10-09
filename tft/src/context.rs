@@ -1,8 +1,5 @@
-use crate::moves::Move;
-use crate::payoff::{Payoff, Utility};
-use crate::per_player::PlayerIndex;
-use crate::seq::transcript::Transcript;
-use crate::{History, Record};
+use crate::seq::Transcript;
+use crate::{History, Move, Payoff, PlayerIndex, Record, Utility};
 
 /// The strategic context in which a player makes a move during a repeated game.
 ///
