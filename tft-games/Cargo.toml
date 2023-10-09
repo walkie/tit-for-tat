@@ -8,9 +8,9 @@ repository = "https://github.com/walkie/tit-for-tat/"
 license = "MIT"
 
 [dependencies]
-log = "0.4.17"
+log = "0.4.20"
 tft = { path = "../tft" }
 
 [dev-dependencies]
 env_logger = "0.10.0"
-test-log = "0.2.11"
+test-log = "0.2.12"
