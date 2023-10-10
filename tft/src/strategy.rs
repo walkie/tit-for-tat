@@ -119,3 +119,56 @@ impl<C, M: Move> Strategy<C, M> for Periodic<C, M> {
         the_move
     }
 }
+
+/// A conditional strategy plays one strategy if a given condition is met, and another strategy
+/// otherwise.
+pub struct Conditional<C, M> {
+    condition: Box<dyn FnMut(&C) -> bool>,
+    on_true: Box<dyn Strategy<C, M>>,
+    on_false: Box<dyn Strategy<C, M>>,
+}
+
+impl<C, M: Move> Conditional<C, M> {
+    /// Construct a new conditional strategy that plays the `on_true` strategy if `condition`
+    /// returns true for the current context, and plays the `on_false` strategy otherwise.
+    pub fn new(
+        condition: impl FnMut(&C) -> bool + 'static,
+        on_true: impl Strategy<C, M> + 'static,
+        on_false: impl Strategy<C, M> + 'static,
+    ) -> Self {
+        Conditional {
+            condition: Box::new(condition),
+            on_true: Box::new(on_true),
+            on_false: Box::new(on_false),
+        }
+    }
+
+    /// Construct a new trigger strategy that plays the `before` strategy until `trigger` returns
+    /// true, then plays the `after` strategy thereafter.
+    pub fn trigger(
+        mut trigger: impl FnMut(&C) -> bool + 'static,
+        before: impl Strategy<C, M> + 'static,
+        after: impl Strategy<C, M> + 'static,
+    ) -> Self {
+        let mut has_triggered = false;
+        let condition = move |context: &C| {
+            if has_triggered {
+                true
+            } else {
+                has_triggered = (trigger)(context);
+                has_triggered
+            }
+        };
+        Conditional::new(condition, before, after)
+    }
+}
+
+impl<C, M: Move> Strategy<C, M> for Conditional<C, M> {
+    fn next_move(&mut self, context: &C) -> M {
+        if (self.condition)(context) {
+            self.on_true.next_move(context)
+        } else {
+            self.on_false.next_move(context)
+        }
+    }
+}
