@@ -233,7 +233,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// # Examples
     ///
-    /// Applying a single exlcusion constraint:
+    /// Applying a single exclusion constraint:
     /// ```
     /// use tft::prelude::norm::*;
     ///

@@ -39,7 +39,7 @@ pub struct Mixed<M: Move> {
 }
 
 impl<M: Move> Mixed<M> {
-    /// Construct a mixed strategy from a probability distrubtion over moves.
+    /// Construct a mixed strategy from a probability distribution over moves.
     pub fn new(dist: Distribution<M>) -> Self {
         Mixed { dist }
     }
@@ -71,7 +71,7 @@ pub struct Probabilistic<C, M: Move> {
 }
 
 impl<C, M: Move> Probabilistic<C, M> {
-    /// Construct a probabilistic strategy from a distrubtion of strategies.
+    /// Construct a probabilistic strategy from a distribution of strategies.
     pub fn new(dist: Distribution<Box<dyn Strategy<C, M>>>) -> Self {
         Probabilistic { dist }
     }
@@ -90,7 +90,7 @@ pub struct Periodic<C, M: Move> {
 }
 
 impl<C, M: Move> Periodic<C, M> {
-    /// Construct a pediodic strategy that repeats the given vector of strategies in order.
+    /// Construct a periodic strategy that repeats the given vector of strategies in order.
     pub fn new(strategies: Vec<Box<dyn Strategy<C, M>>>) -> Self {
         Periodic {
             strategies,
@@ -100,7 +100,7 @@ impl<C, M: Move> Periodic<C, M> {
 }
 
 impl<C, M: Move> Periodic<C, M> {
-    /// Construct a pediodic strategy of pure strategies. That is, play the given moves in order
+    /// Construct a periodic strategy of pure strategies. That is, play the given moves in order
     /// and repeat indefinitely.
     pub fn of_pures(moves: &[M]) -> Self {
         let strategies = Vec::from_iter(

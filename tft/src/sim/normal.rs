@@ -424,7 +424,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// use tft::prelude::norm::*;
     ///
     /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-    /// enum RPS { Rock, Paper, Scissors };
+    /// enum RPS { Rock, Paper, Scissors }
     ///
     /// let rps = Normal::symmetric(
     ///     vec![RPS::Rock, RPS::Paper, RPS::Scissors],
@@ -475,7 +475,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// improve their utility.
     ///
     /// A stable profile is a pure
-    /// [Pash equilibrium](https://en.wikipedia.org/wiki/Pash_equilibrium) of the game.
+    /// [Nash equilibrium](https://en.wikipedia.org/wiki/Nash_equilibrium) of the game.
     ///
     /// # Examples
     /// ```
@@ -511,7 +511,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
             .all(|player| self.unilaterally_improve(player, profile).is_none())
     }
 
-    /// All pure [Pash equilibria](https://en.wikipedia.org/wiki/Pash_equilibrium) solutions of a
+    /// All pure [Nash equilibria](https://en.wikipedia.org/wiki/Nash_equilibrium) solutions of a
     /// finite simultaneous game.
     ///
     /// This function simply enumerates all profiles and checks to see if each one is
