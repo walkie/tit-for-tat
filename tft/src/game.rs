@@ -6,12 +6,6 @@ pub trait Game<const P: usize>: Sized {
     // implemented, replace this trait's const generic P with the following associated constant.
     // const PLAYERS: usize;
 
-    /// The type of moves played by players in this game.
-    type Move: Move;
-
-    /// The type of utility values awarded to each player at the end of the game.
-    type Utility: Utility;
-
     /// The type of intermediate state used to support the execution of a single iteration of the
     /// game.
     ///
@@ -20,6 +14,12 @@ pub trait Game<const P: usize>: Sized {
     /// will be the location in the game tree. For state-based games, the state type will be
     /// whatever state is used to define the game.
     type State;
+
+    /// The type of moves played by players in this game.
+    type Move: Move;
+
+    /// The type of utility values awarded to each player at the end of the game.
+    type Utility: Utility;
 
     type Record: Record<Self::Utility, P>;
 

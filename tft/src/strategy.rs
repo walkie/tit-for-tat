@@ -123,6 +123,7 @@ impl<G: Game<P>, const P: usize> Strategy<G, P> for Periodic<G, P> {
 /// A conditional strategy plays one strategy if a given condition is met, and another strategy
 /// otherwise.
 pub struct Conditional<G: Game<P>, const P: usize> {
+    #[allow(clippy::type_complexity)]
     condition: Box<dyn FnMut(&Context<G, P>) -> bool>,
     on_true: Box<dyn Strategy<G, P>>,
     on_false: Box<dyn Strategy<G, P>>,

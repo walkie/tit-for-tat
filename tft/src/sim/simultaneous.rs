@@ -62,9 +62,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     type Utility = U;
     type Record = Outcome<M, U, P>;
 
-    fn initial_state(&self) -> Self::State {
-        ()
-    }
+    fn initial_state(&self) -> Self::State {}
 }
 
 impl<M: Move, U: Utility, const P: usize> SimultaneousGame<P> for Simultaneous<M, U, P> {
