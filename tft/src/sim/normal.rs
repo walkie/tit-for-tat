@@ -4,8 +4,10 @@ use std::collections::HashMap;
 use std::iter::Iterator;
 use std::rc::Rc;
 
-use crate::sim::{Dominated, Game, OutcomeIter, Profile, ProfileIter, Simultaneous};
-use crate::{Move, MoveIter, Payoff, PerPlayer, PlayerIndex, Utility};
+use crate::sim::{
+    Dominated, Outcome, OutcomeIter, Profile, ProfileIter, Simultaneous, SimultaneousGame,
+};
+use crate::{Game, Move, MoveIter, Payoff, PerPlayer, PlayerIndex, Utility};
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
@@ -55,9 +57,17 @@ pub struct Normal<M, U, const P: usize> {
 }
 
 impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
+    type State = ();
     type Move = M;
     type Utility = U;
+    type Record = Outcome<M, U, P>;
 
+    fn initial_state(&self) -> Self::State {
+        ()
+    }
+}
+
+impl<M: Move, U: Utility, const P: usize> SimultaneousGame<P> for Normal<M, U, P> {
     fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
         (*self.payoff_fn)(profile)
     }

@@ -1,5 +1,5 @@
 use crate::seq::Transcript;
-use crate::{History, Move, Payoff, PlayerIndex, Record, Utility};
+use crate::{Game, History, Payoff, PlayerIndex};
 
 /// The strategic context in which a player makes a move during a repeated game.
 ///
@@ -8,15 +8,15 @@ use crate::{History, Move, Payoff, PlayerIndex, Record, Utility};
 /// played, the game state of the current iteration, and (for sequential games) the transcript of
 /// moves played so far in the current iteration.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Context<S, M: Move, U: Utility, R: Record<U, P>, const P: usize> {
+pub struct Context<G: Game<P>, const P: usize> {
     current_player: Option<PlayerIndex<P>>,
-    game_state: Option<S>,
-    in_progress: Transcript<M, P>,
-    history: History<U, R, P>,
+    game_state: Option<G::State>,
+    in_progress: Transcript<G::Move, P>,
+    history: History<G::Utility, G::Record, P>,
 }
 
-impl<S, M: Move, U: Utility, R: Record<U, P>, const P: usize> Context<S, M, U, R, P> {
-    pub fn new(init_state: S) -> Self {
+impl<G: Game<P>, const P: usize> Context<G, P> {
+    pub fn new(init_state: G::State) -> Self {
         Context {
             current_player: None,
             game_state: Some(init_state),
@@ -33,20 +33,20 @@ impl<S, M: Move, U: Utility, R: Record<U, P>, const P: usize> Context<S, M, U, R
         self.current_player = None;
     }
 
-    pub fn set_game_state(&mut self, state: S) {
+    pub fn set_game_state(&mut self, state: G::State) {
         self.game_state = Some(state);
     }
 
     pub fn update_game_state<F>(&mut self, update: F)
     where
-        F: FnOnce(S) -> Option<S>,
+        F: FnOnce(G::State) -> Option<G::State>,
     {
         if let Some(state) = Option::take(&mut self.game_state) {
             self.game_state = update(state);
         }
     }
 
-    pub fn complete(&mut self, record: R) -> &R {
+    pub fn complete(&mut self, record: G::Record) -> &G::Record {
         self.history.add(record)
     }
 
@@ -54,19 +54,19 @@ impl<S, M: Move, U: Utility, R: Record<U, P>, const P: usize> Context<S, M, U, R
         self.current_player
     }
 
-    pub fn game_state(&self) -> Option<&S> {
+    pub fn game_state(&self) -> Option<&G::State> {
         self.game_state.as_ref()
     }
 
-    pub fn in_progress(&self) -> &Transcript<M, P> {
+    pub fn in_progress(&self) -> &Transcript<G::Move, P> {
         &self.in_progress
     }
 
-    pub fn history(&self) -> &History<U, R, P> {
+    pub fn history(&self) -> &History<G::Utility, G::Record, P> {
         &self.history
     }
 
-    pub fn score(&self) -> Payoff<U, P> {
+    pub fn score(&self) -> Payoff<G::Utility, P> {
         self.history.score()
     }
 }

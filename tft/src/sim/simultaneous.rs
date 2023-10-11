@@ -1,5 +1,5 @@
-use crate::sim::{Game, Profile};
-use crate::{Move, Payoff, PerPlayer, PlayerIndex, Utility};
+use crate::sim::{Outcome, Profile, SimultaneousGame};
+use crate::{Game, Move, Payoff, PerPlayer, PlayerIndex, Utility};
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
@@ -57,9 +57,17 @@ pub struct Simultaneous<M, U, const P: usize> {
 }
 
 impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
+    type State = ();
     type Move = M;
     type Utility = U;
+    type Record = Outcome<M, U, P>;
 
+    fn initial_state(&self) -> Self::State {
+        ()
+    }
+}
+
+impl<M: Move, U: Utility, const P: usize> SimultaneousGame<P> for Simultaneous<M, U, P> {
     fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
         (*self.payoff_fn)(profile)
     }

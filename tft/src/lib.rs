@@ -1,6 +1,7 @@
 pub(crate) mod context;
 pub(crate) mod distribution;
 pub(crate) mod error;
+pub(crate) mod game;
 pub(crate) mod history;
 pub(crate) mod moves;
 pub(crate) mod payoff;
@@ -11,6 +12,7 @@ pub(crate) mod strategy;
 pub use context::*;
 pub use distribution::*;
 pub use error::*;
+pub use game::*;
 pub use history::*;
 pub use moves::*;
 pub use payoff::*;
@@ -37,12 +39,12 @@ pub mod sim {
 
 /// Definitions specific to sequential games.
 pub mod seq {
-    pub(crate) mod game;
+    // pub(crate) mod game;
     pub(crate) mod outcome;
     pub(crate) mod transcript;
     // pub(crate) mod tree;
 
-    pub use game::*;
+    // pub use game::*;
     pub use outcome::*;
     pub use transcript::*;
     // pub use tree::*;
@@ -58,9 +60,11 @@ pub mod prelude {
     pub mod norm {
         pub use crate::distribution::*;
         pub use crate::error::*;
+        pub use crate::game::*;
         pub use crate::moves::*;
         pub use crate::payoff::*;
         pub use crate::per_player::*;
+        pub use crate::player::*;
         pub use crate::strategy::*;
 
         pub use crate::sim::dominated::*;
