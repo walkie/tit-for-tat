@@ -1,5 +1,4 @@
-use crate::sim::Profile;
-use crate::{Move, PerPlayer, PlayerIndex};
+use crate::{Move, PerPlayer, PlayerIndex, Profile};
 
 /// A move played during a game.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]

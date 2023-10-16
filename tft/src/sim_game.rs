@@ -1,9 +1,8 @@
-use crate::sim::{Outcome, Profile};
-use crate::{Context, Error, Game, Payoff, PerPlayer, PlayerIndex, Players};
+use crate::{Context, Error, Game, Payoff, PerPlayer, PlayerIndex, Players, Profile, SimOutcome};
 
 /// The main interface for playing simultaneous games.
-pub trait SimultaneousGame<const P: usize>:
-    Game<P, State = (), Record = Outcome<<Self as Game<P>>::Move, <Self as Game<P>>::Utility, P>>
+pub trait SimGame<const P: usize>:
+    Game<P, State = (), Record = SimOutcome<<Self as Game<P>>::Move, <Self as Game<P>>::Utility, P>>
 {
     /// Get the payoff for the given strategy profile.
     ///
@@ -32,7 +31,7 @@ pub trait SimultaneousGame<const P: usize>:
         &self,
         players: &mut Players<Self, P>,
         context: &'c mut Context<Self, P>,
-    ) -> Result<&'c Outcome<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
+    ) -> Result<&'c SimOutcome<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
         let profile = PerPlayer::generate(|i| {
             context.set_current_player(i);
             players[i].next_move(context)
@@ -45,7 +44,7 @@ pub trait SimultaneousGame<const P: usize>:
             }
         }
 
-        Ok(context.complete(Outcome::new(profile, self.payoff(profile))))
+        Ok(context.complete(SimOutcome::new(profile, self.payoff(profile))))
     }
 
     /// Play a game once with the given players, returning the outcome if successful.
@@ -53,7 +52,7 @@ pub trait SimultaneousGame<const P: usize>:
     fn play_once(
         &self,
         players: &mut Players<Self, P>,
-    ) -> Result<Outcome<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
+    ) -> Result<SimOutcome<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
         let mut context = Context::new(());
         let outcome = self.play_in_context(players, &mut context)?;
         Ok(outcome.clone())

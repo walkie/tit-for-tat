@@ -1,4 +1,4 @@
-use crate::sim::{Outcome, Profile, SimultaneousGame};
+use crate::sim::{Profile, SimGame, SimOutcome};
 use crate::{Game, Move, Payoff, PerPlayer, PlayerIndex, Utility};
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
@@ -23,7 +23,7 @@ use crate::{Game, Move, Payoff, PerPlayer, PlayerIndex, Utility};
 /// for player `P1`, while `P1` must pick an odd score for `P0`.
 ///
 /// ```
-/// use tft::prelude::sim::*;
+/// use tft::sim::*;
 ///
 /// let valid_move = |p, n: i32| {
 ///     if p == for2::P0 {
@@ -60,12 +60,12 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     type State = ();
     type Move = M;
     type Utility = U;
-    type Record = Outcome<M, U, P>;
+    type Record = SimOutcome<M, U, P>;
 
     fn initial_state(&self) -> Self::State {}
 }
 
-impl<M: Move, U: Utility, const P: usize> SimultaneousGame<P> for Simultaneous<M, U, P> {
+impl<M: Move, U: Utility, const P: usize> SimGame<P> for Simultaneous<M, U, P> {
     fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
         (*self.payoff_fn)(profile)
     }

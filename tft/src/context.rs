@@ -1,5 +1,4 @@
-use crate::seq::Transcript;
-use crate::{Game, History, Payoff, PlayerIndex};
+use crate::{Game, History, Payoff, PlayerIndex, Transcript};
 
 /// The strategic context in which a player makes a move during a repeated game.
 ///

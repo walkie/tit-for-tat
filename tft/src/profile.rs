@@ -4,8 +4,7 @@ use itertools::structs::MultiProduct;
 use itertools::Itertools;
 use std::iter::Iterator;
 
-use crate::seq::{Played, Transcript};
-use crate::{Move, MoveIter, PerPlayer, PlayerIndex};
+use crate::{Move, MoveIter, PerPlayer, Played, PlayerIndex, Transcript};
 
 /// A pure strategy profile for a simultaneous game: one move played by each player.
 pub type Profile<M, const P: usize> = PerPlayer<M, P>;
@@ -49,7 +48,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let move_iters = PerPlayer::new([
     ///     MoveIter::new(vec!['A', 'B', 'C'].into_iter()),
@@ -82,7 +81,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let moves = PerPlayer::new([
     ///     vec!['A', 'B', 'C', 'D'],
@@ -106,7 +105,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// Generating all profiles for a symmetric 2-player game:
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let move_iter = MoveIter::new(vec!['X', 'O'].into_iter());
     /// let iter = ProfileIter::symmetric(move_iter);
@@ -132,7 +131,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// Generating all profiles for a symmetric 3-player game:
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let move_iter = MoveIter::new(vec!['X', 'O'].into_iter());
     /// let iter = ProfileIter::symmetric(move_iter);
@@ -164,7 +163,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// Constraining a single player's move:
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let moves = PerPlayer::new([
     ///     vec!['A', 'B'],
@@ -185,7 +184,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// Constraining multiple players' moves by chaining invocations of this method:
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let move_iter = MoveIter::new(vec!['A', 'B', 'C'].into_iter());
     /// let mut iter = ProfileIter::symmetric(move_iter)
@@ -199,7 +198,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// Combining with [`exclude`](ProfileIter::exclude):
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let moves = PerPlayer::new([
     ///     vec!['A', 'B'],
@@ -235,7 +234,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// Applying a single exclusion constraint:
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let moves = PerPlayer::new([
     ///     vec!['A', 'B'],
@@ -252,7 +251,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// Applying multiple exclusion constraints by chaining invocations of this method:
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let moves = PerPlayer::new([
     ///     vec!['A', 'B', 'C'],
@@ -272,7 +271,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// Combining with [`include`](ProfileIter::include):
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let move_iter = MoveIter::new(vec!['A', 'B', 'C'].into_iter());
     /// let mut iter = ProfileIter::symmetric(move_iter)
@@ -299,7 +298,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::prelude::norm::*;
+    /// use tft::norm::*;
     ///
     /// let move_iter = MoveIter::new(vec![1, 2, 3, 4, 5].into_iter());
     /// let mut iter = ProfileIter::symmetric(move_iter)
