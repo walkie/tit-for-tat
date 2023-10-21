@@ -11,7 +11,7 @@ pub struct Context<G: Game<P>, const P: usize> {
     current_player: Option<PlayerIndex<P>>,
     game_state: Option<G::State>,
     in_progress: Transcript<G::Move, P>,
-    history: History<G::Form, G::Move, G::Utility, P>,
+    history: History<G::Kind, G::Move, G::Utility, P>,
 }
 
 impl<G: Game<P>, const P: usize> Context<G, P> {
@@ -47,8 +47,8 @@ impl<G: Game<P>, const P: usize> Context<G, P> {
 
     pub fn complete(
         &mut self,
-        outcome: Outcome<G::Form, G::Move, G::Utility, P>,
-    ) -> &Outcome<G::Form, G::Move, G::Utility, P> {
+        outcome: Outcome<G::Kind, G::Move, G::Utility, P>,
+    ) -> &Outcome<G::Kind, G::Move, G::Utility, P> {
         self.history.add(outcome)
     }
 
@@ -64,7 +64,7 @@ impl<G: Game<P>, const P: usize> Context<G, P> {
         &self.in_progress
     }
 
-    pub fn history(&self) -> &History<G::Form, G::Move, G::Utility, P> {
+    pub fn history(&self) -> &History<G::Kind, G::Move, G::Utility, P> {
         &self.history
     }
 

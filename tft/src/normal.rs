@@ -5,8 +5,8 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::{
-    Dominated, Game, GameSim, Move, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
-    ProfileIter, Sim, Strategic, Utility,
+    Dominated, Game, Move, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
+    ProfileIter, Sim, Simultaneous, Strategic, Utility,
 };
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
@@ -23,7 +23,7 @@ use crate::{
 ///
 /// # Examples
 /// ```
-/// use tft::norm::*;
+/// use tft::prelude::norm::*;
 ///
 /// let pd = Normal::symmetric(
 ///     vec!['C', 'D'],
@@ -57,7 +57,7 @@ pub struct Normal<M, U, const P: usize> {
 }
 
 impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
-    type Form = Sim;
+    type Kind = Sim;
     type State = ();
     type Move = M;
     type Utility = U;
@@ -74,7 +74,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     }
 }
 
-impl<M: Move, U: Utility, const P: usize> GameSim<P> for Normal<M, U, P> {
+impl<M: Move, U: Utility, const P: usize> Simultaneous<P> for Normal<M, U, P> {
     fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
         (*self.payoff_fn)(profile)
     }
@@ -154,7 +154,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let g = Normal::from_payoff_vec(
     ///     PerPlayer::new([vec!['A', 'B'], vec!['C', 'D'], vec!['E']]),
@@ -214,7 +214,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// The classic [prisoner's dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma) is an
     /// example of a symmetric 2-player game:
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -232,7 +232,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// where each player's moves and payoffs are symmetric:
     ///
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd3 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -252,7 +252,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// And similarly, a 4-player prisoner's dilemma:
     ///
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd4 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -405,7 +405,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let rps: Normal<_, _, 2> = Normal::symmetric(
     ///     vec!["Rock", "Paper", "Scissors"],
@@ -434,7 +434,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
     /// enum RPS { Rock, Paper, Scissors }
@@ -492,7 +492,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -532,7 +532,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -603,11 +603,11 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// Get all dominated move relationships for the given player. If a move is dominated by
     /// multiple different moves, it will contain multiple entries in the returned vector.
     ///
-    /// See the documentation for [`Dominated`](crate::sim::Dominated) for more info.
+    /// See the documentation for [`Dominated`](crate::prelude::sim::Dominated) for more info.
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let g = Normal::from_payoff_vec(
     ///     PerPlayer::new([
@@ -680,7 +680,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let g = Normal::matrix(
     ///     ['A', 'B', 'C'],
@@ -724,7 +724,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let g = Normal::bimatrix(
     ///     ['A', 'B', 'C'],
@@ -764,7 +764,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd = Normal::symmetric_for2(
     ///     ['C', 'D'],
@@ -800,7 +800,7 @@ impl<M: Move, U: Utility> Normal<M, U, 3> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd3 = Normal::symmetric_for3(
     ///     ['C', 'D'],
@@ -845,7 +845,7 @@ impl<M: Move, U: Utility> Normal<M, U, 4> {
     ///
     /// # Examples
     /// ```
-    /// use tft::norm::*;
+    /// use tft::prelude::norm::*;
     ///
     /// let pd4 = Normal::symmetric_for4(
     ///     ['C', 'D'],

@@ -1,11 +1,11 @@
 use crate::{
-    Context, Error, Form, Move, Outcome, Payoff, PerPlayer, PlayerIndex, Players, Profile, Sim,
+    Context, Error, Kind, Move, Outcome, Payoff, PerPlayer, PlayerIndex, Players, Profile, Sim,
     Utility,
 };
 
 /// The main interface for playing games.
 pub trait Game<const P: usize>: Sized {
-    type Form: Form;
+    type Kind: Kind;
 
     /// The type of intermediate state used to support the execution of a single iteration of the
     /// game.
@@ -34,11 +34,11 @@ pub trait Game<const P: usize>: Sized {
     ) -> bool;
 
     fn is_sequential(&self) -> bool {
-        Self::Form::is_sequential()
+        Self::Kind::is_sequential()
     }
 
     fn is_simultaneous(&self) -> bool {
-        Self::Form::is_simultaneous()
+        Self::Kind::is_simultaneous()
     }
 
     /// The number of players this game is for.
@@ -48,11 +48,11 @@ pub trait Game<const P: usize>: Sized {
 }
 
 /// The main interface for playing simultaneous games.
-pub trait GameSim<const P: usize>: Game<P, Form = Sim, State = ()> {
+pub trait Simultaneous<const P: usize>: Game<P, Kind = Sim, State = ()> {
     /// Get the payoff for the given strategy profile.
     ///
     /// This method may return an arbitrary payoff if given an
-    /// [invalid profile](crate::GameSim::is_valid_profile).
+    /// [invalid profile](crate::Simultaneous::is_valid_profile).
     fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P>;
 
     /// Is this a valid move for the given player?

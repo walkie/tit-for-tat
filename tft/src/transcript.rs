@@ -1,8 +1,9 @@
 use crate::{Move, PerPlayer, PlayerIndex, Profile};
 
-/// A move played during a game.
+/// A [ply](https://en.wikipedia.org/wiki/Ply_(game_theory)) is a single move played during a
+/// sequential game.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct Played<M, const P: usize> {
+pub struct Ply<M, const P: usize> {
     /// The player that played the move, or `None` if it was a move of chance.
     pub player: Option<PlayerIndex<P>>,
     /// The move that was played.
@@ -13,23 +14,23 @@ pub struct Played<M, const P: usize> {
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Transcript<M, const P: usize> {
     /// The sequence of played moves.
-    moves: Vec<Played<M, P>>,
+    moves: Vec<Ply<M, P>>,
 }
 
-impl<M, const P: usize> Played<M, P> {
+impl<M, const P: usize> Ply<M, P> {
     /// Construct a new played move.
     pub fn new(player: Option<PlayerIndex<P>>, the_move: M) -> Self {
-        Played { player, the_move }
+        Ply { player, the_move }
     }
 
     /// Construct a move played by the given player.
     pub fn player(player: PlayerIndex<P>, the_move: M) -> Self {
-        Played::new(Some(player), the_move)
+        Ply::new(Some(player), the_move)
     }
 
     /// Construct a move played by chance.
     pub fn chance(the_move: M) -> Self {
-        Played::new(None, the_move)
+        Ply::new(None, the_move)
     }
 
     /// Was this move played by a player (and not chance)?
@@ -56,7 +57,7 @@ impl<M: Move, const P: usize> Transcript<M, P> {
     }
 
     /// Construct a transcript from a vector of played moves.
-    pub fn from_played_moves(moves: Vec<Played<M, P>>) -> Self {
+    pub fn from_played_moves(moves: Vec<Ply<M, P>>) -> Self {
         Transcript { moves }
     }
 
@@ -76,19 +77,19 @@ impl<M: Move, const P: usize> Transcript<M, P> {
         }
     }
 
-    /// Add a played move to the transcript.
-    pub fn add(&mut self, player: Option<PlayerIndex<P>>, the_move: M) {
-        self.moves.push(Played::new(player, the_move))
+    /// Add a ply to the transcript.
+    pub fn add(&mut self, ply: Ply<M, P>) {
+        self.moves.push(ply)
     }
 
     /// Add a move played by a player (not chance) to the transcript.
-    pub fn add_by_player(&mut self, player: PlayerIndex<P>, the_move: M) {
-        self.add(Some(player), the_move)
+    pub fn add_player_move(&mut self, player: PlayerIndex<P>, the_move: M) {
+        self.add(Ply::new(Some(player), the_move))
     }
 
     /// Add a move played by chance to the transcript.
-    pub fn add_by_chance(&mut self, the_move: M) {
-        self.add(None, the_move)
+    pub fn add_chance_move(&mut self, the_move: M) {
+        self.add(Ply::new(None, the_move))
     }
 
     /// Get all moves played by a given player (`Some`) or by chance (`None`).
@@ -161,25 +162,25 @@ impl<M: Move, const P: usize> Transcript<M, P> {
 }
 
 impl<M, const P: usize> IntoIterator for Transcript<M, P> {
-    type Item = <Vec<Played<M, P>> as IntoIterator>::Item;
-    type IntoIter = <Vec<Played<M, P>> as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <Vec<Played<M, P>> as IntoIterator>::IntoIter {
+    type Item = <Vec<Ply<M, P>> as IntoIterator>::Item;
+    type IntoIter = <Vec<Ply<M, P>> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <Vec<Ply<M, P>> as IntoIterator>::IntoIter {
         self.moves.into_iter()
     }
 }
 
 impl<'a, M, const P: usize> IntoIterator for &'a Transcript<M, P> {
-    type Item = <&'a Vec<Played<M, P>> as IntoIterator>::Item;
-    type IntoIter = <&'a Vec<Played<M, P>> as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <&'a Vec<Played<M, P>> as IntoIterator>::IntoIter {
+    type Item = <&'a Vec<Ply<M, P>> as IntoIterator>::Item;
+    type IntoIter = <&'a Vec<Ply<M, P>> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a Vec<Ply<M, P>> as IntoIterator>::IntoIter {
         self.moves.iter()
     }
 }
 
 impl<'a, M, const P: usize> IntoIterator for &'a mut Transcript<M, P> {
-    type Item = <&'a mut Vec<Played<M, P>> as IntoIterator>::Item;
-    type IntoIter = <&'a mut Vec<Played<M, P>> as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <&'a mut Vec<Played<M, P>> as IntoIterator>::IntoIter {
+    type Item = <&'a mut Vec<Ply<M, P>> as IntoIterator>::Item;
+    type IntoIter = <&'a mut Vec<Ply<M, P>> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> <&'a mut Vec<Ply<M, P>> as IntoIterator>::IntoIter {
         self.moves.iter_mut()
     }
 }
