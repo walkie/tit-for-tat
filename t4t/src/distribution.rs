@@ -12,7 +12,7 @@ use rand_distr::WeightedAliasIndex;
 /// 25% of the time.
 ///
 /// ```
-/// use tft::Distribution;
+/// use t4t::Distribution;
 ///
 /// let dist = Distribution::new(vec![("heads", 3.0), ("tails", 1.0)]).unwrap();
 /// let coin = dist.sample();
@@ -23,7 +23,7 @@ use rand_distr::WeightedAliasIndex;
 /// time, and `'C'` 12.5% of the time.
 ///
 /// ```
-/// use tft::Distribution;
+/// use t4t::Distribution;
 ///
 /// let dist = Distribution::new(vec![('A', 2.5), ('B', 1.0), ('C', 0.5)]).unwrap();
 /// let abc = dist.sample();

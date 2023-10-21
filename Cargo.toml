@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-    "tft",
-    "tft-games",
+    "t4t",
+    "t4t-games",
 ]

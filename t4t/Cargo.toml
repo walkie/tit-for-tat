@@ -1,15 +1,21 @@
 [package]
-name = "tft-games"
+name = "t4t"
 version = "0.0.1"
 authors = ["Eric Walkingshaw <eric@walkingshaw.net>"]
 edition = "2021"
-description = "A library of games and strategies built with tft."
+description = "Tit-for-tat: a game theory toolbox."
 repository = "https://github.com/walkie/tit-for-tat/"
 license = "MIT"
 
 [dependencies]
+derive_more = "0.99.17"
+dyn-clone = "1.0.14"
+itertools = "0.11.0"
 log = "0.4.20"
-tft = { path = "../tft" }
+num = "0.4.1"
+rand = "0.8.5"
+rand_distr = "0.4.3"
+thiserror = "1.0.49"
 
 [dev-dependencies]
 env_logger = "0.10.0"

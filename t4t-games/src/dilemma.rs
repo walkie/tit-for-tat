@@ -1,6 +1,6 @@
 //! 2x2 simultaneous, symmetric, cooperation/defection games, e.g. prisoner's dilemma.
 
-use tft::prelude::norm::*;
+use t4t::prelude::norm::*;
 
 /// In a social dilemma game, each player may either cooperate or defect.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -49,8 +49,8 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::prelude::norm::*;
-    /// use tft_games::dilemma::*;
+    /// use t4t::prelude::norm::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// let g = Dilemma::prisoners_dilemma();
     /// assert_eq!(
@@ -80,8 +80,8 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::prelude::norm::*;
-    /// use tft_games::dilemma::*;
+    /// use t4t::prelude::norm::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// let g = Dilemma::stag_hunt();
     /// assert_eq!(
@@ -100,8 +100,8 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::prelude::norm::*;
-    /// use tft_games::dilemma::*;
+    /// use t4t::prelude::norm::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// let g = Dilemma::assurance_game();
     /// assert_eq!(
@@ -137,8 +137,8 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::prelude::norm::*;
-    /// use tft_games::dilemma::*;
+    /// use t4t::prelude::norm::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// let more_dove = Dilemma::hawk_dove(2, 3);
     /// let more_hawk = Dilemma::hawk_dove(3, 2);
@@ -173,8 +173,8 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::prelude::norm::*;
-    /// use tft_games::dilemma::*;
+    /// use t4t::prelude::norm::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// let g = Dilemma::chicken(100);
     ///
@@ -197,8 +197,8 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft::prelude::norm::*;
-    /// use tft_games::dilemma::*;
+    /// use t4t::prelude::norm::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// let g = Dilemma::snowdrift();
     ///
@@ -222,7 +222,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft_games::dilemma::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// assert!(Dilemma::prisoners_dilemma().is_prisoners_dilemma());
     /// assert!(Dilemma::new([3, 0, 7, 2]).is_prisoners_dilemma());
@@ -244,7 +244,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft_games::dilemma::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// assert!(Dilemma::prisoners_dilemma().is_iterated_prisoners_dilemma());
     /// assert!(!Dilemma::new([3, 0, 7, 2]).is_iterated_prisoners_dilemma());
@@ -263,7 +263,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft_games::dilemma::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// assert!(Dilemma::stag_hunt().is_stag_hunt());
     /// assert!(Dilemma::assurance_game().is_stag_hunt());
@@ -283,7 +283,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft_games::dilemma::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// assert!(Dilemma::assurance_game().is_assurance_game());
     /// assert!(!Dilemma::stag_hunt().is_assurance_game());
@@ -310,7 +310,7 @@ impl Dilemma {
     ///
     /// # Examples
     /// ```
-    /// use tft_games::dilemma::*;
+    /// use t4t_games::dilemma::*;
     ///
     /// assert!(Dilemma::chicken(100).is_chicken());
     /// assert!(Dilemma::hawk_dove(1, 2).is_chicken());

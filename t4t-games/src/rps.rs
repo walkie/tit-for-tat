@@ -1,6 +1,6 @@
 //! Rock-paper-scissors and related games.
 
-use tft::prelude::norm::*;
+use t4t::prelude::norm::*;
 
 /// A move in rock-paper-scissors-style game.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -24,8 +24,8 @@ pub enum Move {
 ///
 /// # Examples
 /// ```
-/// use tft::prelude::norm::*;
-/// use tft_games::rps;
+/// use t4t::prelude::norm::*;
+/// use t4t_games::rps;
 ///
 /// let rps = rps::rock_paper_scissors();
 /// assert!(rps.is_zero_sum());
@@ -51,8 +51,8 @@ pub fn rock_paper_scissors() -> Normal<Move, i64, 2> {
 ///
 /// # Examples
 /// ```
-/// use tft::prelude::norm::*;
-/// use tft_games::rps;
+/// use t4t::prelude::norm::*;
+/// use t4t_games::rps;
 ///
 /// let fw = rps::fire_water();
 /// assert!(fw.is_zero_sum());
@@ -80,8 +80,8 @@ pub fn fire_water() -> Normal<Move, i64, 2> {
 /// # Examples
 ///
 /// ```
-/// use tft::prelude::norm::*;
-/// use tft_games::rps;
+/// use t4t::prelude::norm::*;
+/// use t4t_games::rps;
 ///
 /// // 10-player rock-paper-scissors.
 /// let rps10: Normal<rps::Move, i64, 10> = rps::big_rock_paper_scissors();
@@ -94,7 +94,7 @@ pub fn fire_water() -> Normal<Move, i64, 2> {
 /// Note that `rps1000` demonstrates that `Normal` can represent extremely large games---this game
 /// has a payoff table with `3^1000` entries! Such large games can be represented and played
 /// without issue, but any function that iterates over the outcomes (such as
-/// [`is_zero_sum`](tft::prelude::sim::Normal::is_zero_sum) or any solution concept), will leave you waiting
+/// [`is_zero_sum`](t4t::Normal::is_zero_sum) or any solution concept), will leave you waiting
 /// beyond the heat death of the universe.
 #[rustfmt::skip]
 pub fn big_rock_paper_scissors<const N: usize>() -> Normal<Move, i64, N> {

@@ -23,7 +23,7 @@ impl<T: Copy + Debug + Default + Num + PartialEq + PartialOrd + 'static> Utility
 /// The simplest way to construct a payoff is to build it directly from an array of utility values.
 ///
 /// ```
-/// use tft::Payoff;
+/// use t4t::Payoff;
 ///
 /// let p = Payoff::from([2, 3, 0, -1]);
 /// ```
@@ -36,7 +36,7 @@ impl<T: Copy + Debug + Default + Num + PartialEq + PartialOrd + 'static> Utility
 /// used.
 ///
 /// ```
-/// use tft::Payoff;
+/// use t4t::Payoff;
 ///
 /// assert_eq!(Payoff::zeros(), Payoff::from([0, 0, 0]));
 /// assert_eq!(Payoff::flat(5), Payoff::from([5, 5, 5, 5, 5]));
@@ -46,7 +46,7 @@ impl<T: Copy + Debug + Default + Num + PartialEq + PartialOrd + 'static> Utility
 /// designed to be chained with payoff constructors, such as [`Payoff::flat`].
 ///
 /// ```
-/// use tft::{for4, for6, Payoff};
+/// use t4t::{for4, for6, Payoff};
 ///
 /// assert_eq!(Payoff::flat(-2).except(for4::P1, 5), Payoff::from([-2, 5, -2, -2]));
 /// assert_eq!(
@@ -60,7 +60,7 @@ impl<T: Copy + Debug + Default + Num + PartialEq + PartialOrd + 'static> Utility
 /// or loses (and all other players draw), respectively.
 ///
 /// ```
-/// use tft::{for3, for5, Payoff};
+/// use t4t::{for3, for5, Payoff};
 ///
 /// assert_eq!(Payoff::zero_sum_winner(for3::P2), Payoff::from([-1, -1, 2]));
 /// assert_eq!(Payoff::zero_sum_loser(for5::P1), Payoff::from([1, -4, 1, 1, 1]));
@@ -73,7 +73,7 @@ impl<T: Copy + Debug + Default + Num + PartialEq + PartialOrd + 'static> Utility
 /// from each utility in the payoff.
 ///
 /// ```
-/// use tft::{for3, for5, Payoff};
+/// use t4t::{for3, for5, Payoff};
 ///
 /// assert_eq!(
 ///     Payoff::from([10, 20, 30]) + Payoff::from([5, 6, 7]),
@@ -109,7 +109,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     ///
     /// # Example
     /// ```
-    /// use tft::{Payoff, PerPlayer};
+    /// use t4t::{Payoff, PerPlayer};
     ///
     /// assert_eq!(Payoff::new(PerPlayer::new([2, 0, -2])), Payoff::from([2, 0, -2]));
     /// ```
@@ -127,7 +127,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::{for8, Payoff};
+    /// use t4t::{for8, Payoff};
     ///
     /// assert_eq!(Payoff::flat(2), Payoff::from([2, 2, 2]));
     /// assert_eq!(
@@ -143,7 +143,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::{for7, Payoff};
+    /// use t4t::{for7, Payoff};
     ///
     /// assert_eq!(Payoff::zeros(), Payoff::from([0, 0, 0]));
     ///
@@ -162,7 +162,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::{for4, for6, Payoff};
+    /// use t4t::{for4, for6, Payoff};
     ///
     /// assert_eq!(Payoff::from([1, 2, 3, 4]).except(for4::P2, -1), Payoff::from([1, 2, -1, 4]));
     /// assert_eq!(
@@ -180,7 +180,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::Payoff;
+    /// use t4t::Payoff;
     ///
     /// assert_eq!(Payoff::from([2, 0, -2]).num_players(), 3);
     /// assert_eq!(Payoff::from([1, 1, 1, -3, 1]).num_players(), 5);
@@ -195,7 +195,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::Payoff;
+    /// use t4t::Payoff;
     ///
     /// let p = Payoff::from([1, -2, 3]);
     ///
@@ -211,7 +211,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     /// Get a mutable reference to the utility for the `i`th player in the game. Returns `None` if
     /// the index is out of range.
     /// ```
-    /// use tft::Payoff;
+    /// use t4t::Payoff;
     ///
     /// let mut p = Payoff::from([1, -2, 3]);
     /// *p.for_player_mut(1).unwrap() = 4;
@@ -229,7 +229,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::{Payoff, PlayerIndex};
+    /// use t4t::{Payoff, PlayerIndex};
     ///
     /// assert!(Payoff::<i64, 3>::from([-3, 2, 1]).is_zero_sum());
     /// assert!(Payoff::<i64, 6>::from([0, -10, 3, 0, -1, 8]).is_zero_sum());
@@ -254,7 +254,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::Payoff;
+    /// use t4t::Payoff;
     ///
     /// assert_eq!(Payoff::from([2.5, 0.3]).pareto_improvement(Payoff::from([3.0, 1.0])), Some(1.2));
     /// assert_eq!(Payoff::from([2.5, 0.3]).pareto_improvement(Payoff::from([2.5, 0.3])), None);
@@ -310,7 +310,7 @@ impl<U: Utility + FromPrimitive, const P: usize> Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::{for4, for7, Payoff};
+    /// use t4t::{for4, for7, Payoff};
     ///
     /// assert_eq!(
     ///     Payoff::zero_sum_loser(for4::P2),
@@ -333,7 +333,7 @@ impl<U: Utility + FromPrimitive, const P: usize> Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::{for1, for4, for7, Payoff};
+    /// use t4t::{for1, for4, for7, Payoff};
     ///
     /// assert_eq!(
     ///     Payoff::zero_sum_winner(for4::P3),
@@ -357,7 +357,7 @@ impl<U: Utility, const P: usize> From<[U; P]> for Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::{Payoff, PerPlayer};
+    /// use t4t::{Payoff, PerPlayer};
     ///
     /// assert_eq!(
     ///   Payoff::from([1, 2, 3, 4]),
@@ -376,7 +376,7 @@ impl<U: Utility, const P: usize> Add<U> for Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::Payoff;
+    /// use t4t::Payoff;
     ///
     /// assert_eq!(Payoff::from([2, -3, 4]) + 10, Payoff::from([12, 7, 14]));
     /// assert_eq!(Payoff::from([0, 12]) + -6, Payoff::from([-6, 6]));
@@ -393,7 +393,7 @@ impl<U: Utility, const P: usize> Sub<U> for Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::Payoff;
+    /// use t4t::Payoff;
     ///
     /// assert_eq!(Payoff::from([15, 6, 12]) - 10, Payoff::from([5, -4, 2]));
     /// assert_eq!(Payoff::from([-3, 3]) - -6, Payoff::from([3, 9]));
@@ -410,7 +410,7 @@ impl<U: Utility, const P: usize> Mul<U> for Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::Payoff;
+    /// use t4t::Payoff;
     ///
     /// assert_eq!(Payoff::from([3, -4, 5]) * 3, Payoff::from([9, -12, 15]));
     /// assert_eq!(Payoff::from([0, 3]) * -2, Payoff::from([0, -6]));
@@ -427,7 +427,7 @@ impl<U: Utility, const P: usize> Add<Self> for Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::Payoff;
+    /// use t4t::Payoff;
     ///
     /// assert_eq!(
     ///     Payoff::from([10, -20, 30]) + Payoff::from([2, 3, -4]),
@@ -447,7 +447,7 @@ impl<U: Utility, const P: usize> Sub<Self> for Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::Payoff;
+    /// use t4t::Payoff;
     ///
     /// assert_eq!(
     ///     Payoff::from([10, -20, 30]) - Payoff::from([2, 3, -4]),
@@ -466,7 +466,7 @@ impl<U: Utility, const P: usize> Mul<Self> for Payoff<U, P> {
     ///
     /// # Examples
     /// ```
-    /// use tft::Payoff;
+    /// use t4t::Payoff;
     ///
     /// assert_eq!(
     ///     Payoff::from([10, -20, 30]) * Payoff::from([2, 3, -4]),
