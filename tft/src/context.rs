@@ -7,7 +7,7 @@ use crate::{Game, History, Payoff, PlayerIndex, Transcript};
 /// played, the game state of the current iteration, and (for sequential games) the transcript of
 /// moves played so far in the current iteration.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Context<G: Game<P>, const P: usize> {
+pub struct Context<G: Game<K, P>, const K: bool, const P: usize> {
     current_player: Option<PlayerIndex<P>>,
     game_state: Option<G::State>,
     in_progress: Transcript<G::Move, P>,

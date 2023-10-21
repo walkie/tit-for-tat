@@ -1,50 +1,38 @@
 use std::fmt::Debug;
 
-use crate::{Payoff, Utility};
-
-/// A record of a completed game iteration.
-pub trait Record<U: Utility, const P: usize>: Clone + Debug + PartialEq {
-    /// The payoff awarded at the end of the game.
-    fn payoff(&self) -> Payoff<U, P>;
-}
+use crate::{Outcome, Payoff, Utility};
 
 /// For repeated games, a history of previously played games.
 #[derive(Clone, Debug, PartialEq)]
-pub struct History<U: Utility, R: Record<U, P>, const P: usize> {
-    records: Vec<R>,
+pub struct History<R, U: Utility, const P: usize> {
+    outcomes: Vec<Outcome<R, U, P>>,
     score: Payoff<U, P>,
 }
 
-impl<U: Utility, R: Record<U, P>, const P: usize> Default for History<U, R, P> {
+impl<R, U: Utility, const P: usize> Default for History<R, U, P> {
     fn default() -> Self {
         History {
-            records: Vec::new(),
+            outcomes: Vec::new(),
             score: Payoff::zeros(),
         }
     }
 }
 
-impl<U: Utility, R: Record<U, P>, const P: usize> History<U, R, P> {
+impl<R, U: Utility, const P: usize> History<R, U, P> {
     /// Construct a new, empty history.
     pub fn new() -> Self {
         History::default()
     }
 
-    /// Update the history by adding a new completed game record.
-    pub fn add(&mut self, record: R) -> &R {
-        self.score = self.score + record.payoff();
-        self.records.push(record);
-        self.records.last().unwrap()
+    /// Update the history by adding a new game outcome.
+    pub fn add(&mut self, outcome: Outcome<R, U, P>) -> &Outcome<R, U, P> {
+        self.score = self.score + outcome.payoff;
+        self.outcomes.push(outcome);
+        self.outcomes.last().unwrap()
     }
 
     /// Get the current score of the game.
     pub fn score(&self) -> Payoff<U, P> {
         self.score
-    }
-}
-
-impl<U: Utility, R: Record<U, P>, const P: usize> Record<U, P> for History<U, R, P> {
-    fn payoff(&self) -> Payoff<U, P> {
-        self.score()
     }
 }

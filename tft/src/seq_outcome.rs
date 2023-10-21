@@ -1,4 +1,4 @@
-use crate::{Move, Payoff, Record, Transcript, Utility};
+use crate::{Move, Payoff, Transcript, Utility};
 
 /// A (potential) outcome of a sequential game. A payoff combined with the transcript of moves that
 /// produced it.

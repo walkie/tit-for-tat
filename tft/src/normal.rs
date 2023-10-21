@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use crate::{
     Dominated, Game, Move, MoveIter, Payoff, PerPlayer, PlayerIndex, Profile, ProfileIter, SimGame,
-    SimOutcome, SimOutcomeIter, Simultaneous, Utility,
+    Outcome, OutcomeIter, SIM, Simultaneous, Utility,
 };
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
@@ -35,19 +35,19 @@ use crate::{
 ///
 /// assert_eq!(
 ///     pd.play_once(&mut PerPlayer::new([nice(), nice()])),
-///     Ok(SimOutcome::new(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
+///     Ok(Outcome::new(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
 /// );
 /// assert_eq!(
 ///     pd.play_once(&mut PerPlayer::new([nice(), mean()])),
-///     Ok(SimOutcome::new(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
+///     Ok(Outcome::new(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
 /// );
 /// assert_eq!(
 ///     pd.play_once(&mut PerPlayer::new([mean(), nice()])),
-///     Ok(SimOutcome::new(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
+///     Ok(Outcome::new(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
 /// );
 /// assert_eq!(
 ///     pd.play_once(&mut PerPlayer::new([mean(), mean()])),
-///     Ok(SimOutcome::new(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
+///     Ok(Outcome::new(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
 /// );
 /// ```
 #[derive(Clone)]
@@ -56,11 +56,10 @@ pub struct Normal<M, U, const P: usize> {
     payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P>>,
 }
 
-impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
+impl<M: Move, U: Utility, const P: usize> Game<SIM, P> for Normal<M, U, P> {
     type State = ();
     type Move = M;
     type Utility = U;
-    type Record = SimOutcome<M, U, P>;
 
     fn initial_state(&self) -> Self::State {}
 }
@@ -392,8 +391,8 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     }
 
     /// An iterator over all possible outcomes of the game.
-    pub fn outcomes(&self) -> SimOutcomeIter<'_, M, U, P> {
-        SimOutcomeIter::new(self.profiles(), self.payoff_fn.clone())
+    pub fn outcomes(&self) -> OutcomeIter<'_, M, U, P> {
+        OutcomeIter::new(self.profiles(), self.payoff_fn.clone())
     }
 
     /// Is this game zero-sum? In a zero-sum game, the utility values of each payoff sum to zero.

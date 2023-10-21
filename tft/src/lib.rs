@@ -10,10 +10,8 @@ pub(crate) mod payoff;
 pub(crate) mod per_player;
 pub(crate) mod player;
 pub(crate) mod profile;
-// pub(crate) mod seq_game;
 pub(crate) mod seq_outcome;
-pub(crate) mod sim_game;
-pub(crate) mod sim_outcome;
+pub(crate) mod outcome;
 pub(crate) mod simultaneous;
 pub(crate) mod strategy;
 pub(crate) mod transcript;
@@ -31,10 +29,8 @@ pub use payoff::*;
 pub use per_player::*;
 pub use player::*;
 pub use profile::*;
-// pub use seq_game::*;
 pub use seq_outcome::*;
-pub use sim_game::*;
-pub use sim_outcome::*;
+pub use outcome::*;
 pub use simultaneous::*;
 pub use strategy::*;
 pub use transcript::*;
@@ -55,8 +51,7 @@ pub mod norm {
     pub use crate::per_player::*;
     pub use crate::player::*;
     pub use crate::profile::*;
-    pub use crate::sim_game::*;
-    pub use crate::sim_outcome::*;
+    pub use crate::outcome::*;
     pub use crate::strategy::*;
 }
 
@@ -69,8 +64,7 @@ pub mod sim {
     pub use crate::payoff::*;
     pub use crate::per_player::*;
     pub use crate::profile::Profile;
-    pub use crate::sim_game::*;
-    pub use crate::sim_outcome::SimOutcome;
+    pub use crate::outcome::Outcome;
     pub use crate::simultaneous::*;
     pub use crate::strategy::*;
 }

@@ -1,4 +1,4 @@
-use crate::sim::{Profile, SimGame, SimOutcome};
+use crate::sim::{Profile, SimGame, Outcome};
 use crate::{Game, Move, Payoff, PerPlayer, PlayerIndex, Utility};
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
@@ -60,7 +60,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     type State = ();
     type Move = M;
     type Utility = U;
-    type Record = SimOutcome<M, U, P>;
+    type Record = Outcome<M, U, P>;
 
     fn initial_state(&self) -> Self::State {}
 }
