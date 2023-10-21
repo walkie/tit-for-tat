@@ -1,4 +1,4 @@
-use crate::{Game, History, Payoff, PlayerIndex, Transcript};
+use crate::{Game, History, Outcome, Payoff, PlayerIndex, Transcript};
 
 /// The strategic context in which a player makes a move during a repeated game.
 ///
@@ -7,11 +7,11 @@ use crate::{Game, History, Payoff, PlayerIndex, Transcript};
 /// played, the game state of the current iteration, and (for sequential games) the transcript of
 /// moves played so far in the current iteration.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Context<G: Game<K, P>, const K: bool, const P: usize> {
+pub struct Context<G: Game<P>, const P: usize> {
     current_player: Option<PlayerIndex<P>>,
     game_state: Option<G::State>,
     in_progress: Transcript<G::Move, P>,
-    history: History<G::Utility, G::Record, P>,
+    history: History<G::Form, G::Move, G::Utility, P>,
 }
 
 impl<G: Game<P>, const P: usize> Context<G, P> {
@@ -45,8 +45,11 @@ impl<G: Game<P>, const P: usize> Context<G, P> {
         }
     }
 
-    pub fn complete(&mut self, record: G::Record) -> &G::Record {
-        self.history.add(record)
+    pub fn complete(
+        &mut self,
+        outcome: Outcome<G::Form, G::Move, G::Utility, P>,
+    ) -> &Outcome<G::Form, G::Move, G::Utility, P> {
+        self.history.add(outcome)
     }
 
     pub fn current_player(&self) -> Option<PlayerIndex<P>> {
@@ -61,7 +64,7 @@ impl<G: Game<P>, const P: usize> Context<G, P> {
         &self.in_progress
     }
 
-    pub fn history(&self) -> &History<G::Utility, G::Record, P> {
+    pub fn history(&self) -> &History<G::Form, G::Move, G::Utility, P> {
         &self.history
     }
 

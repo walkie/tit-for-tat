@@ -1,13 +1,12 @@
-use crate::{Context, Error, Move, Outcome, Payoff, PerPlayer, PlayerIndex, Players, Profile, Utility};
-
-/// Type marker for a simultaneous game.
-pub const SIM: bool = true;
-
-/// Type marker for a sequential game.
-pub const SEQ: bool = false;
+use crate::{
+    Context, Error, Form, Move, Outcome, Payoff, PerPlayer, PlayerIndex, Players, Profile, Sim,
+    Utility,
+};
 
 /// The main interface for playing games.
-pub trait Game<const K: Kind, const P: usize>: Sized {
+pub trait Game<const P: usize>: Sized {
+    type Form: Form;
+
     /// The type of intermediate state used to support the execution of a single iteration of the
     /// game.
     ///
@@ -27,14 +26,19 @@ pub trait Game<const K: Kind, const P: usize>: Sized {
     fn initial_state(&self) -> Self::State;
 
     /// Is this a valid move at the given state for the given player?
-    fn is_valid_move_from_state(&self, state: &Self::State, player: PlayerIndex<P>, the_move: Self::Move) -> bool;
-
-    fn is_simultaneous(&self) -> bool {
-        K == SIM
-    }
+    fn is_valid_move_from_state(
+        &self,
+        state: &Self::State,
+        player: PlayerIndex<P>,
+        the_move: Self::Move,
+    ) -> bool;
 
     fn is_sequential(&self) -> bool {
-        K == SEQ
+        Self::Form::is_sequential()
+    }
+
+    fn is_simultaneous(&self) -> bool {
+        Self::Form::is_simultaneous()
     }
 
     /// The number of players this game is for.
@@ -44,11 +48,11 @@ pub trait Game<const K: Kind, const P: usize>: Sized {
 }
 
 /// The main interface for playing simultaneous games.
-pub trait Simultaneous<const P: usize>: Game<SIM, P, State = ()> {
+pub trait GameSim<const P: usize>: Game<P, Form = Sim, State = ()> {
     /// Get the payoff for the given strategy profile.
     ///
     /// This method may return an arbitrary payoff if given an
-    /// [invalid profile](crate::sim::Simultaneous::is_valid_profile).
+    /// [invalid profile](crate::GameSim::is_valid_profile).
     fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P>;
 
     /// Is this a valid move for the given player?
@@ -69,7 +73,7 @@ pub trait Simultaneous<const P: usize>: Game<SIM, P, State = ()> {
         &self,
         players: &mut Players<Self, P>,
         context: &'c mut Context<Self, P>,
-    ) -> Result<&'c Outcome<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
+    ) -> Result<&'c Outcome<Sim, Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
         let profile = PerPlayer::generate(|i| {
             context.set_current_player(i);
             players[i].next_move(context)
@@ -90,7 +94,7 @@ pub trait Simultaneous<const P: usize>: Game<SIM, P, State = ()> {
     fn play_once(
         &self,
         players: &mut Players<Self, P>,
-    ) -> Result<Outcome<Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
+    ) -> Result<Outcome<Sim, Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
         let mut context = Context::new(());
         let outcome = self.play_in_context(players, &mut context)?;
         Ok(outcome.clone())

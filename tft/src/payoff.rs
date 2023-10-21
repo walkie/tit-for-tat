@@ -10,8 +10,8 @@ use crate::{PerPlayer, PlayerIndex};
 ///
 /// A blanket implementation covers all types that meet the requirements, so this trait should not
 /// be implemented directly.
-pub trait Utility: Copy + Debug + Default + Num + PartialOrd + Sized + 'static {}
-impl<T: Copy + Debug + Default + Num + PartialOrd + 'static> Utility for T {}
+pub trait Utility: Copy + Debug + Default + Num + PartialEq + PartialOrd + Sized + 'static {}
+impl<T: Copy + Debug + Default + Num + PartialEq + PartialOrd + 'static> Utility for T {}
 
 /// A collection containing the utility values awarded to each player at the end of a game.
 ///

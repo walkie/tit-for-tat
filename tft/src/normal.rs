@@ -5,8 +5,8 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::{
-    Dominated, Game, Move, MoveIter, Payoff, PerPlayer, PlayerIndex, Profile, ProfileIter, SimGame,
-    Outcome, OutcomeIter, SIM, Simultaneous, Utility,
+    Dominated, Game, GameSim, Move, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
+    ProfileIter, Sim, Strategic, Utility,
 };
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
@@ -56,21 +56,27 @@ pub struct Normal<M, U, const P: usize> {
     payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P>>,
 }
 
-impl<M: Move, U: Utility, const P: usize> Game<SIM, P> for Normal<M, U, P> {
+impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
+    type Form = Sim;
     type State = ();
     type Move = M;
     type Utility = U;
 
     fn initial_state(&self) -> Self::State {}
+
+    fn is_valid_move_from_state(
+        &self,
+        _state: &(),
+        player: PlayerIndex<P>,
+        the_move: Self::Move,
+    ) -> bool {
+        self.moves[player].contains(&the_move)
+    }
 }
 
-impl<M: Move, U: Utility, const P: usize> SimGame<P> for Normal<M, U, P> {
+impl<M: Move, U: Utility, const P: usize> GameSim<P> for Normal<M, U, P> {
     fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
         (*self.payoff_fn)(profile)
-    }
-
-    fn is_valid_move(&self, player: PlayerIndex<P>, the_move: Self::Move) -> bool {
-        self.moves[player].contains(&the_move)
     }
 }
 
@@ -375,10 +381,10 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     }
 
     /// Get this normal form game as a simultaneous move game.
-    pub fn as_simultaneous(&self) -> Simultaneous<M, U, P> {
+    pub fn as_simultaneous(&self) -> Strategic<M, U, P> {
         let moves = self.moves.clone();
         let payoff_fn = self.payoff_fn.clone();
-        Simultaneous::from_payoff_fn(
+        Strategic::from_payoff_fn(
             move |player, the_move| moves[player].contains(&the_move),
             move |profile| payoff_fn(profile),
         )
@@ -464,7 +470,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
             for adjacent in self.outcomes().adjacent(player, profile) {
                 let util = adjacent.payoff[player];
                 if util > best_util {
-                    best_move = Some(adjacent.profile[player]);
+                    best_move = Some(adjacent.record[player]);
                     best_util = util;
                 }
             }
@@ -565,7 +571,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
             for outcome in self.outcomes() {
                 if let Some(improvement) = payoff.pareto_improvement(outcome.payoff) {
                     if improvement.gt(&best_improvement) {
-                        best_profile = Some(outcome.profile);
+                        best_profile = Some(outcome.record);
                         best_improvement = improvement;
                     }
                 }

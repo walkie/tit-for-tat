@@ -1,5 +1,4 @@
-use crate::sim::{Profile, SimGame, Outcome};
-use crate::{Game, Move, Payoff, PerPlayer, PlayerIndex, Utility};
+use crate::{Game, GameSim, Move, Payoff, PerPlayer, PlayerIndex, Profile, Sim, Utility};
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
@@ -35,7 +34,7 @@ use crate::{Game, Move, Payoff, PerPlayer, PlayerIndex, Utility};
 /// let payoff = |profile: Profile<i32, 2>| {
 ///     Payoff::from([profile[for2::P1], profile[for2::P0]])
 /// };
-/// let pick_em = Simultaneous::from_payoff_fn(valid_move, payoff);
+/// let pick_em = Strategic::from_payoff_fn(valid_move, payoff);
 ///
 /// assert_eq!(pick_em.num_players(), 2);
 ///
@@ -51,31 +50,36 @@ use crate::{Game, Move, Payoff, PerPlayer, PlayerIndex, Utility};
 /// assert_eq!(pick_em.payoff(PerPlayer::new([-4, 7])), Payoff::from([7, -4]));
 /// assert_eq!(pick_em.payoff(PerPlayer::new([0, -1])), Payoff::from([-1, 0]));
 /// ```
-pub struct Simultaneous<M, U, const P: usize> {
+pub struct Strategic<M, U, const P: usize> {
     move_fn: Box<dyn Fn(PlayerIndex<P>, M) -> bool>,
     payoff_fn: Box<dyn Fn(Profile<M, P>) -> Payoff<U, P>>,
 }
 
-impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
+impl<M: Move, U: Utility, const P: usize> Game<P> for Strategic<M, U, P> {
+    type Form = Sim;
     type State = ();
     type Move = M;
     type Utility = U;
-    type Record = Outcome<M, U, P>;
 
     fn initial_state(&self) -> Self::State {}
-}
 
-impl<M: Move, U: Utility, const P: usize> SimGame<P> for Simultaneous<M, U, P> {
-    fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
-        (*self.payoff_fn)(profile)
-    }
-
-    fn is_valid_move(&self, player: PlayerIndex<P>, the_move: Self::Move) -> bool {
+    fn is_valid_move_from_state(
+        &self,
+        _state: &Self::State,
+        player: PlayerIndex<P>,
+        the_move: Self::Move,
+    ) -> bool {
         (*self.move_fn)(player, the_move)
     }
 }
 
-impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
+impl<M: Move, U: Utility, const P: usize> GameSim<P> for Strategic<M, U, P> {
+    fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
+        (*self.payoff_fn)(profile)
+    }
+}
+
+impl<M: Move, U: Utility, const P: usize> Strategic<M, U, P> {
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a function that yields the payoff given a profile
     /// containing a valid move played by each player.
@@ -84,7 +88,7 @@ impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
         MoveFn: Fn(PlayerIndex<P>, M) -> bool + 'static,
         PayoffFn: Fn(Profile<M, P>) -> Payoff<U, P> + 'static,
     {
-        Simultaneous {
+        Strategic {
             move_fn: Box::new(move_fn),
             payoff_fn: Box::new(payoff_fn),
         }
