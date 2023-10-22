@@ -23,7 +23,7 @@ use crate::{
 ///
 /// # Examples
 /// ```
-/// use t4t::prelude::norm::*;
+/// use t4t::*;
 ///
 /// let pd = Normal::symmetric(
 ///     vec!['C', 'D'],
@@ -154,7 +154,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let g = Normal::from_payoff_vec(
     ///     PerPlayer::new([vec!['A', 'B'], vec!['C', 'D'], vec!['E']]),
@@ -214,7 +214,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// The classic [prisoner's dilemma](https://en.wikipedia.org/wiki/Prisoner%27s_dilemma) is an
     /// example of a symmetric 2-player game:
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let pd = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -232,7 +232,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// where each player's moves and payoffs are symmetric:
     ///
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let pd3 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -252,7 +252,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// And similarly, a 4-player prisoner's dilemma:
     ///
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let pd4 = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -405,7 +405,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let rps: Normal<_, _, 2> = Normal::symmetric(
     ///     vec!["Rock", "Paper", "Scissors"],
@@ -434,7 +434,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
     /// enum RPS { Rock, Paper, Scissors }
@@ -492,7 +492,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -532,7 +532,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let dilemma = Normal::symmetric(
     ///     vec!['C', 'D'],
@@ -607,7 +607,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let g = Normal::from_payoff_vec(
     ///     PerPlayer::new([
@@ -680,7 +680,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let g = Normal::matrix(
     ///     ['A', 'B', 'C'],
@@ -724,7 +724,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let g = Normal::bimatrix(
     ///     ['A', 'B', 'C'],
@@ -764,7 +764,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let pd = Normal::symmetric_for2(
     ///     ['C', 'D'],
@@ -800,7 +800,7 @@ impl<M: Move, U: Utility> Normal<M, U, 3> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let pd3 = Normal::symmetric_for3(
     ///     ['C', 'D'],
@@ -845,7 +845,7 @@ impl<M: Move, U: Utility> Normal<M, U, 4> {
     ///
     /// # Examples
     /// ```
-    /// use t4t::prelude::norm::*;
+    /// use t4t::*;
     ///
     /// let pd4 = Normal::symmetric_for4(
     ///     ['C', 'D'],

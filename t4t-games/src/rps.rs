@@ -1,6 +1,6 @@
 //! Rock-paper-scissors and related games.
 
-use t4t::prelude::norm::*;
+use t4t::*;
 
 /// A move in rock-paper-scissors-style game.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -24,7 +24,7 @@ pub enum Move {
 ///
 /// # Examples
 /// ```
-/// use t4t::prelude::norm::*;
+/// use t4t::*;
 /// use t4t_games::rps;
 ///
 /// let rps = rps::rock_paper_scissors();
@@ -51,7 +51,7 @@ pub fn rock_paper_scissors() -> Normal<Move, i64, 2> {
 ///
 /// # Examples
 /// ```
-/// use t4t::prelude::norm::*;
+/// use t4t::*;
 /// use t4t_games::rps;
 ///
 /// let fw = rps::fire_water();
@@ -80,7 +80,7 @@ pub fn fire_water() -> Normal<Move, i64, 2> {
 /// # Examples
 ///
 /// ```
-/// use t4t::prelude::norm::*;
+/// use t4t::*;
 /// use t4t_games::rps;
 ///
 /// // 10-player rock-paper-scissors.

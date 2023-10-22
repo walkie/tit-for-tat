@@ -22,7 +22,7 @@ use crate::{Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Sim, Simultaneo
 /// for player `P1`, while `P1` must pick an odd score for `P0`.
 ///
 /// ```
-/// use t4t::prelude::sim::*;
+/// use t4t::*;
 ///
 /// let valid_move = |p, n: i32| {
 ///     if p == for2::P0 {
