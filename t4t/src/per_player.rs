@@ -2,6 +2,7 @@
 //! in a game.
 
 use derive_more::{AsMut, AsRef};
+use std::fmt::Display;
 use std::iter::IntoIterator;
 use std::ops::{Index, IndexMut};
 
@@ -392,6 +393,12 @@ impl<const P: usize> PlayerIndex<P> {
 impl<const P: usize> From<PlayerIndex<P>> for usize {
     fn from(index: PlayerIndex<P>) -> usize {
         index.as_usize()
+    }
+}
+
+impl<const P: usize> Display for PlayerIndex<P> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(fmt, "P{}", self.0)
     }
 }
 

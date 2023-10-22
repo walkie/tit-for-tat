@@ -8,7 +8,7 @@ use std::hash::Hash;
 /// This is a sealed trait with exactly two instances corresponding to the two kinds of games:
 /// - [`Sim`](Sim) for simultaneous games
 /// - [`Seq`](Seq) for sequential games
-pub trait Kind: Sealed {
+pub trait Kind: Sealed + Clone + Copy + Debug + Eq + PartialEq + Hash {
     /// The type used to represent a record of moves played in this kind of game.
     ///
     /// This will be:

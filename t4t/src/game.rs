@@ -1,7 +1,8 @@
 use crate::{
-    Context, Error, Kind, Move, Outcome, Payoff, PerPlayer, PlayerIndex, Players, Profile, Sim,
-    Utility,
+    Context, Kind, Move, Outcome, Payoff, PerPlayer, PlayError, PlayErrorInContext, PlayResult,
+    PlayerIndex, Players, Profile, Sim, Utility,
 };
+use std::fmt::Debug;
 
 /// The main interface for playing games.
 pub trait Game<const P: usize>: Sized {
@@ -14,7 +15,7 @@ pub trait Game<const P: usize>: Sized {
     /// be `()`, since no intermediate state is required. For [extensive-form] games, the state
     /// will be the location in the game tree. For state-based games, the state type will be
     /// whatever state is used to define the game.
-    type State;
+    type State: Clone + Debug + PartialEq;
 
     /// The type of moves played by players in this game.
     type Move: Move;
@@ -68,12 +69,11 @@ pub trait Simultaneous<const P: usize>: Game<P, Kind = Sim, State = ()> {
 
     /// Play one iteration of the game in the given context. Update the context and return the
     /// outcome if successful.
-    #[allow(clippy::type_complexity)]
     fn play_in_context<'c>(
         &self,
         players: &mut Players<Self, P>,
         context: &'c mut Context<Self, P>,
-    ) -> Result<&'c Outcome<Sim, Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
+    ) -> PlayResult<&'c Outcome<Sim, Self::Move, Self::Utility, P>, Self, P> {
         let profile = PerPlayer::generate(|i| {
             context.set_current_player(i);
             players[i].next_move(context)
@@ -82,7 +82,10 @@ pub trait Simultaneous<const P: usize>: Game<P, Kind = Sim, State = ()> {
 
         for i in PlayerIndex::all_indexes() {
             if !self.is_valid_move(i, profile[i]) {
-                return Err(Error::InvalidMove(i, profile[i]));
+                return Err(PlayErrorInContext::new(
+                    context.clone(),
+                    PlayError::InvalidMove(i, profile[i]),
+                ));
             }
         }
 
@@ -90,11 +93,10 @@ pub trait Simultaneous<const P: usize>: Game<P, Kind = Sim, State = ()> {
     }
 
     /// Play a game once with the given players, returning the outcome if successful.
-    #[allow(clippy::type_complexity)]
     fn play_once(
         &self,
         players: &mut Players<Self, P>,
-    ) -> Result<Outcome<Sim, Self::Move, Self::Utility, P>, Error<Self::Move, P>> {
+    ) -> PlayResult<Outcome<Sim, Self::Move, Self::Utility, P>, Self, P> {
         let mut context = Context::new(());
         let outcome = self.play_in_context(players, &mut context)?;
         Ok(outcome.clone())
@@ -102,12 +104,11 @@ pub trait Simultaneous<const P: usize>: Game<P, Kind = Sim, State = ()> {
 
     /// Play a given number of iterations of a game with the given players, starting from the
     /// initial state. Return the final context if successful.
-    #[allow(clippy::type_complexity)]
     fn play_repeatedly(
         &self,
         iterations: u32,
         players: &mut Players<Self, P>,
-    ) -> Result<Context<Self, P>, Error<Self::Move, P>> {
+    ) -> PlayResult<Context<Self, P>, Self, P> {
         let mut context = Context::new(());
         for _ in 0..iterations {
             self.play_in_context(players, &mut context)?;
