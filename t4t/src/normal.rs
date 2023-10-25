@@ -5,7 +5,7 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::{
-    Dominated, Game, Move, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
+    Context, Dominated, Game, Move, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
     ProfileIter, Sim, Simultaneous, Strategic, Utility,
 };
 
@@ -64,19 +64,24 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
 
     fn initial_state(&self) -> Self::State {}
 
-    fn is_valid_move_from_state(
-        &self,
-        _state: &(),
-        player: PlayerIndex<P>,
-        the_move: Self::Move,
-    ) -> bool {
-        self.moves[player].contains(&the_move)
+    fn is_valid_move_in_context(&self, context: &Context<Self, P>, the_move: Self::Move) -> bool {
+        match context.current_player() {
+            Some(player) => self.is_valid_move_for_player(player, the_move),
+            None => {
+                log::error!("Normal::is_valid_move_in_context: current_player is not set");
+                false
+            }
+        }
     }
 }
 
 impl<M: Move, U: Utility, const P: usize> Simultaneous<P> for Normal<M, U, P> {
-    fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
-        (*self.payoff_fn)(profile)
+    fn payoff_in_context(
+        &self,
+        _context: &Context<Self, P>,
+        profile: Profile<Self::Move, P>,
+    ) -> Payoff<Self::Utility, P> {
+        self.payoff(profile)
     }
 }
 
@@ -372,6 +377,26 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// Get iterators for the moves available to each player.
     pub fn available_moves(&self) -> PerPlayer<MoveIter<'_, M>, P> {
         PerPlayer::generate(|player| self.available_moves_for_player(player))
+    }
+
+    /// Is this a valid move for the given player?
+    fn is_valid_move_for_player(&self, player: PlayerIndex<P>, the_move: M) -> bool {
+        self.moves[player].contains(&the_move)
+    }
+
+    /// Is this a valid strategy profile? A profile is valid if each move is valid for the
+    /// corresponding player.
+    fn is_valid_profile(&self, profile: Profile<M, P>) -> bool {
+        PlayerIndex::all_indexes()
+            .all(|player| self.is_valid_move_for_player(player, profile[player]))
+    }
+
+    /// Get the payoff for the given strategy profile.
+    ///
+    /// This method may return an arbitrary payoff if given an
+    /// [invalid profile](crate::Normal::is_valid_profile).
+    pub fn payoff(&self, profile: Profile<M, P>) -> Payoff<U, P> {
+        (*self.payoff_fn)(profile)
     }
 
     /// Get the number of moves available to each player, which corresponds to the dimensions of

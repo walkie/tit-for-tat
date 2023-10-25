@@ -1,4 +1,6 @@
-use crate::{Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Sim, Simultaneous, Utility};
+use crate::{
+    Context, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Sim, Simultaneous, Utility,
+};
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
@@ -38,10 +40,10 @@ use crate::{Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Sim, Simultaneo
 ///
 /// assert_eq!(pick_em.num_players(), 2);
 ///
-/// assert!(pick_em.is_valid_move(for2::P0, 2));
-/// assert!(pick_em.is_valid_move(for2::P1, -3));
-/// assert!(!pick_em.is_valid_move(for2::P0, 5));
-/// assert!(!pick_em.is_valid_move(for2::P1, -4));
+/// assert!(pick_em.is_valid_move_for_player(for2::P0, 2));
+/// assert!(pick_em.is_valid_move_for_player(for2::P1, -3));
+/// assert!(!pick_em.is_valid_move_for_player(for2::P0, 5));
+/// assert!(!pick_em.is_valid_move_for_player(for2::P1, -4));
 ///
 /// assert!(pick_em.is_valid_profile(PerPlayer::new([-2, 3])));
 /// assert!(!pick_em.is_valid_profile(PerPlayer::new([-2, 4])));
@@ -63,19 +65,24 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Strategic<M, U, P> {
 
     fn initial_state(&self) -> Self::State {}
 
-    fn is_valid_move_from_state(
-        &self,
-        _state: &Self::State,
-        player: PlayerIndex<P>,
-        the_move: Self::Move,
-    ) -> bool {
-        (*self.move_fn)(player, the_move)
+    fn is_valid_move_in_context(&self, context: &Context<Self, P>, the_move: Self::Move) -> bool {
+        match context.current_player() {
+            Some(player) => self.is_valid_move_for_player(player, the_move),
+            None => {
+                log::error!("Normal::is_valid_move_in_context: current_player is not set");
+                false
+            }
+        }
     }
 }
 
 impl<M: Move, U: Utility, const P: usize> Simultaneous<P> for Strategic<M, U, P> {
-    fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P> {
-        (*self.payoff_fn)(profile)
+    fn payoff_in_context(
+        &self,
+        _context: &Context<Self, P>,
+        profile: Profile<Self::Move, P>,
+    ) -> Payoff<Self::Utility, P> {
+        self.payoff(profile)
     }
 }
 
@@ -107,5 +114,25 @@ impl<M: Move, U: Utility, const P: usize> Strategic<M, U, P> {
             }))
         };
         Self::from_payoff_fn(move_fn, payoff_fn)
+    }
+
+    /// Is this a valid move for the given player?
+    pub fn is_valid_move_for_player(&self, player: PlayerIndex<P>, the_move: M) -> bool {
+        (*self.move_fn)(player, the_move)
+    }
+
+    /// Is this a valid strategy profile? A profile is valid if each move is valid for the
+    /// corresponding player.
+    pub fn is_valid_profile(&self, profile: Profile<M, P>) -> bool {
+        PlayerIndex::all_indexes()
+            .all(|player| self.is_valid_move_for_player(player, profile[player]))
+    }
+
+    /// Get the payoff for the given strategy profile.
+    ///
+    /// This method may return an arbitrary payoff if given an
+    /// [invalid profile](crate::Strategic::is_valid_profile).
+    pub fn payoff(&self, profile: Profile<M, P>) -> Payoff<U, P> {
+        (*self.payoff_fn)(profile)
     }
 }

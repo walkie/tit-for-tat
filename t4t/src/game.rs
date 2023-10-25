@@ -1,11 +1,11 @@
-use crate::{
-    Context, Kind, Move, Outcome, Payoff, PerPlayer, PlayError, PlayErrorInContext, PlayResult,
-    PlayerIndex, Players, Profile, Sim, Utility,
-};
 use std::fmt::Debug;
 
-/// The main interface for playing games.
+use crate::{Context, Kind, Move, Payoff, Profile, Seq, Sim, Utility};
+
+/// A root trait that all games implement, mostly used for its associated types.
 pub trait Game<const P: usize>: Sized {
+    /// Type that indicates whether the game is simultaneous ([`Sim`](crate::Sim)) or
+    /// sequential ([`Seq`](crate::Seq)).
     type Kind: Kind;
 
     /// The type of intermediate state used to support the execution of a single iteration of the
@@ -26,18 +26,15 @@ pub trait Game<const P: usize>: Sized {
     /// The initial game state.
     fn initial_state(&self) -> Self::State;
 
-    /// Is this a valid move at the given state for the given player?
-    fn is_valid_move_from_state(
-        &self,
-        state: &Self::State,
-        player: PlayerIndex<P>,
-        the_move: Self::Move,
-    ) -> bool;
+    /// Is this a valid move in the given context?
+    fn is_valid_move_in_context(&self, context: &Context<Self, P>, the_move: Self::Move) -> bool;
 
+    /// Is this a sequential game?
     fn is_sequential(&self) -> bool {
         Self::Kind::is_sequential()
     }
 
+    /// Is this a simultaneous game?
     fn is_simultaneous(&self) -> bool {
         Self::Kind::is_simultaneous()
     }
@@ -48,71 +45,20 @@ pub trait Game<const P: usize>: Sized {
     }
 }
 
-/// The main interface for playing simultaneous games.
+/// A trait implemented by simultaneous games, enabling them to be played via the
+/// [`Playable`](crate::Playable) trait.
 pub trait Simultaneous<const P: usize>: Game<P, Kind = Sim, State = ()> {
-    /// Get the payoff for the given strategy profile.
+    /// Get the payoff for the given strategy profile in the given context.
     ///
     /// This method may return an arbitrary payoff if given an
     /// [invalid profile](crate::Simultaneous::is_valid_profile).
-    fn payoff(&self, profile: Profile<Self::Move, P>) -> Payoff<Self::Utility, P>;
-
-    /// Is this a valid move for the given player?
-    fn is_valid_move(&self, player: PlayerIndex<P>, the_move: Self::Move) -> bool {
-        self.is_valid_move_from_state(&(), player, the_move)
-    }
-
-    /// Is this a valid strategy profile? A profile is valid if each move is valid for the
-    /// corresponding player.
-    fn is_valid_profile(&self, profile: Profile<Self::Move, P>) -> bool {
-        PlayerIndex::all_indexes().all(|pi| self.is_valid_move(pi, profile[pi]))
-    }
-
-    /// Play one iteration of the game in the given context. Update the context and return the
-    /// outcome if successful.
-    fn play_in_context<'c>(
+    fn payoff_in_context(
         &self,
-        players: &mut Players<Self, P>,
-        context: &'c mut Context<Self, P>,
-    ) -> PlayResult<&'c Outcome<Sim, Self::Move, Self::Utility, P>, Self, P> {
-        let profile = PerPlayer::generate(|i| {
-            context.set_current_player(i);
-            players[i].next_move(context)
-        });
-        context.unset_current_player();
-
-        for i in PlayerIndex::all_indexes() {
-            if !self.is_valid_move(i, profile[i]) {
-                return Err(PlayErrorInContext::new(
-                    context.clone(),
-                    PlayError::InvalidMove(i, profile[i]),
-                ));
-            }
-        }
-
-        Ok(context.complete(Outcome::new(profile, self.payoff(profile))))
-    }
-
-    /// Play a game once with the given players, returning the outcome if successful.
-    fn play_once(
-        &self,
-        players: &mut Players<Self, P>,
-    ) -> PlayResult<Outcome<Sim, Self::Move, Self::Utility, P>, Self, P> {
-        let mut context = Context::new(());
-        let outcome = self.play_in_context(players, &mut context)?;
-        Ok(outcome.clone())
-    }
-
-    /// Play a given number of iterations of a game with the given players, starting from the
-    /// initial state. Return the final context if successful.
-    fn play_repeatedly(
-        &self,
-        iterations: u32,
-        players: &mut Players<Self, P>,
-    ) -> PlayResult<Context<Self, P>, Self, P> {
-        let mut context = Context::new(());
-        for _ in 0..iterations {
-            self.play_in_context(players, &mut context)?;
-        }
-        Ok(context)
-    }
+        context: &Context<Self, P>,
+        profile: Profile<Self::Move, P>,
+    ) -> Payoff<Self::Utility, P>;
 }
+
+/// A trait implemented by sequential games, enabling them to be played via the
+/// [`Playable`](crate::Playable) trait.
+pub trait Sequential<const P: usize>: Game<P, Kind = Seq> {}
