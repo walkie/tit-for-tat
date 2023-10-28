@@ -125,7 +125,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// # Errors
     ///
-    /// The resulting game will log an error and return a [zero payoff](crate::Payoff::zeros) for
+    /// The resulting game will log an error and return a [zero payoff](Payoff::zeros) for
     /// any profile not contained in the map.
     pub fn from_payoff_map(
         moves: PerPlayer<Vec<M>, P>,
@@ -380,13 +380,13 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     }
 
     /// Is this a valid move for the given player?
-    fn is_valid_move_for_player(&self, player: PlayerIndex<P>, the_move: M) -> bool {
+    pub fn is_valid_move_for_player(&self, player: PlayerIndex<P>, the_move: M) -> bool {
         self.moves[player].contains(&the_move)
     }
 
     /// Is this a valid strategy profile? A profile is valid if each move is valid for the
     /// corresponding player.
-    fn is_valid_profile(&self, profile: Profile<M, P>) -> bool {
+    pub fn is_valid_profile(&self, profile: Profile<M, P>) -> bool {
         PlayerIndex::all_indexes()
             .all(|player| self.is_valid_move_for_player(player, profile[player]))
     }
@@ -394,7 +394,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// Get the payoff for the given strategy profile.
     ///
     /// This method may return an arbitrary payoff if given an
-    /// [invalid profile](crate::Normal::is_valid_profile).
+    /// [invalid profile](Normal::is_valid_profile).
     pub fn payoff(&self, profile: Profile<M, P>) -> Payoff<U, P> {
         (*self.payoff_fn)(profile)
     }
@@ -628,7 +628,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// Get all dominated move relationships for the given player. If a move is dominated by
     /// multiple different moves, it will contain multiple entries in the returned vector.
     ///
-    /// See the documentation for [`Dominated`](crate::Dominated) for more info.
+    /// See the documentation for [`Dominated`] for more info.
     ///
     /// # Examples
     /// ```

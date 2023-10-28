@@ -3,10 +3,10 @@ use crate::{
     Simultaneous, Strategy,
 };
 
-/// A [per-player](crate::PerPlayer) collection of [players](Player), ready to play a game.
+/// A [per-player](PerPlayer) collection of [players](Player), ready to play a game.
 pub type Players<G, const P: usize> = PerPlayer<Player<G, P>, P>;
 
-/// A player consists of a name and a [strategy](crate::Strategy).
+/// A player consists of a name and a [strategy](Strategy).
 ///
 /// A player's name should usually be unique with respect to all players playing the same game.
 pub struct Player<G: Game<P>, const P: usize> {

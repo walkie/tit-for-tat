@@ -12,8 +12,8 @@ pub trait Kind: Sealed + Clone + Copy + Debug + Eq + PartialEq + Hash {
     /// The type used to represent a record of moves played in this kind of game.
     ///
     /// This will be:
-    /// - [`Profile`](crate::Profile) for simultaneous games
-    /// - [`Transcript`](crate::Transcript) for sequential games
+    /// - [`Profile`] for simultaneous games
+    /// - [`Transcript`] for sequential games
     type Record<M: Move, const P: usize>: Clone + Debug + PartialEq + Hash + Sized;
 
     /// Is this a sequential game?

@@ -12,7 +12,7 @@ use crate::{Kind, Move, Payoff, PlayerIndex, Profile, ProfileIter, Sim, Utility}
 pub struct Outcome<K: Kind, M: Move, U: Utility, const P: usize> {
     /// A record of the moves that produced (or would produce) this outcome.
     ///
-    /// For simultaneous games, this will be a [profile](crate::Profile) containing one move for
+    /// For simultaneous games, this will be a [profile](Profile) containing one move for
     /// each player. For sequential games, it will be a [transcript](crate::Transcript) of all moves
     /// played in the game.
     pub record: K::Record<M, P>,
@@ -63,7 +63,7 @@ impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
     /// [`exclude`](OutcomeIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
-    /// See the documentation for [`ProfileIter::include`](crate::ProfileIter::include) for
+    /// See the documentation for [`ProfileIter::include`](ProfileIter::include) for
     /// examples and more info.
     pub fn include(self, player: PlayerIndex<P>, the_move: M) -> Self {
         OutcomeIter {
@@ -81,7 +81,7 @@ impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
     /// [`exclude`](OutcomeIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
-    /// See the documentation for [`ProfileIter::exclude`](crate::ProfileIter::exclude) for
+    /// See the documentation for [`ProfileIter::exclude`](ProfileIter::exclude) for
     /// examples and more info.
     pub fn exclude(self, player: PlayerIndex<P>, the_move: M) -> Self {
         OutcomeIter {
@@ -99,7 +99,7 @@ impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
     /// Note that this doesn't correspond to adjacency in the payoff table, but rather an entire
     /// row or column, minus the provided profile.
     ///
-    /// See the documentation for [`ProfileIter::adjacent`](crate::ProfileIter::adjacent)
+    /// See the documentation for [`ProfileIter::adjacent`](ProfileIter::adjacent)
     /// for examples and more info.
     pub fn adjacent(self, player: PlayerIndex<P>, profile: Profile<M, P>) -> Self {
         OutcomeIter {
