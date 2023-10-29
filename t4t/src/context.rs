@@ -1,4 +1,4 @@
-use crate::{Game, History, Outcome, Payoff, PlayerIndex, Transcript};
+use crate::{Game, History, Kind, Outcome, Payoff, PlayerIndex, Transcript};
 use std::fmt::Debug;
 
 /// The strategic context in which a player makes a move during a repeated game.
@@ -9,13 +9,13 @@ use std::fmt::Debug;
 /// moves played so far in the current iteration.
 pub struct Context<G: Game<P>, const P: usize> {
     current_player: Option<PlayerIndex<P>>,
-    game_state: Option<G::State>,
+    game_state: Option<<G::Kind as Kind>::State>,
     in_progress: Transcript<G::Move, P>,
     history: History<G::Kind, G::Move, G::Utility, P>,
 }
 
 impl<G: Game<P>, const P: usize> Context<G, P> {
-    pub fn new(init_state: G::State) -> Self {
+    pub fn new(init_state: <G::Kind as Kind>::State) -> Self {
         Context {
             current_player: None,
             game_state: Some(init_state),
@@ -32,13 +32,13 @@ impl<G: Game<P>, const P: usize> Context<G, P> {
         self.current_player = None;
     }
 
-    pub fn set_game_state(&mut self, state: G::State) {
+    pub fn set_game_state(&mut self, state: <G::Kind as Kind>::State) {
         self.game_state = Some(state);
     }
 
     pub fn update_game_state<F>(&mut self, update: F)
     where
-        F: FnOnce(G::State) -> Option<G::State>,
+        F: FnOnce(<G::Kind as Kind>::State) -> Option<<G::Kind as Kind>::State>,
     {
         if let Some(state) = Option::take(&mut self.game_state) {
             self.game_state = update(state);
@@ -56,7 +56,7 @@ impl<G: Game<P>, const P: usize> Context<G, P> {
         self.current_player
     }
 
-    pub fn game_state(&self) -> Option<&G::State> {
+    pub fn game_state(&self) -> Option<&<G::Kind as Kind>::State> {
         self.game_state.as_ref()
     }
 
@@ -73,8 +73,8 @@ impl<G: Game<P>, const P: usize> Context<G, P> {
     }
 }
 
-// Unfortunately, we have to manually implement the following traits because the derived instances
-// assume that the game type `G` must also satisfy the traits, which isn't necessary.
+// Unfortunately, we have to manually implement the following traits because Rust can't determine
+// proper trait bounds in the presence of associated types.
 
 impl<G: Game<P>, const P: usize> Clone for Context<G, P> {
     fn clone(&self) -> Self {
@@ -87,8 +87,6 @@ impl<G: Game<P>, const P: usize> Clone for Context<G, P> {
     }
 }
 
-// Implement this manually because the derived implementation incorrectly thinks that `G` must
-// implement `Debug`.
 impl<G: Game<P>, const P: usize> Debug for Context<G, P> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Context")

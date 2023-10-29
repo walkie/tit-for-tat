@@ -58,13 +58,12 @@ pub struct Normal<M, U, const P: usize> {
 
 impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type Kind = Sim;
-    type State = ();
     type Move = M;
     type Utility = U;
 
-    fn initial_state(&self) -> Self::State {}
+    fn initial_state(&self) {}
 
-    fn is_valid_move_in_context(&self, context: &Context<Self, P>, the_move: Self::Move) -> bool {
+    fn is_valid_move_in_context(&self, context: &Context<Self, P>, the_move: M) -> bool {
         match context.current_player() {
             Some(player) => self.is_valid_move_for_player(player, the_move),
             None => {

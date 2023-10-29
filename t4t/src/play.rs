@@ -37,6 +37,7 @@ impl<G: Game<P>, const P: usize> Player<G, P> {
 pub trait Playable<const P: usize>: Game<P> {
     /// Play an iteration of the game to completion in the given context. Update the context and
     /// return the outcome if successful.
+    #[allow(clippy::type_complexity)]
     fn play_in_context<'c>(
         &self,
         players: &mut Players<Self, P>,
@@ -44,6 +45,7 @@ pub trait Playable<const P: usize>: Game<P> {
     ) -> PlayResult<&'c Outcome<Self::Kind, Self::Move, Self::Utility, P>, Self, P>;
 
     /// Play a game once with the given players, returning the outcome if successful.
+    #[allow(clippy::type_complexity)]
     fn play_once(
         &self,
         players: &mut Players<Self, P>,

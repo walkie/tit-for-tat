@@ -1,21 +1,9 @@
-use std::fmt::Debug;
-
 use crate::{Context, Kind, Move, Payoff, Profile, Seq, Sim, Utility};
 
 /// A root trait that all games implement, mostly used for its associated types.
 pub trait Game<const P: usize>: Sized {
-    /// Type that indicates whether the game is simultaneous ([`Sim`]) or
-    /// sequential ([`Seq`]).
+    /// Type that indicates whether the game is simultaneous ([`Sim`]) or seqeuntial ([`Seq`]).
     type Kind: Kind;
-
-    /// The type of intermediate state used to support the execution of a single iteration of the
-    /// game.
-    ///
-    /// For [simultaneous](crate::Simultaneous) and [normal-form](crate::Normal) games, this will
-    /// be `()`, since no intermediate state is required. For [extensive-form](Extensive) games,
-    /// the state will be the location in the game tree. For state-based games, the state type
-    /// will be whatever state is used to define the game.
-    type State: Clone + Debug + PartialEq;
 
     /// The type of moves played by players in this game.
     type Move: Move;
@@ -24,7 +12,7 @@ pub trait Game<const P: usize>: Sized {
     type Utility: Utility;
 
     /// The initial game state.
-    fn initial_state(&self) -> Self::State;
+    fn initial_state(&self) -> <Self::Kind as Kind>::State;
 
     /// Is this a valid move in the given context?
     fn is_valid_move_in_context(&self, context: &Context<Self, P>, the_move: Self::Move) -> bool;
@@ -47,11 +35,10 @@ pub trait Game<const P: usize>: Sized {
 
 /// A trait implemented by simultaneous games, enabling them to be played via the
 /// [`Playable`](crate::Playable) trait.
-pub trait Simultaneous<const P: usize>: Game<P, Kind = Sim, State = ()> {
+pub trait Simultaneous<const P: usize>: Game<P, Kind = Sim> {
     /// Get the payoff for the given strategy profile in the given context.
     ///
-    /// This method may return an arbitrary payoff if given an
-    /// [invalid profile](Simultaneous::is_valid_profile).
+    /// This method may return an arbitrary payoff if given a profile containing an invalid move.
     fn payoff_in_context(
         &self,
         context: &Context<Self, P>,
@@ -61,4 +48,4 @@ pub trait Simultaneous<const P: usize>: Game<P, Kind = Sim, State = ()> {
 
 /// A trait implemented by sequential games, enabling them to be played via the
 /// [`Playable`](crate::Playable) trait.
-pub trait Sequential<const P: usize>: Game<P, Kind = Seq> {}
+pub trait Sequential<S, const P: usize>: Game<P, Kind = Seq<S>> {}
