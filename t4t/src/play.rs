@@ -1,6 +1,6 @@
 use crate::{
-    Context, Game, Outcome, PerPlayer, PlayError, PlayErrorInContext, PlayResult, PlayerIndex, Sim,
-    Simultaneous, Strategy,
+    Action, Context, Game, Kind, Outcome, PerPlayer, PlayError, PlayErrorInContext, PlayResult,
+    PlayerIndex, Seq, Sequential, Sim, Simultaneous, Strategy,
 };
 
 /// A [per-player](PerPlayer) collection of [players](Player), ready to play a game.
@@ -34,7 +34,7 @@ impl<G: Game<P>, const P: usize> Player<G, P> {
     }
 }
 
-pub trait Playable<const P: usize>: Game<P> {
+pub trait Playable<K: Kind, const P: usize>: Game<P, Kind = K> {
     /// Play an iteration of the game to completion in the given context. Update the context and
     /// return the outcome if successful.
     #[allow(clippy::type_complexity)]
@@ -42,14 +42,14 @@ pub trait Playable<const P: usize>: Game<P> {
         &self,
         players: &mut Players<Self, P>,
         context: &'c mut Context<Self, P>,
-    ) -> PlayResult<&'c Outcome<Self::Kind, Self::Move, Self::Utility, P>, Self, P>;
+    ) -> PlayResult<&'c Outcome<K, Self::Move, Self::Utility, P>, Self, P>;
 
     /// Play a game once with the given players, returning the outcome if successful.
     #[allow(clippy::type_complexity)]
     fn play_once(
         &self,
         players: &mut Players<Self, P>,
-    ) -> PlayResult<Outcome<Self::Kind, Self::Move, Self::Utility, P>, Self, P> {
+    ) -> PlayResult<Outcome<K, Self::Move, Self::Utility, P>, Self, P> {
         let mut context = Context::new(Self::initial_state(self));
         let outcome = self.play_in_context(players, &mut context)?;
         Ok(outcome.clone())
@@ -70,7 +70,7 @@ pub trait Playable<const P: usize>: Game<P> {
     }
 }
 
-impl<G: Simultaneous<P>, const P: usize> Playable<P> for G {
+impl<G: Simultaneous<P>, const P: usize> Playable<Sim, P> for G {
     fn play_in_context<'c>(
         &self,
         players: &mut Players<Self, P>,
@@ -95,7 +95,44 @@ impl<G: Simultaneous<P>, const P: usize> Playable<P> for G {
         context.unset_current_player();
 
         // compute the payoff, update the game state, and return the outcome
-        let payoff = self.payoff_in_context(context, profile);
+        let payoff = self.payoff_in_context(profile, context);
         Ok(context.complete(Outcome::new(profile, payoff)))
+    }
+}
+
+impl<G: Sequential<P>, const P: usize> Playable<Seq, P> for G {
+    fn play_in_context<'c>(
+        &self,
+        players: &mut Players<Self, P>,
+        context: &'c mut Context<Self, P>,
+    ) -> PlayResult<&'c Outcome<Seq, Self::Move, Self::Utility, P>, Self, P> {
+        let mut state = self.initial_state();
+        let mut action = self.initial_action();
+        loop {
+            match &action {
+                Action::Turns {
+                    players: to_move,
+                    next,
+                } => {
+                    let mut moves = Vec::with_capacity(to_move.len());
+                    for &player in to_move {
+                        context.set_current_player(player);
+                        let the_move = players[player].next_move(context);
+                        if !self.is_valid_move_in_context(context, the_move) {
+                            return Err(PlayErrorInContext::new(
+                                context.clone(),
+                                PlayError::InvalidMove(player, the_move),
+                            ));
+                        }
+                        moves.push(the_move);
+                        context.in_progress().add_player_move(player, the_move);
+                        context.unset_current_player();
+                    }
+                    action = next(context, moves);
+                }
+                Action::Chance { distribution, next } => {}
+                Action::Payoff { payoff, next } => {}
+            }
+        }
     }
 }

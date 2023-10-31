@@ -1,5 +1,6 @@
-use crate::{Game, History, Kind, Outcome, Payoff, PlayerIndex, Transcript};
+use crate::{Game, History, Move, Outcome, Payoff, PlayerIndex, State, Transcript, Utility};
 use std::fmt::Debug;
+use std::mem;
 
 /// The strategic context in which a player makes a move during a repeated game.
 ///
@@ -7,39 +8,40 @@ use std::fmt::Debug;
 /// for a repeated game may use to compute its next move. It includes the history of past games
 /// played, the game state of the current iteration, and (for sequential games) the transcript of
 /// moves played so far in the current iteration.
-pub struct Context<G: Game<P>, const P: usize> {
+pub struct Context<S, M, U, const P: usize> {
     current_player: Option<PlayerIndex<P>>,
-    game_state: Option<<G::Kind as Kind>::State>,
-    in_progress: Transcript<G::Move, P>,
-    history: History<G::Kind, G::Move, G::Utility, P>,
+    game_state: Option<S>,
+    transcript: Transcript<M, P>,
+    score: Payoff<U, P>,
 }
 
-impl<G: Game<P>, const P: usize> Context<G, P> {
-    pub fn new(init_state: <G::Kind as Kind>::State) -> Self {
+impl<S: State, M: Move, U: Utility, const P: usize> Context<S, M, U, P> {
+    pub(crate) fn new(initial_state: S) -> Self {
         Context {
             current_player: None,
-            game_state: Some(init_state),
-            in_progress: Transcript::new(),
-            history: History::new(),
+            game_state: Some(initial_state),
+            transcript: Transcript::new(),
+            score: Payoff::zeros(),
         }
     }
 
-    pub fn set_current_player(&mut self, player: PlayerIndex<P>) {
+    pub(crate) fn set_current_player(&mut self, player: PlayerIndex<P>) {
         self.current_player = Some(player);
     }
 
-    pub fn unset_current_player(&mut self) {
+    pub(crate) fn unset_current_player(&mut self) {
         self.current_player = None;
     }
 
-    pub fn set_game_state(&mut self, state: <G::Kind as Kind>::State) {
+    pub(crate) fn set_game_state(&mut self, state: S) {
         self.game_state = Some(state);
     }
 
-    pub fn update_game_state<F>(&mut self, update: F)
-    where
-        F: FnOnce(<G::Kind as Kind>::State) -> Option<<G::Kind as Kind>::State>,
-    {
+    pub(crate) fn take_game_state(&mut self) -> Option<S> {
+        mem::replace(&mut self.game_state, None)
+    }
+
+    pub(crate) fn update_game_state(&mut self, update: impl FnOnce(S) -> Option<S>) {
         if let Some(state) = Option::take(&mut self.game_state) {
             self.game_state = update(state);
         }
@@ -56,7 +58,7 @@ impl<G: Game<P>, const P: usize> Context<G, P> {
         self.current_player
     }
 
-    pub fn game_state(&self) -> Option<&<G::Kind as Kind>::State> {
+    pub fn game_state(&self) -> Option<&G::State> {
         self.game_state.as_ref()
     }
 

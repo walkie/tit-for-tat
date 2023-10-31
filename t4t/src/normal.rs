@@ -58,6 +58,7 @@ pub struct Normal<M, U, const P: usize> {
 
 impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type Kind = Sim;
+    type State = ();
     type Move = M;
     type Utility = U;
 
@@ -77,8 +78,8 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
 impl<M: Move, U: Utility, const P: usize> Simultaneous<P> for Normal<M, U, P> {
     fn payoff_in_context(
         &self,
-        _context: &Context<Self, P>,
         profile: Profile<Self::Move, P>,
+        _context: &Context<Self, P>,
     ) -> Payoff<Self::Utility, P> {
         self.payoff(profile)
     }

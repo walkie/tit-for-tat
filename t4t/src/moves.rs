@@ -7,6 +7,7 @@ use std::hash::Hash;
 /// A blanket implementation covers all types that meet the requirements, so this trait should not
 /// be implemented directly.
 pub trait Move: Copy + Debug + Eq + PartialEq + Hash + Sized + 'static {}
+
 impl<T: Copy + Debug + Eq + Hash + 'static> Move for T {}
 
 /// An iterator over available moves in a game with a finite move set.

@@ -2,6 +2,7 @@ mod internal {
     pub trait Sealed {}
 }
 
+pub(crate) mod action;
 pub(crate) mod context;
 pub(crate) mod distribution;
 pub(crate) mod dominated;
@@ -21,6 +22,7 @@ pub(crate) mod strategy;
 pub(crate) mod transcript;
 // pub(crate) mod tree;
 
+pub use action::*;
 pub use context::*;
 pub use distribution::*;
 pub use dominated::*;
