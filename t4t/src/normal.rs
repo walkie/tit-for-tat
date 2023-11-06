@@ -5,8 +5,8 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::{
-    Context, Dominated, Game, Move, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
-    ProfileIter, Sim, Simultaneous, Strategic, Utility,
+    Dominated, Game, Move, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
+    ProfileIter, Strategic, Turn, Utility,
 };
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
@@ -57,31 +57,21 @@ pub struct Normal<M, U, const P: usize> {
 }
 
 impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
-    type Kind = Sim;
     type State = ();
+    type View = ();
     type Move = M;
     type Utility = U;
 
-    fn initial_state(&self) {}
+    fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
 
-    fn is_valid_move_in_context(&self, context: &Context<Self, P>, the_move: M) -> bool {
-        match context.current_player() {
-            Some(player) => self.is_valid_move_for_player(player, the_move),
-            None => {
-                log::error!("Normal::is_valid_move_in_context: current_player is not set");
-                false
-            }
-        }
+    fn is_valid_move(&self, _state: &(), player: PlayerIndex<P>, the_move: M) -> bool {
+        self.is_valid_move_for_player(player, the_move)
     }
-}
 
-impl<M: Move, U: Utility, const P: usize> Simultaneous<P> for Normal<M, U, P> {
-    fn payoff_in_context(
-        &self,
-        profile: Profile<Self::Move, P>,
-        _context: &Context<Self, P>,
-    ) -> Payoff<Self::Utility, P> {
-        self.payoff(profile)
+    fn rules(&self) -> Self::Turn<Self, P> {
+        Turn::all_players((), |_, profile| {
+            Turn::terminal_payoff((), self.payoff(profile))
+        })
     }
 }
 
@@ -334,7 +324,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         let payoff_fn = move |profile: Profile<M, P>| {
             // get the profile's move indexes
             let mut move_indexes = [0; P];
-            for p in PlayerIndex::all_indexes() {
+            for p in PlayerIndex::all() {
                 let the_move = profile[p];
                 if let Some(i) = move_index_map.get(&the_move).copied() {
                     move_indexes[p.as_usize()] = i;
@@ -387,8 +377,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// Is this a valid strategy profile? A profile is valid if each move is valid for the
     /// corresponding player.
     pub fn is_valid_profile(&self, profile: Profile<M, P>) -> bool {
-        PlayerIndex::all_indexes()
-            .all(|player| self.is_valid_move_for_player(player, profile[player]))
+        PlayerIndex::all().all(|player| self.is_valid_move_for_player(player, profile[player]))
     }
 
     /// Get the payoff for the given strategy profile.
@@ -545,8 +534,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// assert!(hunt.is_stable(dd));
     /// ```
     pub fn is_stable(&self, profile: Profile<M, P>) -> bool {
-        PlayerIndex::all_indexes()
-            .all(|player| self.unilaterally_improve(player, profile).is_none())
+        PlayerIndex::all().all(|player| self.unilaterally_improve(player, profile).is_none())
     }
 
     /// All pure [Nash equilibria](https://en.wikipedia.org/wiki/Nash_equilibrium) solutions of a

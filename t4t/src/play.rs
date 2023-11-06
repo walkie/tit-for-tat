@@ -1,6 +1,6 @@
 use crate::{
-    Action, Context, Game, Kind, Outcome, PerPlayer, PlayError, PlayErrorInContext, PlayResult,
-    PlayerIndex, Seq, Sequential, Sim, Simultaneous, Strategy,
+    Context, Game, Outcome, PerPlayer, PlayError, PlayErrorInContext, PlayResult, PlayerIndex,
+    Sequential, Simultaneous, Strategy,
 };
 
 /// A [per-player](PerPlayer) collection of [players](Player), ready to play a game.

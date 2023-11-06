@@ -120,7 +120,7 @@ impl<T, const P: usize> PerPlayer<T, P> {
     /// assert_eq!(squares[for5::P4], 16);
     /// ```
     pub fn generate<F: FnMut(PlayerIndex<P>) -> T>(gen_elem: F) -> Self {
-        let indexes: [PlayerIndex<P>; P] = PlayerIndex::all_indexes()
+        let indexes: [PlayerIndex<P>; P] = PlayerIndex::all()
             .collect::<Vec<PlayerIndex<P>>>()
             .try_into()
             .unwrap();
@@ -232,7 +232,7 @@ impl<T: Clone, const P: usize> PerPlayer<T, P> {
     /// assert_eq!(nths, PerPlayer::new(['f', 'a', 'r', 'p']));
     /// ```
     pub fn map_with_index<U, F: Fn(PlayerIndex<P>, T) -> U>(&self, f: F) -> PerPlayer<U, P> {
-        let mut indexes = PlayerIndex::all_indexes();
+        let mut indexes = PlayerIndex::all();
         PerPlayer::new(self.data.clone().map(move |elem| {
             let index = indexes.next().unwrap();
             f(index, elem)
@@ -378,14 +378,14 @@ impl<const P: usize> PlayerIndex<P> {
     /// use t4t::{for3, for5, PlayerIndex};
     ///
     /// assert_eq!(
-    ///     PlayerIndex::all_indexes().collect::<Vec<PlayerIndex<3>>>(),
+    ///     PlayerIndex::all().collect::<Vec<PlayerIndex<3>>>(),
     ///     vec![for3::P0, for3::P1, for3::P2]
     /// );
     /// assert_eq!(
-    ///     PlayerIndex::all_indexes().collect::<Vec<PlayerIndex<5>>>(),
+    ///     PlayerIndex::all().collect::<Vec<PlayerIndex<5>>>(),
     ///     vec![for5::P0, for5::P1, for5::P2, for5::P3, for5::P4]
     /// );
-    pub fn all_indexes() -> PlayerIndexes<P> {
+    pub fn all() -> PlayerIndexes<P> {
         PlayerIndexes::new()
     }
 }

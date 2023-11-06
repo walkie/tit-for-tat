@@ -311,7 +311,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     /// ```
     pub fn adjacent(self, player: PlayerIndex<P>, profile: Profile<M, P>) -> Self {
         let mut iter = self;
-        for i in PlayerIndex::all_indexes() {
+        for i in PlayerIndex::all() {
             if i == player {
                 iter = iter.exclude(i, profile[i]);
             } else {
@@ -329,7 +329,7 @@ impl<'g, M: Move, const P: usize> Iterator for ProfileIter<'g, M, P> {
         for moves in self.multi_iter.by_ref() {
             let profile = PerPlayer::new(moves.try_into().unwrap());
             let mut good = true;
-            for player in PlayerIndex::all_indexes() {
+            for player in PlayerIndex::all() {
                 let m = profile[player];
                 if self.excludes[player].contains(&m)
                     || !self.includes[player].is_empty() && !self.includes[player].contains(&m)

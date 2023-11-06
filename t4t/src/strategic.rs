@@ -124,8 +124,7 @@ impl<M: Move, U: Utility, const P: usize> Strategic<M, U, P> {
     /// Is this a valid strategy profile? A profile is valid if each move is valid for the
     /// corresponding player.
     pub fn is_valid_profile(&self, profile: Profile<M, P>) -> bool {
-        PlayerIndex::all_indexes()
-            .all(|player| self.is_valid_move_for_player(player, profile[player]))
+        PlayerIndex::all().all(|player| self.is_valid_move_for_player(player, profile[player]))
     }
 
     /// Get the payoff for the given strategy profile.
