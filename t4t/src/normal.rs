@@ -5,7 +5,7 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::{
-    Dominated, Game, Move, MoveIter, OutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
+    Dominated, Game, Move, MoveIter, NormalOutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
     ProfileIter, Strategic, Turn, Utility,
 };
 
@@ -411,8 +411,8 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     }
 
     /// An iterator over all possible outcomes of the game.
-    pub fn outcomes(&self) -> OutcomeIter<'_, M, U, P> {
-        OutcomeIter::new(self.profiles(), self.payoff_fn.clone())
+    pub fn outcomes(&self) -> NormalOutcomeIter<'_, M, U, P> {
+        NormalOutcomeIter::new(self.profiles(), self.payoff_fn.clone())
     }
 
     /// Is this game zero-sum? In a zero-sum game, the utility values of each payoff sum to zero.

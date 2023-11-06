@@ -1,6 +1,4 @@
-use crate::{
-    Context, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Sim, Simultaneous, Utility,
-};
+use crate::{Context, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Utility};
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.

@@ -1,32 +1,93 @@
 use std::rc::Rc;
 
-use crate::{Kind, Move, Payoff, PlayerIndex, Profile, ProfileIter, Sim, Utility};
+use crate::{Move, Payoff, PlayerIndex, PlyIter, Profile, ProfileIter, Transcript, Utility};
+
+pub trait MoveRecord<M: Move, const P: usize> {
+    fn to_iter(&self) -> PlyIter<M, P>;
+
+    fn to_transcript(&self) -> Transcript<M, P> {
+        self.to_iter().to_transcript()
+    }
+}
 
 /// A (potential) outcome of a game. A payoff combined with a record of the moves that produced it.
 ///
+/// TODO: List example instances
 /// For normal-form games, an outcome corresponds to a cell in the payoff table. The profile is the
 /// address of the cell and the payoff is its value.
 ///
 /// For extensive-form games, an outcome corresponds to a path through the game tree.
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Outcome<K: Kind, M: Move, U: Utility, const P: usize> {
-    /// A record of the moves that produced (or would produce) this outcome.
+pub trait Outcome<M: Move, U: Utility, const P: usize> {
+    /// A type for capturing the record of moves that produced (or would produce) this outcome.
     ///
-    /// For simultaneous games, this will be a [profile](Profile) containing one move for
-    /// each player. For sequential games, it will be a [transcript](crate::Transcript) of all moves
-    /// played in the game.
-    pub record: K::Record<M, P>,
+    /// For simultaneous games, this will be a [profile](Profile) containing one move for each
+    /// player. For sequential games, it will be a [transcript](Transcript) of all moves played in
+    /// the game.
+    type Record: MoveRecord<M, P>;
+
+    /// A record of the moves that produced this outcome.
+    fn record(&self) -> &Self::Record;
 
     /// The payoff associated with this outcome.
-    pub payoff: Payoff<U, P>,
+    fn payoff(&self) -> &Payoff<U, P>;
 }
 
-impl<K: Kind, M: Move, U: Utility, const P: usize> Outcome<K, M, U, P> {
-    pub fn new(record: K::Record<M, P>, payoff: Payoff<U, P>) -> Self {
-        Outcome { record, payoff }
+/// A (potential) outcome of a simultaneous game. The profile of moves played by each player and
+/// the resulting payoff.
+///
+/// For normal-form games, an outcome corresponds to a cell in the payoff table. The profile is the
+/// address of the cell and the payoff is its value.
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub struct SimultaneousOutcome<M: Move, U: Utility, const P: usize> {
+    profile: Profile<M, P>,
+    payoff: Payoff<U, P>,
+}
+
+impl<M: Move, U: Utility, const P: usize> SimultaneousOutcome<M, U, P> {
+    pub fn new(profile: Profile<M, P>, payoff: Payoff<U, P>) -> Self {
+        SimultaneousOutcome { profile, payoff }
     }
 
-    pub fn payoff(&self) -> &Payoff<U, P> {
+    pub fn profile(&self) -> &Profile<M, P> {
+        &self.profile
+    }
+}
+
+impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> for SimultaneousOutcome<M, U, P> {
+    type Record = Profile<M, P>;
+
+    fn record(&self) -> &Profile<M, P> {
+        &self.profile
+    }
+
+    fn payoff(&self) -> &Payoff<U, P> {
+        &self.payoff
+    }
+}
+
+pub struct SequentialOutcome<M: Move, U: Utility, const P: usize> {
+    transcript: Transcript<M, P>,
+    payoff: Payoff<U, P>,
+}
+
+impl<M: Move, U: Utility, const P: usize> SequentialOutcome<M, U, P> {
+    pub fn new(transcript: Transcript<M, P>, payoff: Payoff<U, P>) -> Self {
+        SequentialOutcome { transcript, payoff }
+    }
+
+    pub fn transcript(&self) -> &Transcript<M, P> {
+        &self.transcript
+    }
+}
+
+impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> for SequentialOutcome<M, U, P> {
+    type Record = Transcript<M, P>;
+
+    fn record(&self) -> &Transcript<M, P> {
+        &self.transcript
+    }
+
+    fn payoff(&self) -> &Payoff<U, P> {
         &self.payoff
     }
 }
@@ -36,18 +97,18 @@ impl<K: Kind, M: Move, U: Utility, const P: usize> Outcome<K, M, U, P> {
 /// This enumerates the cells of the payoff table in
 /// [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
 #[derive(Clone)]
-pub struct OutcomeIter<'g, M: Move, U: Utility, const P: usize> {
+pub struct NormalOutcomeIter<'g, M: Move, U: Utility, const P: usize> {
     profile_iter: ProfileIter<'g, M, P>,
     payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + 'g>,
 }
 
-impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
+impl<'g, M: Move, U: Utility, const P: usize> NormalOutcomeIter<'g, M, U, P> {
     /// Construct a new outcome iterator given an iterator over profiles and a payoff function.
     pub fn new(
         profile_iter: ProfileIter<'g, M, P>,
         payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + 'g>,
     ) -> Self {
-        OutcomeIter {
+        NormalOutcomeIter {
             profile_iter,
             payoff_fn,
         }
@@ -59,14 +120,14 @@ impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
     /// If the move is not a valid move for that player, then the resulting iterator will not
     /// generate any profiles.
     ///
-    /// Multiple invocations of [`include`](OutcomeIter::include) and
-    /// [`exclude`](OutcomeIter::exclude) can be chained together to add several constraints to
+    /// Multiple invocations of [`include`](NormalOutcomeIter::include) and
+    /// [`exclude`](NormalOutcomeIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
     /// See the documentation for [`ProfileIter::include`](ProfileIter::include) for
     /// examples and more info.
     pub fn include(self, player: PlayerIndex<P>, the_move: M) -> Self {
-        OutcomeIter {
+        NormalOutcomeIter {
             profile_iter: self.profile_iter.include(player, the_move),
             ..self
         }
@@ -77,14 +138,14 @@ impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
     ///
     /// If the move is not a valid move for that player, then this method will have no effect.
     ///
-    /// Multiple invocations of [`include`](OutcomeIter::include) and
-    /// [`exclude`](OutcomeIter::exclude) can be chained together to add several constraints to
+    /// Multiple invocations of [`include`](NormalOutcomeIter::include) and
+    /// [`exclude`](NormalOutcomeIter::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
     /// See the documentation for [`ProfileIter::exclude`](ProfileIter::exclude) for
     /// examples and more info.
     pub fn exclude(self, player: PlayerIndex<P>, the_move: M) -> Self {
-        OutcomeIter {
+        NormalOutcomeIter {
             profile_iter: self.profile_iter.exclude(player, the_move),
             ..self
         }
@@ -102,15 +163,15 @@ impl<'g, M: Move, U: Utility, const P: usize> OutcomeIter<'g, M, U, P> {
     /// See the documentation for [`ProfileIter::adjacent`](ProfileIter::adjacent)
     /// for examples and more info.
     pub fn adjacent(self, player: PlayerIndex<P>, profile: Profile<M, P>) -> Self {
-        OutcomeIter {
+        NormalOutcomeIter {
             profile_iter: self.profile_iter.adjacent(player, profile),
             ..self
         }
     }
 }
 
-impl<'g, M: Move, U: Utility, const P: usize> Iterator for OutcomeIter<'g, M, U, P> {
-    type Item = Outcome<Sim, M, U, P>;
+impl<'g, M: Move, U: Utility, const P: usize> Iterator for NormalOutcomeIter<'g, M, U, P> {
+    type Item = SimultaneousOutcome<M, U, P>;
     fn next(&mut self) -> Option<Self::Item> {
         self.profile_iter.next().map(|profile| {
             let payoff = (*self.payoff_fn)(profile);
