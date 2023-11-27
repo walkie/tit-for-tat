@@ -4,7 +4,7 @@ use itertools::structs::MultiProduct;
 use itertools::Itertools;
 use std::iter::Iterator;
 
-use crate::{Move, MoveIter, PerPlayer, PlayerIndex, Ply, Transcript};
+use crate::{Move, MoveIter, MoveRecord, PerPlayer, PlayerIndex, Ply, PlyIter, Transcript};
 
 /// A pure strategy profile for a simultaneous game: one move played by each player.
 pub type Profile<M, const P: usize> = PerPlayer<M, P>;
@@ -16,14 +16,11 @@ impl<M: Move, const P: usize> Profile<M, P> {
     pub fn from_transcript(transcript: Transcript<M, P>) -> Option<Self> {
         transcript.to_profile()
     }
+}
 
-    /// Convert this profile into a transcript.
-    pub fn to_transcript(&self) -> Transcript<M, P> {
-        let moves = self
-            .map_with_index(|p, m| Ply::player(p, m))
-            .into_iter()
-            .collect();
-        Transcript::from_played_moves(moves)
+impl<M: Move, const P: usize> MoveRecord<M, P> for Profile<M, P> {
+    fn to_iter(&self) -> PlyIter<M, P> {
+        PlyIter::new(self.map_with_index(|p, m| Ply::player(p, m)).into_iter())
     }
 }
 

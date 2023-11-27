@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::rc::Rc;
 
 use crate::{Move, Payoff, PlayerIndex, PlyIter, Profile, ProfileIter, Transcript, Utility};
@@ -6,7 +7,7 @@ pub trait MoveRecord<M: Move, const P: usize> {
     fn to_iter(&self) -> PlyIter<M, P>;
 
     fn to_transcript(&self) -> Transcript<M, P> {
-        self.to_iter().to_transcript()
+        self.to_iter().into_transcript()
     }
 }
 
@@ -17,7 +18,7 @@ pub trait MoveRecord<M: Move, const P: usize> {
 /// address of the cell and the payoff is its value.
 ///
 /// For extensive-form games, an outcome corresponds to a path through the game tree.
-pub trait Outcome<M: Move, U: Utility, const P: usize> {
+pub trait Outcome<M: Move, U: Utility, const P: usize>: Clone + Debug + PartialEq {
     /// A type for capturing the record of moves that produced (or would produce) this outcome.
     ///
     /// For simultaneous games, this will be a [profile](Profile) containing one move for each
@@ -37,7 +38,7 @@ pub trait Outcome<M: Move, U: Utility, const P: usize> {
 ///
 /// For normal-form games, an outcome corresponds to a cell in the payoff table. The profile is the
 /// address of the cell and the payoff is its value.
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, PartialEq, Hash)]
 pub struct SimultaneousOutcome<M: Move, U: Utility, const P: usize> {
     profile: Profile<M, P>,
     payoff: Payoff<U, P>,
@@ -50,6 +51,10 @@ impl<M: Move, U: Utility, const P: usize> SimultaneousOutcome<M, U, P> {
 
     pub fn profile(&self) -> &Profile<M, P> {
         &self.profile
+    }
+
+    pub fn payoff(&self) -> &Payoff<U, P> {
+        &self.payoff
     }
 }
 
@@ -65,6 +70,7 @@ impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> for SimultaneousOutco
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Hash)]
 pub struct SequentialOutcome<M: Move, U: Utility, const P: usize> {
     transcript: Transcript<M, P>,
     payoff: Payoff<U, P>,
@@ -175,7 +181,7 @@ impl<'g, M: Move, U: Utility, const P: usize> Iterator for NormalOutcomeIter<'g,
     fn next(&mut self) -> Option<Self::Item> {
         self.profile_iter.next().map(|profile| {
             let payoff = (*self.payoff_fn)(profile);
-            Outcome::new(profile, payoff)
+            SimultaneousOutcome::new(profile, payoff)
         })
     }
 }

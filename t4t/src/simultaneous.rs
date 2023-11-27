@@ -1,4 +1,7 @@
-use crate::{Context, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Utility};
+use crate::{
+    Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, SimultaneousOutcome, Turn, Utility,
+};
+use std::rc::Rc;
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
@@ -34,7 +37,7 @@ use crate::{Context, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Utilit
 /// let payoff = |profile: Profile<i32, 2>| {
 ///     Payoff::from([profile[for2::P1], profile[for2::P0]])
 /// };
-/// let pick_em = Strategic::from_payoff_fn(valid_move, payoff);
+/// let pick_em = Simultaneous::from_payoff_fn(valid_move, payoff);
 ///
 /// assert_eq!(pick_em.num_players(), 2);
 ///
@@ -50,41 +53,34 @@ use crate::{Context, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Utilit
 /// assert_eq!(pick_em.payoff(PerPlayer::new([-4, 7])), Payoff::from([7, -4]));
 /// assert_eq!(pick_em.payoff(PerPlayer::new([0, -1])), Payoff::from([-1, 0]));
 /// ```
-pub struct Strategic<M, U, const P: usize> {
+pub struct Simultaneous<M, U, const P: usize> {
     move_fn: Box<dyn Fn(PlayerIndex<P>, M) -> bool>,
-    payoff_fn: Box<dyn Fn(Profile<M, P>) -> Payoff<U, P>>,
+    payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P>>,
 }
 
-impl<M: Move, U: Utility, const P: usize> Game<P> for Strategic<M, U, P> {
-    type Kind = Sim;
-    type State = ();
+impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     type Move = M;
     type Utility = U;
+    type Outcome = SimultaneousOutcome<M, U, P>;
+    type State = ();
+    type View = ();
 
-    fn initial_state(&self) {}
+    fn rules(&self) -> Turn<Self, P> {
+        let state = Rc::new(());
+        let payoff_fn = self.payoff_fn.clone();
+        Turn::all_players(state.clone(), move |_, profile| {
+            Turn::end(state, SimultaneousOutcome::new(profile, payoff_fn(profile)))
+        })
+    }
 
-    fn is_valid_move_in_context(&self, context: &Context<Self, P>, the_move: M) -> bool {
-        match context.current_player() {
-            Some(player) => self.is_valid_move_for_player(player, the_move),
-            None => {
-                log::error!("Normal::is_valid_move_in_context: current_player is not set");
-                false
-            }
-        }
+    fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
+
+    fn is_valid_move(&self, _state: &(), player: PlayerIndex<P>, the_move: M) -> bool {
+        self.is_valid_move_for_player(player, the_move)
     }
 }
 
-impl<M: Move, U: Utility, const P: usize> Simultaneous<P> for Strategic<M, U, P> {
-    fn payoff_in_context(
-        &self,
-        profile: Profile<Self::Move, P>,
-        _context: &Context<Self, P>,
-    ) -> Payoff<Self::Utility, P> {
-        self.payoff(profile)
-    }
-}
-
-impl<M: Move, U: Utility, const P: usize> Strategic<M, U, P> {
+impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a function that yields the payoff given a profile
     /// containing a valid move played by each player.
@@ -93,9 +89,9 @@ impl<M: Move, U: Utility, const P: usize> Strategic<M, U, P> {
         MoveFn: Fn(PlayerIndex<P>, M) -> bool + 'static,
         PayoffFn: Fn(Profile<M, P>) -> Payoff<U, P> + 'static,
     {
-        Strategic {
+        Simultaneous {
             move_fn: Box::new(move_fn),
-            payoff_fn: Box::new(payoff_fn),
+            payoff_fn: Rc::new(payoff_fn),
         }
     }
 
@@ -128,7 +124,7 @@ impl<M: Move, U: Utility, const P: usize> Strategic<M, U, P> {
     /// Get the payoff for the given strategy profile.
     ///
     /// This method may return an arbitrary payoff if given an
-    /// [invalid profile](crate::Strategic::is_valid_profile).
+    /// [invalid profile](crate::Simultaneous::is_valid_profile).
     pub fn payoff(&self, profile: Profile<M, P>) -> Payoff<U, P> {
         (*self.payoff_fn)(profile)
     }

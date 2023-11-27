@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use crate::{
     Dominated, Game, Move, MoveIter, NormalOutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
-    ProfileIter, Strategic, Turn, Utility,
+    ProfileIter, Simultaneous, SimultaneousOutcome, Turn, Utility,
 };
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
@@ -34,20 +34,20 @@ use crate::{
 /// let mean = || Player::new("Mean".to_string(), Pure::new('D'));
 ///
 /// assert_eq!(
-///     pd.play_once(&mut PerPlayer::new([nice(), nice()])),
-///     Ok(Outcome::new(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
+///     pd.play(&mut PerPlayer::new([nice(), nice()])),
+///     Ok(SimultaneousOutcome::new(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
 /// );
 /// assert_eq!(
-///     pd.play_once(&mut PerPlayer::new([nice(), mean()])),
-///     Ok(Outcome::new(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
+///     pd.play(&mut PerPlayer::new([nice(), mean()])),
+///     Ok(SimultaneousOutcome::new(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
 /// );
 /// assert_eq!(
-///     pd.play_once(&mut PerPlayer::new([mean(), nice()])),
-///     Ok(Outcome::new(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
+///     pd.play(&mut PerPlayer::new([mean(), nice()])),
+///     Ok(SimultaneousOutcome::new(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
 /// );
 /// assert_eq!(
-///     pd.play_once(&mut PerPlayer::new([mean(), mean()])),
-///     Ok(Outcome::new(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
+///     pd.play(&mut PerPlayer::new([mean(), mean()])),
+///     Ok(SimultaneousOutcome::new(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
 /// );
 /// ```
 #[derive(Clone)]
@@ -57,21 +57,24 @@ pub struct Normal<M, U, const P: usize> {
 }
 
 impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
-    type State = ();
-    type View = ();
     type Move = M;
     type Utility = U;
+    type Outcome = SimultaneousOutcome<M, U, P>;
+    type State = ();
+    type View = ();
+
+    fn rules(&self) -> Turn<Self, P> {
+        let state = Rc::new(());
+        let payoff_fn = self.payoff_fn.clone();
+        Turn::all_players(state.clone(), move |_, profile| {
+            Turn::end(state, SimultaneousOutcome::new(profile, payoff_fn(profile)))
+        })
+    }
 
     fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
 
     fn is_valid_move(&self, _state: &(), player: PlayerIndex<P>, the_move: M) -> bool {
         self.is_valid_move_for_player(player, the_move)
-    }
-
-    fn rules(&self) -> Self::Turn<Self, P> {
-        Turn::all_players((), |_, profile| {
-            Turn::terminal_payoff((), self.payoff(profile))
-        })
     }
 }
 
@@ -395,10 +398,10 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     }
 
     /// Get this normal form game as a simultaneous move game.
-    pub fn as_simultaneous(&self) -> Strategic<M, U, P> {
+    pub fn as_simultaneous(&self) -> Simultaneous<M, U, P> {
         let moves = self.moves.clone();
         let payoff_fn = self.payoff_fn.clone();
-        Strategic::from_payoff_fn(
+        Simultaneous::from_payoff_fn(
             move |player, the_move| moves[player].contains(&the_move),
             move |profile| payoff_fn(profile),
         )
@@ -436,7 +439,8 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// assert!(!pd.is_zero_sum());
     /// ```
     pub fn is_zero_sum(&self) -> bool {
-        self.outcomes().all(|outcome| outcome.payoff.is_zero_sum())
+        self.outcomes()
+            .all(|outcome| outcome.payoff().is_zero_sum())
     }
 
     /// Return a move that unilaterally improves the given player's utility, if such a move exists.
@@ -482,9 +486,9 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         if self.is_valid_profile(profile) {
             let mut best_util = self.payoff(profile)[player];
             for adjacent in self.outcomes().adjacent(player, profile) {
-                let util = adjacent.payoff[player];
+                let util = adjacent.payoff()[player];
                 if util > best_util {
-                    best_move = Some(adjacent.record[player]);
+                    best_move = Some(adjacent.profile()[player]);
                     best_util = util;
                 }
             }
@@ -582,9 +586,9 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
             let mut best_profile = None;
             let mut best_improvement = <U as Zero>::zero();
             for outcome in self.outcomes() {
-                if let Some(improvement) = payoff.pareto_improvement(outcome.payoff) {
+                if let Some(improvement) = payoff.pareto_improvement(*outcome.payoff()) {
                     if improvement.gt(&best_improvement) {
-                        best_profile = Some(outcome.record);
+                        best_profile = Some(*outcome.profile());
                         best_improvement = improvement;
                     }
                 }
@@ -653,8 +657,8 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
                 let mut is_dominated = true;
                 let mut is_strict = true;
                 for (ted_outcome, tor_outcome) in ted_iter.clone().zip(tor_iter) {
-                    let ted_payoff = ted_outcome.payoff;
-                    let tor_payoff = tor_outcome.payoff;
+                    let ted_payoff = ted_outcome.payoff();
+                    let tor_payoff = tor_outcome.payoff();
                     if let Some(ordering) = ted_payoff[player].partial_cmp(&tor_payoff[player]) {
                         match ordering {
                             Ordering::Less => {}

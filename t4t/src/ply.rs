@@ -1,4 +1,4 @@
-use crate::{PlayerIndex, Transcript};
+use crate::{Move, PlayerIndex, Transcript};
 
 /// A [ply](https://en.wikipedia.org/wiki/Ply_(game_theory)) is a single move played during a
 /// sequential game.
@@ -42,7 +42,7 @@ pub struct PlyIter<'a, M, const P: usize> {
     iter: Box<dyn Iterator<Item = Ply<M, P>> + 'a>,
 }
 
-impl<'a, M, const P: usize> PlyIter<'a, M, P> {
+impl<'a, M: Move, const P: usize> PlyIter<'a, M, P> {
     /// Construct a new ply iterator.
     pub fn new(iter: impl Iterator<Item = Ply<M, P>> + 'a) -> Self {
         PlyIter {
@@ -51,7 +51,7 @@ impl<'a, M, const P: usize> PlyIter<'a, M, P> {
     }
 
     /// Collect the plies in this iterator into a transcript.
-    pub fn to_transcript(&self) -> Transcript<M, P> {
+    pub fn into_transcript(self) -> Transcript<M, P> {
         Transcript::from_played_moves(self.iter.collect())
     }
 }

@@ -4,8 +4,7 @@ mod internal {
 
 pub(crate) mod distribution;
 pub(crate) mod dominated;
-pub(crate) mod error;
-pub(crate) mod exec;
+// pub(crate) mod error;
 pub(crate) mod game;
 pub(crate) mod history;
 pub(crate) mod moves;
@@ -18,7 +17,7 @@ pub(crate) mod player;
 pub(crate) mod ply;
 pub(crate) mod profile;
 pub(crate) mod repeated;
-pub(crate) mod strategic;
+pub(crate) mod simultaneous;
 pub(crate) mod strategy;
 pub(crate) mod transcript;
 pub(crate) mod turn;
@@ -26,8 +25,7 @@ pub(crate) mod turn;
 
 pub use distribution::*;
 pub use dominated::*;
-pub use error::*;
-pub use exec::*;
+// pub use error::*;
 pub use game::*;
 pub use history::*;
 pub use moves::*;
@@ -40,7 +38,7 @@ pub use player::*;
 pub use ply::*;
 pub use profile::*;
 pub use repeated::*;
-pub use strategic::*;
+pub use simultaneous::*;
 pub use strategy::*;
 pub use transcript::*;
 pub use turn::*;

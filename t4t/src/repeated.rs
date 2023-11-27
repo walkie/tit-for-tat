@@ -1,23 +1,57 @@
-use crate::{Action, Game, History, PlayerIndex, Turn};
+use std::fmt;
 use std::rc::Rc;
 
-struct Repeated<G: Game<P>, const P: usize> {
+use crate::{Action, Game, History, PlayerIndex, Turn};
+
+pub struct Repeated<G: Game<P>, const P: usize> {
     stage_game: Rc<G>,
     repetitions: usize,
 }
 
-struct RepeatedState<G: Game<P>, const P: usize> {
+// #[derive(Clone, Debug, PartialEq)]
+pub struct RepeatedState<G: Game<P>, const P: usize> {
     stage_game: Rc<G>,
     stage_state: Rc<G::State>,
-    completed: History<G::Outcome, G::Utility, P>,
+    completed: History<G, P>,
     remaining: usize,
+}
+
+impl<G: Game<P>, const P: usize> Clone for RepeatedState<G, P> {
+    fn clone(&self) -> Self {
+        RepeatedState {
+            stage_game: self.stage_game.clone(),
+            stage_state: self.stage_state.clone(),
+            completed: self.completed.clone(),
+            remaining: self.remaining,
+        }
+    }
+}
+
+impl<G: Game<P>, const P: usize> fmt::Debug for RepeatedState<G, P> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("RepeatedState")
+            // .field("stage_game", &self.stage_game)
+            .field("stage_state", &self.stage_state)
+            .field("completed", &self.completed)
+            .field("remaining", &self.remaining)
+            .finish()
+    }
+}
+
+impl<G: Game<P>, const P: usize> PartialEq for RepeatedState<G, P> {
+    fn eq(&self, other: &Self) -> bool {
+        self.stage_state == other.stage_state
+            && self.completed == other.completed
+            && self.remaining == other.remaining
+    }
 }
 
 impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
     pub fn new(stage_game: Rc<G>, remaining: usize) -> Self {
+        let stage_state = stage_game.rules().state.clone();
         RepeatedState {
             stage_game,
-            stage_state: Rc::new(stage_game.rules().state),
+            stage_state,
             completed: History::new(),
             remaining,
         }
@@ -32,7 +66,7 @@ impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
     }
 }
 
-impl<G: Game<P>, const P: usize> Repeated<G, P> {
+impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
     pub fn new(stage_game: G, repetitions: usize) -> Self {
         Repeated {
             stage_game: Rc::new(stage_game),
@@ -45,56 +79,70 @@ impl<G: Game<P>, const P: usize> Repeated<G, P> {
         state: Rc<RepeatedState<G, P>>,
         turn: Turn<G, P>,
     ) -> Turn<Repeated<G, P>, P> {
-        match turn.action {
-            Action::Players { players, next } => {
-                Turn::players(state, players, move |repeated_state, moves| {
-                    let stage_turn = next(repeated_state.stage_state.clone(), moves);
+        fn lift<G: Game<P> + 'static, const P: usize>(
+            stage_game: Rc<G>,
+            state: Rc<RepeatedState<G, P>>,
+            turn: Turn<G, P>,
+        ) -> Turn<Repeated<G, P>, P> {
+            match turn.action {
+                Action::Players {
+                    to_move: players,
+                    next,
+                } => Turn::players(
+                    state.clone(),
+                    players,
+                    move |repeated_state: Rc<RepeatedState<G, P>>, moves: Vec<G::Move>| {
+                        let stage_turn = next(repeated_state.stage_state.clone(), moves);
+
+                        let mut next_state = (*state).clone();
+                        next_state.stage_state = stage_turn.state.clone();
+
+                        lift(stage_game, Rc::new(next_state), stage_turn)
+                    },
+                ),
+
+                Action::Chance { distribution, next } => Turn::chance(
+                    state.clone(),
+                    distribution,
+                    move |repeated_state: Rc<RepeatedState<G, P>>, the_move: G::Move| {
+                        let stage_turn = next(repeated_state.stage_state.clone(), the_move);
+
+                        let mut next_state = (*state).clone();
+                        next_state.stage_state = stage_turn.state.clone();
+
+                        lift(stage_game, Rc::new(next_state), stage_turn)
+                    },
+                ),
+
+                Action::End { outcome } if state.remaining > 0 => {
+                    let stage_turn = stage_game.rules();
+
                     let mut next_state = (*state).clone();
                     next_state.stage_state = stage_turn.state.clone();
-                    self.lift_turn(Rc::new(next_state), stage_turn)
-                })
-            }
 
-            Action::Chance { distribution, next } => {
-                Turn::chance(state, distribution, move |repeated_state, the_move| {
-                    let stage_turn = next(repeated_state.stage_state.clone(), the_move);
+                    next_state.completed.add(outcome);
+                    next_state.remaining -= 1;
 
-                    let mut next_state = (*state).clone();
-                    next_state.stage_state = stage_turn.state.clone();
+                    lift(stage_game, Rc::new(next_state), stage_turn)
+                }
 
-                    self.lift_turn(Rc::new(next_state), stage_turn)
-                })
-            }
+                Action::End { outcome } => {
+                    let mut history = state.completed.clone(); // TODO avoid this clone
+                    history.add(outcome);
 
-            Action::Payoff { payoff, outcome } if state.remaining > 0 => {
-                let stage_turn = self.stage_game.rules();
-
-                let mut next_state = (*state).clone();
-                next_state.stage_state = stage_turn.state.clone();
-
-                let outcome = outcome(turn.state, payoff);
-                next_state.completed.push(outcome);
-                next_state.remaining -= 1;
-
-                self.lift_turn(Rc::new(next_state), stage_turn)
-            }
-
-            Action::Payoff { payoff, outcome } => {
-                let history = state.completed.clone(); // TODO avoid this clone
-
-                let outcome = outcome(turn.state, payoff);
-                history.push(outcome);
-
-                Turn::payoff(state, history.score(), move |_, _| history)
+                    Turn::end(state, history)
+                }
             }
         }
+
+        lift(self.stage_game.clone(), state, turn)
     }
 }
 
-impl<G: Game<P>, const P: usize> Game<P> for Repeated<G, P> {
+impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
     type Move = G::Move;
     type Utility = G::Utility;
-    type Outcome = History<G::Outcome, G::Utility, P>;
+    type Outcome = History<G, P>;
     type State = RepeatedState<G, P>;
     type View = RepeatedState<G, P>; // TODO add RepeatedStateView or some other solution
 

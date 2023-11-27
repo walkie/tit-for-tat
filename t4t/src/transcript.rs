@@ -1,4 +1,4 @@
-use crate::{Move, PerPlayer, PlayerIndex, Ply, Profile};
+use crate::{Move, MoveRecord, PerPlayer, PlayerIndex, Ply, PlyIter, Profile};
 
 /// A transcript of the moves played (so far) in a sequential game.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -10,6 +10,16 @@ pub struct Transcript<M, const P: usize> {
 impl<M, const P: usize> Default for Transcript<M, P> {
     fn default() -> Self {
         Transcript { moves: Vec::new() }
+    }
+}
+
+impl<M: Move, const P: usize> MoveRecord<M, P> for Transcript<M, P> {
+    fn to_iter(&self) -> PlyIter<M, P> {
+        PlyIter::new(self.moves.clone().into_iter())
+    }
+
+    fn to_transcript(&self) -> Transcript<M, P> {
+        self.clone()
     }
 }
 

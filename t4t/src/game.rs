@@ -1,8 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{
-    Action, Context, Exec, Move, Outcome, Payoff, PlayerIndex, Players, Profile, Turn, Utility,
-};
+use crate::{Action, Context, Move, Outcome, PlayerIndex, Players, Turn, Utility};
 
 pub trait State: Clone + Debug + PartialEq {}
 impl<T: Clone + Debug + PartialEq> State for T {}
@@ -39,27 +37,30 @@ pub trait Game<const P: usize>: Sized {
         P
     }
 
-    fn play(&self, players: Players<Self, P>) -> Self::Outcome {
+    fn play(&self, players: &mut Players<Self, P>) -> Self::Outcome {
         let mut turn = self.rules();
 
         loop {
-            match &turn.action {
-                Action::Players { players, next } => {
-                    let moves = players
-                        .map(|player| {
-                            let context = Context::default(); // TODO
-                            player.next_move(&context)
+            match turn.action {
+                Action::Players { to_move, next } => {
+                    let moves = to_move
+                        .iter()
+                        .map(|&index| {
+                            let view = self.state_view(turn.state.as_ref(), index);
+                            let context = Context::new(index, view);
+                            players[index].next_move(&context)
                         })
                         .collect();
-                    turn = next(turn.state, moves);
+                    let s = turn.state.clone();
+                    turn = next(s, moves);
                 }
 
                 Action::Chance { distribution, next } => {
                     let the_move = distribution.sample();
-                    turn = next(turn.state, the_move);
+                    turn = next(turn.state, *the_move);
                 }
 
-                Action::Payoff { payoff, outcome } => outcome(turn.state, *payoff),
+                Action::End { outcome } => return outcome,
             }
         }
     }

@@ -7,8 +7,30 @@ use crate::{Distribution, Move, PlayerIndex, State};
 /// state, a transcript of actions so far, and the current score.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Context<S, const P: usize> {
-    my_index: PlayerIndex<P>,
-    current_state: S,
+    index: PlayerIndex<P>,
+    state: S,
+}
+
+impl<S: State, const P: usize> Context<S, P> {
+    /// Construct a new context from the index of the player whose turn it is to move and that
+    /// player's view of the current state.
+    pub fn new(index: PlayerIndex<P>, state_view: S) -> Self {
+        Context {
+            index,
+            state: state_view,
+        }
+    }
+
+    /// Get the index of the player whose turn it is to move. The method is named ("my") from the
+    /// perspective of the strategy that receives this context.
+    pub fn my_index(&self) -> PlayerIndex<P> {
+        self.index
+    }
+
+    /// Get the player's view of the current state of the game.
+    pub fn current_state(&self) -> &S {
+        &self.state
+    }
 }
 
 /// A strategy is a function from an intermediate game context to a move.
@@ -19,18 +41,18 @@ pub trait Strategy<S, M, const P: usize> {
 
 /// A pure strategy simply plays a given move regardless of the game context.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Pure<S: State, M: Move, const P: usize> {
+pub struct Pure<M> {
     the_move: M,
 }
 
-impl<S: State, M: Move, const P: usize> Pure<S, M, P> {
+impl<M: Move> Pure<M> {
     /// Construct a pure strategy that plays the given move.
     pub fn new(the_move: M) -> Self {
         Pure { the_move }
     }
 }
 
-impl<S: State, M: Move, const P: usize> Strategy<S, M, P> for Pure<S, M, P> {
+impl<S: State, M: Move, const P: usize> Strategy<S, M, P> for Pure<M> {
     fn next_move(&mut self, _context: &Context<S, P>) -> M {
         self.the_move
     }
@@ -38,11 +60,11 @@ impl<S: State, M: Move, const P: usize> Strategy<S, M, P> for Pure<S, M, P> {
 
 /// A mixed strategy plays a move according to a given probability distribution.
 #[derive(Clone, Debug)]
-pub struct Mixed<S: State, M: Move, const P: usize> {
+pub struct Mixed<M> {
     dist: Distribution<M>,
 }
 
-impl<S: State, M: Move, const P: usize> Mixed<S, M, P> {
+impl<M: Move> Mixed<M> {
     /// Construct a mixed strategy from a probability distribution over moves.
     pub fn new(dist: Distribution<M>) -> Self {
         Mixed { dist }
@@ -61,7 +83,7 @@ impl<S: State, M: Move, const P: usize> Mixed<S, M, P> {
     }
 }
 
-impl<S: State, M: Move, const P: usize> Strategy<S, M, P> for Mixed<S, M, P> {
+impl<S: State, M: Move, const P: usize> Strategy<S, M, P> for Mixed<M> {
     fn next_move(&mut self, _context: &Context<S, P>) -> M {
         self.dist.sample().to_owned()
     }
