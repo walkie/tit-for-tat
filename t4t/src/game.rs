@@ -20,7 +20,7 @@ pub trait Game<const P: usize>: Sized {
     type View: State;
 
     /// The first turn of the game.
-    fn rules<'g>(&'g self) -> Turn<'g, Self, P>;
+    fn rules(&self) -> Turn<Self, P>;
 
     fn state_view(&self, state: &Self::State, player: PlayerIndex<P>) -> Self::View;
 

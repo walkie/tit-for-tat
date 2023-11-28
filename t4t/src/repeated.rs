@@ -152,7 +152,7 @@ impl<'g, G: Game<P> + 'g, const P: usize> Game<P> for Repeated<G, P> {
     type State = RepeatedState<G, P>;
     type View = RepeatedState<G, P>; // TODO add RepeatedStateView or some other solution
 
-    fn rules<'t>(&'t self) -> Turn<'t, Self, P> {
+    fn rules(&self) -> Turn<Self, P> {
         let init_state = Rc::new(RepeatedState::new(&self.stage_game, self.repetitions - 1));
 
         lift_turn(&self.stage_game, init_state, self.stage_game.rules())
