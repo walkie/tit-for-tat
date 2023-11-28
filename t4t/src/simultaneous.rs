@@ -1,7 +1,9 @@
-use crate::{
-    Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, SimultaneousOutcome, Turn, Utility,
-};
 use std::rc::Rc;
+
+use crate::{
+    ErrorKind, Game, Move, MoveRecord, Payoff, PerPlayer, PlayerIndex, Profile,
+    SimultaneousOutcome, Turn, Utility,
+};
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
 /// plays a single move without knowledge of the other players' moves.
@@ -67,9 +69,17 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
 
     fn rules(&self) -> Turn<Self, P> {
         let state = Rc::new(());
-        let payoff_fn = self.payoff_fn.clone();
         Turn::all_players(state.clone(), move |_, profile| {
-            Turn::end(state, SimultaneousOutcome::new(profile, payoff_fn(profile)))
+            for ply in profile.to_iter() {
+                let player = ply.player.unwrap();
+                if !self.is_valid_move_for_player(player, ply.the_move) {
+                    return Err(ErrorKind::InvalidMove(player, ply.the_move));
+                }
+            }
+            Ok(Turn::end(
+                state,
+                SimultaneousOutcome::new(profile, self.payoff(profile)),
+            ))
         })
     }
 

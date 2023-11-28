@@ -5,8 +5,8 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::{
-    Dominated, Game, Move, MoveIter, NormalOutcomeIter, Payoff, PerPlayer, PlayerIndex, Profile,
-    ProfileIter, Simultaneous, SimultaneousOutcome, Turn, Utility,
+    Dominated, ErrorKind, Game, Move, MoveIter, MoveRecord, NormalOutcomeIter, Payoff, PerPlayer,
+    PlayerIndex, Profile, ProfileIter, Simultaneous, SimultaneousOutcome, Turn, Utility,
 };
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
@@ -65,9 +65,17 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
 
     fn rules(&self) -> Turn<Self, P> {
         let state = Rc::new(());
-        let payoff_fn = self.payoff_fn.clone();
         Turn::all_players(state.clone(), move |_, profile| {
-            Turn::end(state, SimultaneousOutcome::new(profile, payoff_fn(profile)))
+            for ply in profile.to_iter() {
+                let player = ply.player.unwrap();
+                if !self.is_valid_move_for_player(player, ply.the_move) {
+                    return Err(ErrorKind::InvalidMove(player, ply.the_move));
+                }
+            }
+            Ok(Turn::end(
+                state,
+                SimultaneousOutcome::new(profile, self.payoff(profile)),
+            ))
         })
     }
 

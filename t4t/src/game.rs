@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Action, Context, Move, Outcome, PlayerIndex, Players, Turn, Utility};
+use crate::{Action, Context, Error, Move, Outcome, PlayerIndex, Players, Turn, Utility};
 
 pub trait State: Clone + Debug + PartialEq {}
 impl<T: Clone + Debug + PartialEq> State for T {}
@@ -20,7 +20,7 @@ pub trait Game<const P: usize>: Sized {
     type View: State;
 
     /// The first turn of the game.
-    fn rules(&self) -> Turn<Self, P>;
+    fn rules<'g>(&'g self) -> Turn<'g, Self, P>;
 
     fn state_view(&self, state: &Self::State, player: PlayerIndex<P>) -> Self::View;
 
@@ -37,7 +37,7 @@ pub trait Game<const P: usize>: Sized {
         P
     }
 
-    fn play(&self, players: &mut Players<Self, P>) -> Self::Outcome {
+    fn play(&self, players: &mut Players<Self, P>) -> Result<Self::Outcome, Error<Self, P>> {
         let mut turn = self.rules();
 
         loop {
@@ -51,16 +51,27 @@ pub trait Game<const P: usize>: Sized {
                             players[index].next_move(&context)
                         })
                         .collect();
-                    let s = turn.state.clone();
-                    turn = next(s, moves);
+
+                    match next(turn.state.clone(), moves) {
+                        Ok(next_turn) => turn = next_turn,
+                        Err(kind) => {
+                            return Err(Error::new(turn.state, kind));
+                        }
+                    }
                 }
 
                 Action::Chance { distribution, next } => {
                     let the_move = distribution.sample();
-                    turn = next(turn.state, *the_move);
+
+                    match next(turn.state.clone(), *the_move) {
+                        Ok(next_turn) => turn = next_turn,
+                        Err(kind) => {
+                            return Err(Error::new(turn.state, kind));
+                        }
+                    }
                 }
 
-                Action::End { outcome } => return outcome,
+                Action::End { outcome } => return Ok(outcome),
             }
         }
     }
