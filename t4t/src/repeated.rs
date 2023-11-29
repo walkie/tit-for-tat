@@ -1,7 +1,7 @@
 use std::fmt;
 use std::rc::Rc;
 
-use crate::{Action, ErrorKind, Game, History, PlayerIndex, Turn};
+use crate::{Action, Game, History, PlayerIndex, Turn};
 
 pub struct Repeated<G: Game<P>, const P: usize> {
     stage_game: G,
@@ -101,7 +101,7 @@ fn lift_turn<'g, G: Game<P> + 'g, const P: usize>(
                     Ok(lift_turn(stage_game, Rc::new(next_state), stage_turn))
                 }
 
-                Err(kind) => Err(lift_error(kind)),
+                Err(kind) => Err(kind),
             },
         ),
 
@@ -119,7 +119,7 @@ fn lift_turn<'g, G: Game<P> + 'g, const P: usize>(
                     Ok(lift_turn(stage_game, Rc::new(next_state), stage_turn))
                 }
 
-                Err(kind) => Err(lift_error(kind)),
+                Err(kind) => Err(kind),
             },
         ),
 
@@ -141,13 +141,6 @@ fn lift_turn<'g, G: Game<P> + 'g, const P: usize>(
 
             Turn::end(state, history)
         }
-    }
-}
-
-fn lift_error<M, const P: usize>(error_kind: ErrorKind<M, P>) -> ErrorKind<M, P> {
-    match error_kind {
-        ErrorKind::InvalidMove(player, the_move) => ErrorKind::InvalidMove(player, the_move),
-        ErrorKind::NoNextState(the_move) => ErrorKind::NoNextState(the_move),
     }
 }
 
