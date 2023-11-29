@@ -20,7 +20,7 @@ pub trait Game<const P: usize>: Sized {
     type View: State;
 
     /// The first turn of the game.
-    fn rules(&self) -> Turn<Self, P>;
+    fn rules(&self) -> Turn<Self::State, Self::Move, Self::Outcome, P>;
 
     fn state_view(&self, state: &Self::State, player: PlayerIndex<P>) -> Self::View;
 
@@ -37,7 +37,10 @@ pub trait Game<const P: usize>: Sized {
         P
     }
 
-    fn play(&self, players: &mut Players<Self, P>) -> Result<Self::Outcome, Error<Self, P>> {
+    fn play(
+        &self,
+        players: &mut Players<Self, P>,
+    ) -> Result<Self::Outcome, Error<Self::State, Self::Move, P>> {
         let mut turn = self.rules();
 
         loop {

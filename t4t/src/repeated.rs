@@ -8,6 +8,23 @@ pub struct Repeated<G: Game<P>, const P: usize> {
     repetitions: usize,
 }
 
+impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
+    pub fn new(stage_game: G, repetitions: usize) -> Self {
+        Repeated {
+            stage_game,
+            repetitions,
+        }
+    }
+
+    pub fn stage_game(&self) -> &G {
+        &self.stage_game
+    }
+
+    pub fn repetitions(&self) -> usize {
+        self.repetitions
+    }
+}
+
 // #[derive(Clone, Debug, PartialEq)]
 pub struct RepeatedState<G: Game<P>, const P: usize> {
     stage_state: Rc<G::State>,
@@ -61,20 +78,11 @@ impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
     }
 }
 
-impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
-    pub fn new(stage_game: G, repetitions: usize) -> Self {
-        Repeated {
-            stage_game,
-            repetitions,
-        }
-    }
-}
-
 fn lift_turn<'g, G: Game<P> + 'g, const P: usize>(
     stage_game: &'g G,
     state: Rc<RepeatedState<G, P>>,
-    turn: Turn<'g, G, P>,
-) -> Turn<'g, Repeated<G, P>, P> {
+    turn: Turn<'g, G::State, G::Move, G::Outcome, P>,
+) -> Turn<'g, RepeatedState<G, P>, G::Move, History<G, P>, P> {
     match turn.action {
         Action::Players {
             to_move: players,
@@ -136,9 +144,7 @@ fn lift_turn<'g, G: Game<P> + 'g, const P: usize>(
     }
 }
 
-fn lift_error<'g, G: Game<P> + 'g, const P: usize>(
-    error_kind: ErrorKind<G, P>,
-) -> ErrorKind<Repeated<G, P>, P> {
+fn lift_error<M, const P: usize>(error_kind: ErrorKind<M, P>) -> ErrorKind<M, P> {
     match error_kind {
         ErrorKind::InvalidMove(player, the_move) => ErrorKind::InvalidMove(player, the_move),
         ErrorKind::NoNextState(the_move) => ErrorKind::NoNextState(the_move),
@@ -152,7 +158,7 @@ impl<'g, G: Game<P> + 'g, const P: usize> Game<P> for Repeated<G, P> {
     type State = RepeatedState<G, P>;
     type View = RepeatedState<G, P>; // TODO add RepeatedStateView or some other solution
 
-    fn rules(&self) -> Turn<Self, P> {
+    fn rules(&self) -> Turn<RepeatedState<G, P>, G::Move, History<G, P>, P> {
         let init_state = Rc::new(RepeatedState::new(&self.stage_game, self.repetitions - 1));
 
         lift_turn(&self.stage_game, init_state, self.stage_game.rules())

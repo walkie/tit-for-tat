@@ -1,4 +1,16 @@
 //! 2x2 simultaneous, symmetric, cooperation/defection games, e.g. prisoner's dilemma.
+//!
+//! # Examples
+//! ```
+//! use t4t::*;
+//! use t4t_games::dilemma::*;
+//!
+//! let g = Repeated::new(Dilemma::prisoners_dilemma(), 10);
+//! assert_eq!(
+//!     g.stage_game().as_normal().pure_nash_equilibria(),
+//!     vec![PerPlayer::new([D, D])],
+//! );
+//! ```
 
 use t4t::*;
 
@@ -321,5 +333,23 @@ impl Dilemma {
     pub fn is_chicken(&self) -> bool {
         let [tie, lose, win, crash] = self.utils;
         win > tie && tie > lose && lose > crash
+    }
+}
+
+impl Game<2> for Dilemma {
+    type Move = Move;
+    type Utility = i32;
+    type Outcome = SimultaneousOutcome<Move, i32, 2>;
+    type State = ();
+    type View = ();
+
+    fn rules(&self) -> Turn<(), Move, SimultaneousOutcome<Move, i32, 2>, 2> {
+        self.as_normal().rules()
+    }
+
+    fn state_view(&self, _state: &(), _player: PlayerIndex<2>) {}
+
+    fn is_valid_move(&self, _state: &(), _player: PlayerIndex<2>, _the_move: Move) -> bool {
+        true
     }
 }

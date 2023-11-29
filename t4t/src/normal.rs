@@ -63,7 +63,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type State = ();
     type View = ();
 
-    fn rules(&self) -> Turn<Self, P> {
+    fn rules(&self) -> Turn<(), M, SimultaneousOutcome<M, U, P>, P> {
         let state = Rc::new(());
         Turn::all_players(state.clone(), move |_, profile| {
             for ply in profile.to_iter() {
