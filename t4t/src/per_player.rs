@@ -388,6 +388,42 @@ impl<const P: usize> PlayerIndex<P> {
     pub fn all() -> PlayerIndexes<P> {
         PlayerIndexes::new()
     }
+
+    /// Get the index after this one, wrapping around to zero if this index is the last.
+    ///
+    /// # Examples
+    /// ```
+    /// use t4t::{for2, for4, PlayerIndex};
+    ///
+    /// assert_eq!(for2::P0.next(), for2::P1);
+    /// assert_eq!(for2::P1.next(), for2::P0);
+    ///
+    /// assert_eq!(for4::P0.next(), for4::P1);
+    /// assert_eq!(for4::P1.next(), for4::P2);
+    /// assert_eq!(for4::P2.next(), for4::P3);
+    /// assert_eq!(for4::P3.next(), for4::P0);
+    /// ```
+    pub fn next(&self) -> Self {
+        PlayerIndex((self.0 + 1) % P)
+    }
+
+    /// Get the index before this one, wrapping around to `P-1` if this index is zero.
+    ///
+    /// # Examples
+    /// ```
+    /// use t4t::{for2, for4, PlayerIndex};
+    ///
+    /// assert_eq!(for2::P1.previous(), for2::P0);
+    /// assert_eq!(for2::P0.previous(), for2::P1);
+    ///
+    /// assert_eq!(for4::P3.previous(), for4::P2);
+    /// assert_eq!(for4::P2.previous(), for4::P1);
+    /// assert_eq!(for4::P1.previous(), for4::P0);
+    /// assert_eq!(for4::P0.previous(), for4::P3);
+    /// ```
+    pub fn previous(&self) -> Self {
+        PlayerIndex((self.0 + P - 1) % P)
+    }
 }
 
 impl<const P: usize> From<PlayerIndex<P>> for usize {

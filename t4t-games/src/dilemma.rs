@@ -12,6 +12,8 @@
 //! );
 //! ```
 
+use std::rc::Rc;
+
 use t4t::*;
 
 /// In a social dilemma game, each player may either cooperate or defect.
@@ -347,9 +349,24 @@ impl Game<2> for Dilemma {
         self.as_normal().rules()
     }
 
-    fn state_view(&self, _state: &(), _player: PlayerIndex<2>) {}
+    fn state_view(&self, state: &Rc<()>, _player: PlayerIndex<2>) -> Rc<()> {
+        Rc::clone(state)
+    }
 
     fn is_valid_move(&self, _state: &(), _player: PlayerIndex<2>, _the_move: Move) -> bool {
         true
     }
+}
+
+fn tit_for_tat() -> Player<Repeated<Dilemma, 2>, 2> {
+    Player::new(
+        "Tit for Tat".to_string(),
+        Strategy::new(|context| {
+            if context.current_state().completed().outcomes.size < 1 {
+                C
+            } else {
+                context.current_state().completed().outcomes.last()[context.their_index().next()]
+            }
+        }),
+    )
 }

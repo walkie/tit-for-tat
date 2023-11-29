@@ -1,9 +1,10 @@
 use std::fmt::Debug;
+use std::rc::Rc;
 
 use crate::{Action, Context, Error, Move, Outcome, PlayerIndex, Players, Turn, Utility};
 
-pub trait State: Clone + Debug + PartialEq {}
-impl<T: Clone + Debug + PartialEq> State for T {}
+pub trait State: Clone + Debug + PartialEq + 'static {}
+impl<T: Clone + Debug + PartialEq + 'static> State for T {}
 
 /// A root trait that all games implement, mostly used for its associated types.
 pub trait Game<const P: usize>: Sized {
@@ -22,7 +23,7 @@ pub trait Game<const P: usize>: Sized {
     /// The first turn of the game.
     fn rules(&self) -> Turn<Self::State, Self::Move, Self::Outcome, P>;
 
-    fn state_view(&self, state: &Self::State, player: PlayerIndex<P>) -> Self::View;
+    fn state_view(&self, state: &Rc<Self::State>, player: PlayerIndex<P>) -> Rc<Self::View>;
 
     /// Is this a valid move in the given context?
     fn is_valid_move(
@@ -49,7 +50,7 @@ pub trait Game<const P: usize>: Sized {
                     let moves = to_move
                         .iter()
                         .map(|&index| {
-                            let view = self.state_view(turn.state.as_ref(), index);
+                            let view = self.state_view(&turn.state, index);
                             let context = Context::new(index, view);
                             players[index].next_move(&context)
                         })

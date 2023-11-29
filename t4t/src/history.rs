@@ -4,8 +4,8 @@ use crate::{Game, MoveRecord, Outcome, Payoff, PlyIter};
 
 /// For repeated games, a history of previously played games.
 pub struct History<G: Game<P>, const P: usize> {
-    outcomes: Vec<G::Outcome>,
-    score: Payoff<G::Utility, P>,
+    pub outcomes: Vec<G::Outcome>,
+    pub score: Payoff<G::Utility, P>,
 }
 
 impl<G: Game<P>, const P: usize> Clone for History<G, P> {

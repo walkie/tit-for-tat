@@ -30,8 +30,8 @@ use crate::{
 ///     vec![2, 0, 3, 1],
 /// ).unwrap();
 ///
-/// let nice = || Player::new("Nice".to_string(), Pure::new('C'));
-/// let mean = || Player::new("Mean".to_string(), Pure::new('D'));
+/// let nice = || Player::new("Nice".to_string(), Strategy::pure('C'));
+/// let mean = || Player::new("Mean".to_string(), Strategy::pure('D'));
 ///
 /// assert_eq!(
 ///     pd.play(&mut PerPlayer::new([nice(), nice()])),
@@ -79,7 +79,9 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
         })
     }
 
-    fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
+    fn state_view(&self, state: &Rc<()>, _player: PlayerIndex<P>) -> Rc<()> {
+        Rc::clone(state)
+    }
 
     fn is_valid_move(&self, _state: &(), player: PlayerIndex<P>, the_move: M) -> bool {
         self.is_valid_move_for_player(player, the_move)
