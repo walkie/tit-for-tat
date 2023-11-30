@@ -70,6 +70,11 @@ impl<T> Distribution<T> {
         Distribution::new(std::iter::zip(elements, std::iter::repeat(1.0)).collect())
     }
 
+    /// Create a trivial distribution consisting of a single element.
+    pub fn singleton(element: T) -> Self {
+        Distribution::new(vec![(element, 1.0)]).unwrap()
+    }
+
     /// Sample a random value from the distribution using `rng` as the source of randomness.
     pub fn sample_using<R: rand::Rng>(&self, rng: &mut R) -> &T {
         let index = self.weighted_index(rng);

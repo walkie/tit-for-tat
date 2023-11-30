@@ -24,7 +24,7 @@ impl<S: State, const P: usize> Context<S, P> {
     }
 
     /// Get the player's view of the current state of the game.
-    pub fn current_state(&self) -> &Rc<S> {
+    pub fn state(&self) -> &Rc<S> {
         &self.state
     }
 

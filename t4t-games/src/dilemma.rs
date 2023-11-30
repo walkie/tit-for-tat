@@ -23,6 +23,24 @@ pub enum Move {
     Defect,
 }
 
+impl Move {
+    /// Get the opposite move.
+    pub fn opposite(&self) -> Self {
+        match self {
+            Move::Cooperate => Move::Defect,
+            Move::Defect => Move::Cooperate,
+        }
+    }
+
+    /// Get this move as a single character, 'C' or 'D'.
+    pub fn to_char(&self) -> char {
+        match self {
+            Move::Cooperate => 'C',
+            Move::Defect => 'D',
+        }
+    }
+}
+
 /// Short for `Move::Cooperate`.
 pub const C: Move = Move::Cooperate;
 
@@ -358,15 +376,237 @@ impl Game<2> for Dilemma {
     }
 }
 
-fn tit_for_tat() -> Player<Repeated<Dilemma, 2>, 2> {
+// Strategies
+
+/// A player in a repeated social dilemma game.
+pub type DilemmaPlayer = Player<Repeated<Dilemma, 2>, 2>;
+
+/// The strategic context in a repeated social dilemma game.
+pub type DilemmaContext = Context<RepeatedState<Dilemma, 2>, 2>;
+
+/// A player that always cooperates.
+pub fn cooperator() -> DilemmaPlayer {
+    Player::new("Cooperator".to_string(), Strategy::pure(C))
+}
+
+/// A player that always defects.
+pub fn defector() -> DilemmaPlayer {
+    Player::new("Defector".to_string(), Strategy::pure(D))
+}
+
+/// Construct a player that plays a periodic sequence of moves.
+pub fn periodic(moves: &[Move]) -> DilemmaPlayer {
+    let name = format!(
+        "Periodic ({:?})*",
+        String::from_iter(moves.iter().map(|m| m.to_char()))
+    );
+
+    Player::new(name, Strategy::periodic_pure(moves))
+}
+
+/// A player that plays completely randomly.
+pub fn random() -> DilemmaPlayer {
+    Player::new(
+        "Random".to_string(),
+        Strategy::mixed_flat(vec![C, D]).unwrap(),
+    )
+}
+
+/// A player that cooperates on the first move then copies the opponent's previous move.
+///
+/// Tit for Tat can be thought of as a strategy that prefers to cooperate but will retaliate if the
+/// opponent defects.
+pub fn tit_for_tat() -> DilemmaPlayer {
     Player::new(
         "Tit for Tat".to_string(),
-        Strategy::new(|context| {
-            if context.current_state().completed().outcomes.size < 1 {
-                C
+        Strategy::new(|context: &DilemmaContext| {
+            context
+                .state()
+                .history()
+                .moves_for_player(context.their_index())
+                .last()
+                .unwrap_or(C)
+        }),
+    )
+}
+
+/// A player that defects on the first move then copies the opponent's last move.
+///
+/// Like [Tit for Tat](tit_for_tat) but defects on the first move.
+pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
+    Player::new(
+        "Suspicious Tit for Tat".to_string(),
+        Strategy::new(|context: &DilemmaContext| {
+            context
+                .state()
+                .history()
+                .moves_for_player(context.their_index())
+                .last()
+                .unwrap_or(D)
+        }),
+    )
+}
+
+/// A player that cooperates unless the opponent has defected in *each* of the last `n` games.
+///
+/// Like [Tit for Tat](tit_for_tat) but more lenient: it only retaliates if the opponent has
+/// defected `n` times in a row.
+pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
+    Player::new(
+        format!("Tit for {:?} Tats", n),
+        Strategy::new(move |context: &DilemmaContext| {
+            let mut last_n = context
+                .state()
+                .history()
+                .moves_for_player(context.their_index())
+                .rev()
+                .take(n);
+
+            if last_n.len() == n && last_n.all(|m| m == D) {
+                D
             } else {
-                context.current_state().completed().outcomes.last()[context.their_index().next()]
+                C
             }
         }),
+    )
+}
+
+/// A player that cooperates unless the opponent has defected in *any* of the last `n` moves.
+///
+/// Like [Tit for Tat](tit_for_tat) but more vindictive: it retaliates to a single defection by
+/// defecting `n` times in a row.
+pub fn n_tits_for_tat(n: usize) -> DilemmaPlayer {
+    Player::new(
+        format!("{:?} Tits for Tat", n),
+        Strategy::new(move |context: &DilemmaContext| {
+            let last_n: Vec<Move> = context
+                .state()
+                .history()
+                .moves_for_player(context.their_index())
+                .rev()
+                .take(n)
+                .collect();
+
+            if last_n.contains(&D) {
+                D
+            } else {
+                C
+            }
+        }),
+    )
+}
+
+/// A player that plays [Tit for Tat](tit_for_tat) but draws its moves from an `on_cooperate`
+/// distribution when it would cooperate and from an `on_defect` distribution when it would defect.
+///
+/// The `on_cooperate` distribution should typically be weighted toward cooperation with a small
+/// chance of defection, and vice versa for the `on_defect` distribution.
+///
+/// The `name_suffix` argument is appended to the player's name to enable playing multiple
+/// Probabilistic Tit for Tat players with different distributions.
+pub fn probabilistic_tit_for_tat(
+    on_cooperate: Distribution<Move>,
+    on_defect: Distribution<Move>,
+    name_suffix: &str,
+) -> DilemmaPlayer {
+    Player::new(
+        format!("Probabilistic Tit for Tat {:?}", name_suffix),
+        Strategy::conditional(
+            |context: &DilemmaContext| {
+                context
+                    .state()
+                    .history()
+                    .moves_for_player(context.their_index())
+                    .last()
+                    .map_or(false, |m| m == D)
+            },
+            Strategy::mixed(on_defect),
+            Strategy::mixed(on_cooperate),
+        ),
+    )
+}
+
+/// A [Probabilistic Tit for Tat](probabilistic_tit_for_tat) player that always cooperates when it
+/// should but has a 10% chance of cooperating when it would otherwise defect.
+pub fn generous_tit_for_tat() -> DilemmaPlayer {
+    probabilistic_tit_for_tat(
+        Distribution::singleton(C),
+        Distribution::new(vec![(D, 0.9), (C, 0.1)]).unwrap(),
+        "- Generous (10%)",
+    )
+}
+
+/// A [Probabilistic Tit for Tat](probabilistic_tit_for_tat) player that always defects when it
+/// should but has a 10% chance of defecting when it would otherwise cooperate.
+pub fn probing_tit_for_tat() -> DilemmaPlayer {
+    probabilistic_tit_for_tat(
+        Distribution::new(vec![(C, 0.9), (D, 0.1)]).unwrap(),
+        Distribution::singleton(D),
+        "- Probing (10%)",
+    )
+}
+
+/// A player that cooperates unless it was the "sucker" (it cooperated but the opponent defected)
+/// in the previous game.
+///
+/// Different from [Tit for Tat](tit_for_tat) since it will cooperate after mutual defection.
+pub fn firm_but_fair() -> DilemmaPlayer {
+    Player::new(
+        "Firm but Fair".to_string(),
+        Strategy::new(|context: &DilemmaContext| {
+            context
+                .state()
+                .history()
+                .profiles()
+                .last()
+                .map_or(C, |profile| {
+                    if profile[context.my_index()] == C && profile[context.their_index()] == D {
+                        D
+                    } else {
+                        C
+                    }
+                })
+        }),
+    )
+}
+
+/// A player that cooperates on the first move, thereafter it repeats its previous move if the
+/// opponent cooperated or else flips its move if the opponent defected.
+pub fn pavlov() -> DilemmaPlayer {
+    Player::new(
+        "Pavlov".to_string(),
+        Strategy::new(|context: &DilemmaContext| {
+            context
+                .state()
+                .history()
+                .profiles()
+                .last()
+                .map_or(C, |profile| {
+                    let my_move = profile[context.my_index()];
+                    match profile[context.their_index()] {
+                        Move::Cooperate => my_move,
+                        Move::Defect => my_move.opposite(),
+                    }
+                })
+        }),
+    )
+}
+
+/// A player that cooperates until the opponent defects once, then defects forever after.
+pub fn grim_trigger() -> DilemmaPlayer {
+    Player::new(
+        "Grim Trigger".to_string(),
+        Strategy::trigger(
+            |context: &DilemmaContext| {
+                context
+                    .state()
+                    .history()
+                    .moves_for_player(context.their_index())
+                    .last()
+                    .map_or(false, |m| m == D)
+            },
+            Strategy::pure(C),
+            Strategy::pure(D),
+        ),
     )
 }

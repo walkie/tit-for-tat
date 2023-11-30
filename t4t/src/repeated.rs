@@ -44,7 +44,7 @@ impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
     //     &self.stage_state
     // }
 
-    pub fn completed(&self) -> &History<G, P> {
+    pub fn history(&self) -> &History<G, P> {
         &self.completed
     }
 
