@@ -1,21 +1,30 @@
-use crate::{Move, MoveRecord, PerPlayer, PlayerIndex, Ply, PlyIter, Profile};
+use crate::{Move, PerPlayer, PlayerIndex, Plies, Ply, Profile, Record, Summary};
 
 /// A transcript of the moves played (so far) in a sequential game.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Transcript<M, const P: usize> {
     /// The sequence of played moves.
     moves: Vec<Ply<M, P>>,
+    /// The number of moves played by each player.
+    summary: Summary<P>,
 }
 
 impl<M, const P: usize> Default for Transcript<M, P> {
     fn default() -> Self {
-        Transcript { moves: Vec::new() }
+        Transcript {
+            moves: Vec::new(),
+            summary: Summary::empty(),
+        }
     }
 }
 
-impl<M: Move, const P: usize> MoveRecord<M, P> for Transcript<M, P> {
-    fn to_iter(&self) -> PlyIter<M, P> {
-        PlyIter::new(self.moves.clone().into_iter())
+impl<M: Move, const P: usize> Record<M, P> for Transcript<M, P> {
+    fn plies(&self) -> Plies<M, P> {
+        Plies::from_vec(self.moves.clone())
+    }
+
+    fn summary(&self) -> Summary<P> {
+        self.summary
     }
 
     fn to_transcript(&self) -> Transcript<M, P> {
@@ -43,7 +52,7 @@ impl<M: Move, const P: usize> Transcript<M, P> {
     ///
     /// Returns `None` if the transcript does not contain exactly one move per player.
     pub fn to_profile(&self) -> Option<Profile<M, P>> {
-        if self.moves.len() == P {
+        if self.summary == Summary::simultaneous() {
             PerPlayer::generate(|player| self.first_move_by_player(player)).all_some()
         } else {
             None
@@ -52,17 +61,23 @@ impl<M: Move, const P: usize> Transcript<M, P> {
 
     /// Add a ply to the transcript.
     pub fn add(&mut self, ply: Ply<M, P>) {
-        self.moves.push(ply)
+        self.moves.push(ply);
+        match ply.player {
+            Some(p) => self.summary.increment_moves_by_player(p),
+            None => self.summary.increment_moves_by_chance(),
+        }
     }
 
     /// Add a move played by a player (not chance) to the transcript.
     pub fn add_player_move(&mut self, player: PlayerIndex<P>, the_move: M) {
-        self.add(Ply::new(Some(player), the_move))
+        self.add(Ply::new(Some(player), the_move));
+        self.summary.increment_moves_by_player(player)
     }
 
     /// Add a move played by chance to the transcript.
     pub fn add_chance_move(&mut self, the_move: M) {
-        self.add(Ply::new(None, the_move))
+        self.add(Ply::new(None, the_move));
+        self.summary.increment_moves_by_chance()
     }
 
     /// Get all moves played by a given player (`Some`) or by chance (`None`).

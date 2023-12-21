@@ -1,15 +1,7 @@
 use std::fmt::Debug;
 use std::rc::Rc;
 
-use crate::{Move, Payoff, PlayerIndex, PlyIter, Profile, ProfileIter, Transcript, Utility};
-
-pub trait MoveRecord<M: Move, const P: usize> {
-    fn to_iter(&self) -> PlyIter<M, P>;
-
-    fn to_transcript(&self) -> Transcript<M, P> {
-        self.to_iter().into_transcript()
-    }
-}
+use crate::{Move, Payoff, PlayerIndex, PossibleProfiles, Profile, Transcript, Utility};
 
 /// A (potential) outcome of a game. A payoff combined with a record of the moves that produced it.
 ///
@@ -24,13 +16,19 @@ pub trait Outcome<M: Move, U: Utility, const P: usize>: Clone + Debug + PartialE
     /// For simultaneous games, this will be a [profile](Profile) containing one move for each
     /// player. For sequential games, it will be a [transcript](Transcript) of all moves played in
     /// the game.
-    type Record: MoveRecord<M, P>;
+    type Record: Record<M, P>;
 
     /// A record of the moves that produced this outcome.
     fn record(&self) -> &Self::Record;
 
     /// The payoff associated with this outcome.
     fn payoff(&self) -> &Payoff<U, P>;
+}
+
+/// An iterator over elements of previously played games.
+pub struct Record<'a, T> {
+    length: usize,
+    iterator: Box<dyn DoubleEndedIterator<Item = T> + 'a>,
 }
 
 /// A (potential) outcome of a simultaneous game. The profile of moves played by each player and
@@ -103,18 +101,18 @@ impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> for SequentialOutcome
 /// This enumerates the cells of the payoff table in
 /// [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
 #[derive(Clone)]
-pub struct NormalOutcomeIter<'g, M: Move, U: Utility, const P: usize> {
-    profile_iter: ProfileIter<'g, M, P>,
+pub struct PossibleOutcomes<'g, M: Move, U: Utility, const P: usize> {
+    profile_iter: PossibleProfiles<'g, M, P>,
     payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + 'g>,
 }
 
-impl<'g, M: Move, U: Utility, const P: usize> NormalOutcomeIter<'g, M, U, P> {
+impl<'g, M: Move, U: Utility, const P: usize> PossibleOutcomes<'g, M, U, P> {
     /// Construct a new outcome iterator given an iterator over profiles and a payoff function.
     pub fn new(
-        profile_iter: ProfileIter<'g, M, P>,
+        profile_iter: PossibleProfiles<'g, M, P>,
         payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + 'g>,
     ) -> Self {
-        NormalOutcomeIter {
+        PossibleOutcomes {
             profile_iter,
             payoff_fn,
         }
@@ -126,14 +124,14 @@ impl<'g, M: Move, U: Utility, const P: usize> NormalOutcomeIter<'g, M, U, P> {
     /// If the move is not a valid move for that player, then the resulting iterator will not
     /// generate any profiles.
     ///
-    /// Multiple invocations of [`include`](NormalOutcomeIter::include) and
-    /// [`exclude`](NormalOutcomeIter::exclude) can be chained together to add several constraints to
+    /// Multiple invocations of [`include`](PossibleOutcomes::include) and
+    /// [`exclude`](PossibleOutcomes::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
-    /// See the documentation for [`ProfileIter::include`](ProfileIter::include) for
+    /// See the documentation for [`ProfileIter::include`](PossibleProfiles::include) for
     /// examples and more info.
     pub fn include(self, player: PlayerIndex<P>, the_move: M) -> Self {
-        NormalOutcomeIter {
+        PossibleOutcomes {
             profile_iter: self.profile_iter.include(player, the_move),
             ..self
         }
@@ -144,14 +142,14 @@ impl<'g, M: Move, U: Utility, const P: usize> NormalOutcomeIter<'g, M, U, P> {
     ///
     /// If the move is not a valid move for that player, then this method will have no effect.
     ///
-    /// Multiple invocations of [`include`](NormalOutcomeIter::include) and
-    /// [`exclude`](NormalOutcomeIter::exclude) can be chained together to add several constraints to
+    /// Multiple invocations of [`include`](PossibleOutcomes::include) and
+    /// [`exclude`](PossibleOutcomes::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
-    /// See the documentation for [`ProfileIter::exclude`](ProfileIter::exclude) for
+    /// See the documentation for [`ProfileIter::exclude`](PossibleProfiles::exclude) for
     /// examples and more info.
     pub fn exclude(self, player: PlayerIndex<P>, the_move: M) -> Self {
-        NormalOutcomeIter {
+        PossibleOutcomes {
             profile_iter: self.profile_iter.exclude(player, the_move),
             ..self
         }
@@ -166,17 +164,17 @@ impl<'g, M: Move, U: Utility, const P: usize> NormalOutcomeIter<'g, M, U, P> {
     /// Note that this doesn't correspond to adjacency in the payoff table, but rather an entire
     /// row or column, minus the provided profile.
     ///
-    /// See the documentation for [`ProfileIter::adjacent`](ProfileIter::adjacent)
+    /// See the documentation for [`ProfileIter::adjacent`](PossibleProfiles::adjacent)
     /// for examples and more info.
     pub fn adjacent(self, player: PlayerIndex<P>, profile: Profile<M, P>) -> Self {
-        NormalOutcomeIter {
+        PossibleOutcomes {
             profile_iter: self.profile_iter.adjacent(player, profile),
             ..self
         }
     }
 }
 
-impl<'g, M: Move, U: Utility, const P: usize> Iterator for NormalOutcomeIter<'g, M, U, P> {
+impl<'g, M: Move, U: Utility, const P: usize> Iterator for PossibleOutcomes<'g, M, U, P> {
     type Item = SimultaneousOutcome<M, U, P>;
     fn next(&mut self) -> Option<Self::Item> {
         self.profile_iter.next().map(|profile| {

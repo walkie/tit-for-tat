@@ -1,18 +1,15 @@
 use std::{fmt, hash};
 
 use crate::{
-    Game, Move, MoveRecord, Outcome, Payoff, PlayerIndex, PlyIter, Profile, SequentialOutcome,
-    SimultaneousOutcome, Transcript, Utility,
+    Game, Move, Outcome, Payoff, PlayerIndex, Ply, Profile, Record, RecordIterator,
+    SequentialOutcome, SimultaneousOutcome, Transcript, Utility,
 };
-
-pub trait HistoryIterator<T>: ExactSizeIterator + DoubleEndedIterator<Item = T> {}
-
-impl<I, T> HistoryIterator<T> for I where I: ExactSizeIterator + DoubleEndedIterator<Item = T> {}
 
 /// For repeated games, a history of previously played games.
 pub struct History<G: Game<P>, const P: usize> {
     outcomes: Vec<G::Outcome>,
     score: Payoff<G::Utility, P>,
+    num_plies: usize,
 }
 
 impl<G: Game<P>, const P: usize> History<G, P> {
@@ -29,20 +26,26 @@ impl<G: Game<P>, const P: usize> History<G, P> {
     }
 
     /// Get an iterator over the outcomes of previously played games.
-    pub fn outcomes(&self) -> impl HistoryIterator<&G::Outcome> + '_ {
-        self.outcomes.iter()
+    pub fn outcomes(&self) -> RecordIterator<&G::Outcome> {
+        RecordIterator::new(self.outcomes.len(), self.outcomes.iter())
     }
 
     /// Get an iterator over the move records of previously played games.
     pub fn records(
         &self,
-    ) -> impl HistoryIterator<&<G::Outcome as Outcome<G::Move, G::Utility, P>>::Record> + '_ {
-        self.outcomes().map(|outcome| outcome.record())
+    ) -> RecordIterator<&<G::Outcome as Outcome<G::Move, G::Utility, P>>::Record> {
+        RecordIterator::new(
+            self.outcomes.len(),
+            self.outcomes().map(|outcome| outcome.record()),
+        )
     }
 
     /// Get an iterator over the payoffs of previously played games.
-    pub fn payoffs(&self) -> impl HistoryIterator<&Payoff<G::Utility, P>> + '_ {
-        self.outcomes().map(|outcome| outcome.payoff())
+    pub fn payoffs(&self) -> RecordIterator<&Payoff<G::Utility, P>> {
+        RecordIterator::new(
+            self.outcomes.len(),
+            self.outcomes().map(|outcome| outcome.payoff()),
+        )
     }
 
     /// Get the cumulative score of all previously played games.
@@ -58,13 +61,19 @@ where
     G: Game<P, Move = M, Utility = U, Outcome = SimultaneousOutcome<M, U, P>>,
 {
     /// Get an iterator over the profiles of previously played games.
-    pub fn profiles(&self) -> impl HistoryIterator<&Profile<G::Move, P>> + '_ {
-        self.outcomes().map(|outcome| outcome.profile())
+    pub fn profiles(&self) -> RecordIterator<&Profile<G::Move, P>> {
+        RecordIterator::new(
+            self.outcomes.len(),
+            self.outcomes().map(|outcome| outcome.profile()),
+        )
     }
 
     /// Get an iterator over all of the moves played by a given player.
-    pub fn moves_for_player(&self, player: PlayerIndex<P>) -> impl HistoryIterator<G::Move> + '_ {
-        self.profiles().map(move |profile| profile[player])
+    pub fn moves_for_player(&self, player: PlayerIndex<P>) -> RecordIterator<G::Move> {
+        RecordIterator::new(
+            self.outcomes.len(),
+            self.profiles().map(move |profile| profile[player]),
+        )
     }
 }
 
@@ -75,8 +84,11 @@ where
     G: Game<P, Move = M, Utility = U, Outcome = SequentialOutcome<M, U, P>>,
 {
     /// Get an iterator over the transcripts of previously played games.
-    pub fn transcripts(&self) -> impl HistoryIterator<&Transcript<G::Move, P>> + '_ {
-        self.outcomes().map(|outcome| outcome.transcript())
+    pub fn transcripts(&self) -> RecordIterator<&Transcript<G::Move, P>> {
+        RecordIterator::new(
+            self.outcomes.len(),
+            self.outcomes().map(|outcome| outcome.transcript()),
+        )
     }
 }
 
@@ -89,12 +101,14 @@ impl<G: Game<P>, const P: usize> Default for History<G, P> {
     }
 }
 
-impl<G: Game<P>, const P: usize> MoveRecord<G::Move, P> for History<G, P> {
-    fn to_iter(&self) -> PlyIter<G::Move, P> {
-        PlyIter::new(
+impl<G: Game<P>, const P: usize> Record<G::Move, P> for History<G, P> {
+    fn plies(&self) -> RecordIterator<Ply<G::Move, P>> {
+        RecordIterator::new(
             self.outcomes
                 .iter()
-                .flat_map(|outcome| outcome.record().to_iter()),
+                .flat_map(|outcome| outcome.record().plies())
+                .collect()
+                .into_iter(),
         )
     }
 }

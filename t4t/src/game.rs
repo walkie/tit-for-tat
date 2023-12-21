@@ -3,6 +3,10 @@ use std::rc::Rc;
 
 use crate::{Action, Context, Error, Move, Outcome, PlayerIndex, Players, Turn, Utility};
 
+/// A trait that collects the trait requirements of a game state.
+///
+/// A blanket implementation covers all types that meet the requirements, so this trait should not
+/// be implemented directly.
 pub trait State: Clone + Debug + PartialEq + 'static {}
 impl<T: Clone + Debug + PartialEq + 'static> State for T {}
 

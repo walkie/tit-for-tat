@@ -4,7 +4,7 @@ use itertools::structs::MultiProduct;
 use itertools::Itertools;
 use std::iter::Iterator;
 
-use crate::{Move, MoveIter, MoveRecord, PerPlayer, PlayerIndex, Ply, PlyIter, Transcript};
+use crate::{Move, PerPlayer, PlayerIndex, Ply, PossibleMoves, Record, RecordIterator, Transcript};
 
 /// A pure strategy profile for a simultaneous game: one move played by each player.
 pub type Profile<M, const P: usize> = PerPlayer<M, P>;
@@ -18,28 +18,31 @@ impl<M: Move, const P: usize> Profile<M, P> {
     }
 }
 
-impl<M: Move, const P: usize> MoveRecord<M, P> for Profile<M, P> {
-    fn to_iter(&self) -> PlyIter<M, P> {
-        PlyIter::new(self.map_with_index(|p, m| Ply::player(p, m)).into_iter())
+impl<M: Move, const P: usize> Record<M, P> for Profile<M, P> {
+    fn plies(&self) -> RecordIterator<Ply<M, P>> {
+        RecordIterator::new(self.map_with_index(|p, m| Ply::player(p, m)).into_iter())
+    }
+
+    fn moves_for_player(&self, player: PlayerIndex<P>) -> RecordIterator<M> {
+        RecordIterator::new(std::iter::once(self[player]))
     }
 }
 
-/// An iterator over all pure strategy profiles for a
-/// [normal-form game](crate::Normal).
+/// An iterator over all pure strategy profiles for a [normal-form game](crate::Normal).
 ///
 /// This iterator enumerates all profiles that can be produced from the moves available to each
 /// player.
 #[derive(Clone)]
-pub struct ProfileIter<'g, M: Copy, const P: usize> {
+pub struct PossibleProfiles<'g, M: Copy, const P: usize> {
     /// Moves that must be included in any generated profile, for each player.
     includes: PerPlayer<Vec<M>, P>,
     /// Moves that must be excluded from any generated profile, for each player.
     excludes: PerPlayer<Vec<M>, P>,
     /// The multi-product iterator used to generate each profile.
-    multi_iter: MultiProduct<MoveIter<'g, M>>,
+    multi_iter: MultiProduct<PossibleMoves<'g, M>>,
 }
 
-impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
+impl<'g, M: Move, const P: usize> PossibleProfiles<'g, M, P> {
     /// Construct a new profile iterator from a per-player collection of iterators over the moves
     /// available to each player.
     ///
@@ -48,11 +51,11 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     /// use t4t::*;
     ///
     /// let move_iters = PerPlayer::new([
-    ///     MoveIter::new(vec!['A', 'B', 'C'].into_iter()),
-    ///     MoveIter::new(vec!['D', 'E'].into_iter()),
-    ///     MoveIter::new(vec!['F', 'G'].into_iter()),
+    ///     PossibleMoves::new(vec!['A', 'B', 'C'].into_iter()),
+    ///     PossibleMoves::new(vec!['D', 'E'].into_iter()),
+    ///     PossibleMoves::new(vec!['F', 'G'].into_iter()),
     /// ]);
-    /// let iter = ProfileIter::from_move_iters(move_iters);
+    /// let iter = PossibleProfiles::from_move_iters(move_iters);
     /// assert_eq!(
     ///     iter.collect::<Vec<PerPlayer<char, 3>>>(),
     ///     vec![
@@ -65,8 +68,8 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///     ],
     /// );
     /// ```
-    pub fn from_move_iters(move_iters: PerPlayer<MoveIter<'g, M>, P>) -> Self {
-        ProfileIter {
+    pub fn from_move_iters(move_iters: PerPlayer<PossibleMoves<'g, M>, P>) -> Self {
+        PossibleProfiles {
             includes: PerPlayer::init_with(Vec::new()),
             excludes: PerPlayer::init_with(Vec::new()),
             multi_iter: move_iters.into_iter().multi_cartesian_product(),
@@ -84,15 +87,15 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///     vec!['A', 'B', 'C', 'D'],
     ///     vec!['E', 'F', 'G'],
     /// ]);
-    /// let mut iter = ProfileIter::from_move_vecs(moves).include(for2::P1, 'F');
+    /// let mut iter = PossibleProfiles::from_move_vecs(moves).include(for2::P1, 'F');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'F'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'F'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['C', 'F'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['D', 'F'])));
     /// assert_eq!(iter.next(), None);
     /// ```
-    pub fn from_move_vecs(move_vecs: PerPlayer<Vec<M>, P>) -> ProfileIter<'static, M, P> {
-        ProfileIter::from_move_iters(move_vecs.map(|v| MoveIter::new(v.into_iter())))
+    pub fn from_move_vecs(move_vecs: PerPlayer<Vec<M>, P>) -> PossibleProfiles<'static, M, P> {
+        PossibleProfiles::from_move_iters(move_vecs.map(|v| PossibleMoves::new(v.into_iter())))
     }
 
     /// Construct a new profile iterator for a game where each player has the same set of available
@@ -104,8 +107,8 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     /// ```
     /// use t4t::*;
     ///
-    /// let move_iter = MoveIter::new(vec!['X', 'O'].into_iter());
-    /// let iter = ProfileIter::symmetric(move_iter);
+    /// let move_iter = PossibleMoves::new(vec!['X', 'O'].into_iter());
+    /// let iter = PossibleProfiles::symmetric(move_iter);
     /// assert_eq!(
     ///     iter.collect::<Vec<PerPlayer<char, 2>>>(),
     ///     vec![
@@ -114,8 +117,8 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///     ],
     /// );
     ///
-    /// let move_iter = MoveIter::new(vec!['A', 'B', 'C'].into_iter());
-    /// let iter = ProfileIter::symmetric(move_iter);
+    /// let move_iter = PossibleMoves::new(vec!['A', 'B', 'C'].into_iter());
+    /// let iter = PossibleProfiles::symmetric(move_iter);
     /// assert_eq!(
     ///     iter.collect::<Vec<PerPlayer<char, 2>>>(),
     ///     vec![
@@ -130,8 +133,8 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     /// ```
     /// use t4t::*;
     ///
-    /// let move_iter = MoveIter::new(vec!['X', 'O'].into_iter());
-    /// let iter = ProfileIter::symmetric(move_iter);
+    /// let move_iter = PossibleMoves::new(vec!['X', 'O'].into_iter());
+    /// let iter = PossibleProfiles::symmetric(move_iter);
     /// assert_eq!(
     ///     iter.collect::<Vec<PerPlayer<char, 3>>>(),
     ///     vec![
@@ -142,8 +145,8 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///     ],
     /// );
     /// ```
-    pub fn symmetric(move_iter: MoveIter<'g, M>) -> Self {
-        ProfileIter::from_move_iters(PerPlayer::init_with(move_iter))
+    pub fn symmetric(move_iter: PossibleMoves<'g, M>) -> Self {
+        PossibleProfiles::from_move_iters(PerPlayer::init_with(move_iter))
     }
 
     /// Constrain the iterator to generate only profiles where the given player plays a specific
@@ -152,8 +155,8 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     /// If the move is not a valid move for that player, then the resulting iterator will not
     /// generate any profiles.
     ///
-    /// Multiple invocations of [`include`](ProfileIter::include) and
-    /// [`exclude`](ProfileIter::exclude) can be chained together to add several constraints to
+    /// Multiple invocations of [`include`](PossibleProfiles::include) and
+    /// [`exclude`](PossibleProfiles::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
     /// # Examples
@@ -167,13 +170,13 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///     vec!['C', 'D', 'E'],
     /// ]);
     ///
-    /// let mut iter = ProfileIter::from_move_vecs(moves.clone()).include(for2::P0, 'B');
+    /// let mut iter = PossibleProfiles::from_move_vecs(moves.clone()).include(for2::P0, 'B');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'C'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'E'])));
     /// assert_eq!(iter.next(), None);
     ///
-    /// let mut iter = ProfileIter::from_move_vecs(moves).include(for2::P1, 'D');
+    /// let mut iter = PossibleProfiles::from_move_vecs(moves).include(for2::P1, 'D');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D'])));
     /// assert_eq!(iter.next(), None);
@@ -183,8 +186,8 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     /// ```
     /// use t4t::*;
     ///
-    /// let move_iter = MoveIter::new(vec!['A', 'B', 'C'].into_iter());
-    /// let mut iter = ProfileIter::symmetric(move_iter)
+    /// let move_iter = PossibleMoves::new(vec!['A', 'B', 'C'].into_iter());
+    /// let mut iter = PossibleProfiles::symmetric(move_iter)
     ///     .include(for3::P0, 'A')
     ///     .include(for3::P2, 'C');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'A', 'C'])));
@@ -193,7 +196,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     /// assert_eq!(iter.next(), None);
     /// ```
     ///
-    /// Combining with [`exclude`](ProfileIter::exclude):
+    /// Combining with [`exclude`](PossibleProfiles::exclude):
     /// ```
     /// use t4t::*;
     ///
@@ -203,7 +206,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///     vec!['F', 'G', 'H'],
     /// ]);
     ///
-    /// let mut iter = ProfileIter::from_move_vecs(moves.clone())
+    /// let mut iter = PossibleProfiles::from_move_vecs(moves.clone())
     ///     .include(for3::P1, 'D')
     ///     .exclude(for3::P2, 'G');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D', 'F'])));
@@ -215,7 +218,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     pub fn include(self, player: PlayerIndex<P>, the_move: M) -> Self {
         let mut includes = self.includes;
         includes[player].push(the_move);
-        ProfileIter { includes, ..self }
+        PossibleProfiles { includes, ..self }
     }
 
     /// Constrain the iterator to generate only profiles where the given player *does not* play a
@@ -223,8 +226,8 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///
     /// If the move is not a valid move for that player, then this method will have no effect.
     ///
-    /// Multiple invocations of [`include`](ProfileIter::include) and
-    /// [`exclude`](ProfileIter::exclude) can be chained together to add several constraints to
+    /// Multiple invocations of [`include`](PossibleProfiles::include) and
+    /// [`exclude`](PossibleProfiles::exclude) can be chained together to add several constraints to
     /// the iterator.
     ///
     /// # Examples
@@ -238,7 +241,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///     vec!['C', 'D', 'E'],
     /// ]);
     ///
-    /// let mut iter = ProfileIter::from_move_vecs(moves).exclude(for2::P1, 'C');
+    /// let mut iter = PossibleProfiles::from_move_vecs(moves).exclude(for2::P1, 'C');
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'D'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['A', 'E'])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new(['B', 'D'])));
@@ -255,7 +258,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     ///     vec!['D', 'E', 'F', 'G'],
     /// ]);
     ///
-    /// let mut iter = ProfileIter::from_move_vecs(moves)
+    /// let mut iter = PossibleProfiles::from_move_vecs(moves)
     ///     .exclude(for2::P0, 'A')
     ///     .exclude(for2::P1, 'E')
     ///     .exclude(for2::P1, 'G');
@@ -266,12 +269,12 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     /// assert_eq!(iter.next(), None);
     /// ```
     ///
-    /// Combining with [`include`](ProfileIter::include):
+    /// Combining with [`include`](PossibleProfiles::include):
     /// ```
     /// use t4t::*;
     ///
-    /// let move_iter = MoveIter::new(vec!['A', 'B', 'C'].into_iter());
-    /// let mut iter = ProfileIter::symmetric(move_iter)
+    /// let move_iter = PossibleMoves::new(vec!['A', 'B', 'C'].into_iter());
+    /// let mut iter = PossibleProfiles::symmetric(move_iter)
     ///     .exclude(for3::P0, 'A')
     ///     .exclude(for3::P1, 'B')
     ///     .include(for3::P2, 'C');
@@ -284,7 +287,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     pub fn exclude(self, player: PlayerIndex<P>, the_move: M) -> Self {
         let mut excludes = self.excludes;
         excludes[player].push(the_move);
-        ProfileIter { excludes, ..self }
+        PossibleProfiles { excludes, ..self }
     }
 
     /// Constrain the iterator to generate only profiles that are "adjacent" to the given profile
@@ -297,8 +300,8 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     /// ```
     /// use t4t::*;
     ///
-    /// let move_iter = MoveIter::new(vec![1, 2, 3, 4, 5].into_iter());
-    /// let mut iter = ProfileIter::symmetric(move_iter)
+    /// let move_iter = PossibleMoves::new(vec![1, 2, 3, 4, 5].into_iter());
+    /// let mut iter = PossibleProfiles::symmetric(move_iter)
     ///     .adjacent(for5::P3, PerPlayer::new([5, 4, 3, 2, 1]));
     /// assert_eq!(iter.next(), Some(PerPlayer::new([5, 4, 3, 1, 1])));
     /// assert_eq!(iter.next(), Some(PerPlayer::new([5, 4, 3, 3, 1])));
@@ -319,7 +322,7 @@ impl<'g, M: Move, const P: usize> ProfileIter<'g, M, P> {
     }
 }
 
-impl<'g, M: Move, const P: usize> Iterator for ProfileIter<'g, M, P> {
+impl<'g, M: Move, const P: usize> Iterator for PossibleProfiles<'g, M, P> {
     type Item = Profile<M, P>;
 
     fn next(&mut self) -> Option<Profile<M, P>> {
@@ -351,7 +354,7 @@ mod tests {
 
     #[test]
     fn adjacent_profiles_for3_correct() {
-        let iter = ProfileIter::from_move_vecs(PerPlayer::new([
+        let iter = PossibleProfiles::from_move_vecs(PerPlayer::new([
             vec!['A', 'B'],
             vec!['C', 'D', 'E'],
             vec!['F', 'G', 'H', 'I'],

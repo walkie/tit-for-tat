@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use crate::{
-    ErrorKind, Game, Move, MoveRecord, Payoff, PerPlayer, PlayerIndex, Profile,
-    SimultaneousOutcome, Turn, Utility,
+    ErrorKind, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, SimultaneousOutcome, Turn,
+    Utility,
 };
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player

@@ -205,7 +205,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     /// assert_eq!(p.for_player(3), None);
     /// ```
     pub fn for_player(&self, i: usize) -> Option<U> {
-        self.utilities.for_player(i).copied()
+        self.utilities.get(i).copied()
     }
 
     /// Get a mutable reference to the utility for the `i`th player in the game. Returns `None` if
@@ -222,7 +222,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
     /// assert_eq!(p.for_player(3), None);
     /// ```
     pub fn for_player_mut(&mut self, i: usize) -> Option<&mut U> {
-        self.utilities.for_player_mut(i)
+        self.utilities.get_mut(i)
     }
 
     /// Is this a zero-sum payoff? That is, do each of the utility values it contains sum to zero?

@@ -1,10 +1,12 @@
 //! This module defines the [`PerPlayer`] collection type that stores one element for each player
 //! in a game.
 
+use crate::{Payoff, Utility};
 use derive_more::{AsMut, AsRef};
+use num::Num;
 use std::fmt::Display;
 use std::iter::IntoIterator;
-use std::ops::{Index, IndexMut};
+use std::ops::{Add, Index, IndexMut};
 
 /// A collection that stores one element corresponding to each player in a game.
 ///
@@ -19,30 +21,34 @@ use std::ops::{Index, IndexMut};
 ///
 /// # Dynamically checked indexing operations
 ///
-/// The [`for_player`](PerPlayer::for_player) and [`for_player_mut`](PerPlayer::for_player_mut)
-/// methods allow indexing into a `PerPlayer` collection with plain `usize` indexes. They return
-/// references wrapped in an [`Option`] type, which may be `None` if the index is too large for the
-/// number of players in the game.
+/// The [`get`](PerPlayer::get) and [`get_mut`](PerPlayer::get_mut) methods allow indexing into a
+/// `PerPlayer` collection with plain `usize` indexes. They return references wrapped in an
+/// [`Option`] type, which may be `None` if the index is too large for the number of players in the
+/// game.
 ///
 /// ```
 /// use t4t::PerPlayer;
 ///
 /// let mut pp = PerPlayer::new(["klaatu", "barada", "nikto"]);
-/// assert_eq!(pp.for_player(0), Some(&"klaatu"));
-/// assert_eq!(pp.for_player(1), Some(&"barada"));
-/// assert_eq!(pp.for_player(2), Some(&"nikto"));
-/// assert_eq!(pp.for_player(3), None);
+/// assert_eq!(pp.get(0), Some(&"klaatu"));
+/// assert_eq!(pp.get(1), Some(&"barada"));
+/// assert_eq!(pp.get(2), Some(&"nikto"));
+/// assert_eq!(pp.get(3), None);
 ///
-/// *pp.for_player_mut(0).unwrap() = "gort";
-/// assert_eq!(pp.for_player(0), Some(&"gort"));
+/// *pp.get_mut(0).unwrap() = "gort";
+/// assert_eq!(pp.get(0), Some(&"gort"));
 /// ```
 ///
 /// # Statically checked indexing operations
 ///
-/// The [`Index`] and [`IndexMut`] traits are implemented for `PerPlayer` collections with indexes
-/// of type [`PlayerIndex`]. An index of type `PlayerIndex<P>` is guaranteed to be in-range for a
-/// collection of type `PerPlayer<T, P>`, that is, indexing operations into a `PerPlayer`
-/// collection are guaranteed not to fail due to an index out-of-bounds error.
+/// The [`for_player`](PerPlayer::for_player) and [`for_player_mut`](PerPlayer::for_player_mut)
+/// methods allow indexing into a `PerPlayer` collection with indexes of type [`PlayerIndex`]. An
+/// index of type `PlayerIndex<P>` is guaranteed to be in-range for a collection of type
+/// `PerPlayer<T, P>`, that is, indexing operations into a `PerPlayer` collection are guaranteed
+/// not to fail due to an index out-of-bounds error.
+///
+/// The [`Index`] and [`IndexMut`] traits are implemented using indexes of type [`PlayerIndex`] and
+/// are synonymous with the `for_player` and `for_player_mut` methods, respectively.
 ///
 /// Indexes can be constructed dynamically using the [`PlayerIndex::new`] constructor. While the
 /// *indexing operation* cannot fail, *constructing an index* may fail if the index is out of
@@ -95,6 +101,17 @@ pub struct PerPlayer<T, const P: usize> {
     data: [T; P],
 }
 
+/// An index into a [per-player](PerPlayer) collection that is guaranteed to be in-range for a game
+/// with `P` players.
+///
+/// Note that player's are indexed from zero for consistency with the rest of Rust. That is, the
+/// first player in a game has index `0`, the second player has index `1`, and so on. This isn't
+/// ideal since most of the literature on game theory uses one-based terminology. However, I judged
+/// internal consistency to be more important than external consistency, in this case. Juggling
+/// multiple different indexing styles within the code itself would be really confusing!
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct PlayerIndex<const P: usize>(usize);
+
 impl<T, const P: usize> PerPlayer<T, P> {
     /// Create a new per-player collection from the given array.
     pub fn new(data: [T; P]) -> Self {
@@ -141,17 +158,17 @@ impl<T, const P: usize> PerPlayer<T, P> {
     /// use t4t::PerPlayer;
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
-    /// assert_eq!(pp.for_player(0), Some(&"frodo"));
-    /// assert_eq!(pp.for_player(1), Some(&"sam"));
-    /// assert_eq!(pp.for_player(2), Some(&"merry"));
-    /// assert_eq!(pp.for_player(3), Some(&"pippin"));
-    /// assert_eq!(pp.for_player(4), None);
+    /// assert_eq!(pp.get(0), Some(&"frodo"));
+    /// assert_eq!(pp.get(1), Some(&"sam"));
+    /// assert_eq!(pp.get(2), Some(&"merry"));
+    /// assert_eq!(pp.get(3), Some(&"pippin"));
+    /// assert_eq!(pp.get(4), None);
     /// ```
-    pub fn for_player(&self, i: usize) -> Option<&T> {
+    pub fn get(&self, i: usize) -> Option<&T> {
         if i < P {
             Some(&self.data[i])
         } else {
-            log::warn!("PerPlayer<{}>::for_player({}): index out of range", P, i);
+            log::warn!("PerPlayer<{}>::get({}): index out of range", P, i);
             None
         }
     }
@@ -164,26 +181,86 @@ impl<T, const P: usize> PerPlayer<T, P> {
     /// use t4t::PerPlayer;
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
-    /// *pp.for_player_mut(1).unwrap() = "samwise";
-    /// *pp.for_player_mut(2).unwrap() = "meriadoc";
-    /// *pp.for_player_mut(3).unwrap() = "peregrin";
-    /// assert_eq!(pp.for_player(0), Some(&"frodo"));
-    /// assert_eq!(pp.for_player(1), Some(&"samwise"));
-    /// assert_eq!(pp.for_player(2), Some(&"meriadoc"));
-    /// assert_eq!(pp.for_player(3), Some(&"peregrin"));
-    /// assert_eq!(pp.for_player(4), None);
+    /// *pp.get_mut(1).unwrap() = "samwise";
+    /// *pp.get_mut(2).unwrap() = "meriadoc";
+    /// *pp.get_mut(3).unwrap() = "peregrin";
+    /// assert_eq!(pp.get(0), Some(&"frodo"));
+    /// assert_eq!(pp.get(1), Some(&"samwise"));
+    /// assert_eq!(pp.get(2), Some(&"meriadoc"));
+    /// assert_eq!(pp.get(3), Some(&"peregrin"));
+    /// assert_eq!(pp.get(4), None);
     /// ```
-    pub fn for_player_mut(&mut self, i: usize) -> Option<&mut T> {
+    pub fn get_mut(&mut self, i: usize) -> Option<&mut T> {
         if i < P {
             Some(&mut self.data[i])
         } else {
-            log::warn!(
-                "PerPlayer<{}>::for_player_mut({}): index out of range",
-                P,
-                i
-            );
+            log::warn!("PerPlayer<{}>::get_mut({}): index out of range", P, i);
             None
         }
+    }
+
+    /// Index into a `PerPlayer` collection with a `PlayerIndex`. This operation is statically
+    /// guaranteed not to fail.
+    ///
+    /// # Examples
+    /// ```
+    /// use t4t::{for4, PerPlayer};
+    ///
+    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    /// assert_eq!(pp.for_player(for4::P0), "frodo");
+    /// assert_eq!(pp.for_player(for4::P1), "sam");
+    /// assert_eq!(pp.for_player(for4::P2), "merry");
+    /// assert_eq!(pp.for_player(for4::P3), "pippin");
+    /// ```
+    ///
+    /// This method is used to implement the [`Index`] trait, which enables using the more concise
+    /// indexing syntax.
+    /// ```
+    /// use t4t::{for4, PerPlayer};
+    ///
+    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    /// assert_eq!(pp[for4::P0], "frodo");
+    /// assert_eq!(pp[for4::P1], "sam");
+    /// assert_eq!(pp[for4::P2], "merry");
+    /// assert_eq!(pp[for4::P3], "pippin");
+    /// ```
+    pub fn for_player(&self, idx: PlayerIndex<P>) -> &T {
+        unsafe { self.data.get_unchecked(idx.0) }
+    }
+
+    /// Index into a `PerPlayer` collection with `PlayerIndex` in a mutable context. This operation
+    /// is statically guaranteed not to fail.
+    ///
+    /// # Examples
+    /// ```
+    /// use t4t::{for4, PerPlayer};
+    ///
+    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    /// pp.for_player_mut(for4::P1) = "samwise";
+    /// pp.for_player_mut(for4::P2) = "meriadoc";
+    /// pp.for_player_mut(for4::P3) = "peregrin";
+    /// assert_eq!(pp.for_player(for4::P0), "frodo");
+    /// assert_eq!(pp.for_player(for4::P1), "samwise");
+    /// assert_eq!(pp.for_player(for4::P2), "meriadoc");
+    /// assert_eq!(pp.for_player(for4::P3), "peregrin");
+    /// ```
+    ///
+    /// This method is used to implement the [`IndexMut`] trait, which enables using the more
+    /// concise indexing syntax.
+    /// ```
+    /// use t4t::{for4, PerPlayer};
+    ///
+    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    /// pp[for4::P1] = "samwise";
+    /// pp[for4::P2] = "meriadoc";
+    /// pp[for4::P3] = "peregrin";
+    /// assert_eq!(pp[for4::P0], "frodo");
+    /// assert_eq!(pp[for4::P1], "samwise");
+    /// assert_eq!(pp[for4::P2], "meriadoc");
+    /// assert_eq!(pp[for4::P3], "peregrin");
+    /// ```
+    pub fn for_player_mut(&mut self, idx: PlayerIndex<P>) -> &mut T {
+        unsafe { self.data.get_unchecked_mut(idx.0) }
     }
 }
 
@@ -271,6 +348,12 @@ impl<T: Default, const P: usize> Default for PerPlayer<T, P> {
     }
 }
 
+impl<T, const P: usize> From<[T; P]> for PerPlayer<T, P> {
+    fn from(data: [T; P]) -> Self {
+        PerPlayer::new(data)
+    }
+}
+
 impl<T, const P: usize> IntoIterator for PerPlayer<T, P> {
     type Item = <[T; P] as IntoIterator>::Item;
     type IntoIter = <[T; P] as IntoIterator>::IntoIter;
@@ -294,20 +377,6 @@ impl<'a, T, const P: usize> IntoIterator for &'a mut PerPlayer<T, P> {
         self.data.iter_mut()
     }
 }
-
-/// An index into a [per-player](PerPlayer) collection that is guaranteed to be in-range for a game
-/// with `P` players.
-///
-/// This type is used in the implementations of the [`Index`] and [`IndexMut`] traits and ensures
-/// that their operations will not fail.
-///
-/// Note that player's are indexed from zero for consistency with the rest of Rust. That is, the
-/// first player in a game has index `0`, the second player has index `1`, and so on. This isn't
-/// ideal since most of the literature on game theory uses one-based terminology. However, I judged
-/// internal consistency to be more important than external consistency, in this case. Juggling
-/// multiple different indexing styles within the code itself would be really confusing!
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct PlayerIndex<const P: usize>(usize);
 
 impl<const P: usize> PlayerIndex<P> {
     /// Construct a new index into a [`PerPlayer`] collection. Returns `None` if the provided index
@@ -440,42 +509,14 @@ impl<const P: usize> Display for PlayerIndex<P> {
 
 impl<T, const P: usize> Index<PlayerIndex<P>> for PerPlayer<T, P> {
     type Output = T;
-    /// Index into a `PerPlayer` collection. This operation is statically guaranteed not to fail.
-    ///
-    /// # Examples
-    /// ```
-    /// use t4t::{for4, PerPlayer};
-    ///
-    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
-    /// assert_eq!(pp[for4::P0], "frodo");
-    /// assert_eq!(pp[for4::P1], "sam");
-    /// assert_eq!(pp[for4::P2], "merry");
-    /// assert_eq!(pp[for4::P3], "pippin");
-    /// ```
     fn index(&self, idx: PlayerIndex<P>) -> &T {
-        unsafe { self.data.get_unchecked(idx.0) }
+        self.for_player(idx)
     }
 }
 
 impl<T, const P: usize> IndexMut<PlayerIndex<P>> for PerPlayer<T, P> {
-    /// Index into a `PerPlayer` collection in a mutable context. This operation is statically
-    /// guaranteed not to fail.
-    ///
-    /// # Examples
-    /// ```
-    /// use t4t::{for4, PerPlayer};
-    ///
-    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
-    /// pp[for4::P1] = "samwise";
-    /// pp[for4::P2] = "meriadoc";
-    /// pp[for4::P3] = "peregrin";
-    /// assert_eq!(pp[for4::P0], "frodo");
-    /// assert_eq!(pp[for4::P1], "samwise");
-    /// assert_eq!(pp[for4::P2], "meriadoc");
-    /// assert_eq!(pp[for4::P3], "peregrin");
-    /// ```
     fn index_mut(&mut self, idx: PlayerIndex<P>) -> &mut T {
-        unsafe { self.data.get_unchecked_mut(idx.0) }
+        self.for_player_mut(idx)
     }
 }
 

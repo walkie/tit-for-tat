@@ -5,8 +5,8 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::{
-    Dominated, ErrorKind, Game, Move, MoveIter, MoveRecord, NormalOutcomeIter, Payoff, PerPlayer,
-    PlayerIndex, Profile, ProfileIter, Simultaneous, SimultaneousOutcome, Turn, Utility,
+    Dominated, ErrorKind, Game, Move, Payoff, PerPlayer, PlayerIndex, PossibleMoves,
+    PossibleOutcomes, PossibleProfiles, Profile, Simultaneous, SimultaneousOutcome, Turn, Utility,
 };
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
@@ -182,7 +182,8 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         moves: PerPlayer<Vec<M>, P>,
         payoffs: Vec<Payoff<U, P>>,
     ) -> Option<Self> {
-        let profiles: Vec<Profile<M, P>> = ProfileIter::from_move_vecs(moves.clone()).collect();
+        let profiles: Vec<Profile<M, P>> =
+            PossibleProfiles::from_move_vecs(moves.clone()).collect();
         let num_profiles = profiles.len();
         let num_payoffs = payoffs.len();
         match num_profiles.cmp(&num_payoffs) {
@@ -370,16 +371,13 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     }
 
     /// Get an iterator over the available moves for the given player.
-    ///
-    /// Implementations of this method should produce every valid move for the given player exactly
-    /// once.
-    pub fn available_moves_for_player(&self, player: PlayerIndex<P>) -> MoveIter<'_, M> {
-        MoveIter::new(self.moves[player].clone().into_iter())
+    pub fn possible_moves_for_player(&self, player: PlayerIndex<P>) -> PossibleMoves<'_, M, P> {
+        PossibleMoves::from_vec(player, self.moves[player].clone())
     }
 
     /// Get iterators for the moves available to each player.
-    pub fn available_moves(&self) -> PerPlayer<MoveIter<'_, M>, P> {
-        PerPlayer::generate(|player| self.available_moves_for_player(player))
+    pub fn possible_moves(&self) -> PerPlayer<PossibleMoves<'_, M, P>, P> {
+        PerPlayer::generate(|player| self.possible_moves_for_player(player))
     }
 
     /// Is this a valid move for the given player?
@@ -404,7 +402,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// Get the number of moves available to each player, which corresponds to the dimensions of
     /// the payoff matrix.
     pub fn dimensions(&self) -> PerPlayer<usize, P> {
-        self.available_moves().map(|ms| ms.count())
+        self.possible_moves().map(|ms| ms.count())
     }
 
     /// Get this normal form game as a simultaneous move game.
@@ -419,13 +417,13 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
 
     /// An iterator over all of the [valid](Normal::is_valid_profile) pure strategy profiles for
     /// this game.
-    pub fn profiles(&self) -> ProfileIter<'_, M, P> {
-        ProfileIter::from_move_iters(self.available_moves())
+    pub fn possible_profiles(&self) -> PossibleProfiles<'_, M, P> {
+        PossibleProfiles::from_move_iters(self.possible_moves())
     }
 
     /// An iterator over all possible outcomes of the game.
-    pub fn outcomes(&self) -> NormalOutcomeIter<'_, M, U, P> {
-        NormalOutcomeIter::new(self.profiles(), self.payoff_fn.clone())
+    pub fn possible_outcomes(&self) -> PossibleOutcomes<'_, M, U, P> {
+        PossibleOutcomes::new(self.possible_profiles(), self.payoff_fn.clone())
     }
 
     /// Is this game zero-sum? In a zero-sum game, the utility values of each payoff sum to zero.
@@ -449,7 +447,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// assert!(!pd.is_zero_sum());
     /// ```
     pub fn is_zero_sum(&self) -> bool {
-        self.outcomes()
+        self.possible_outcomes()
             .all(|outcome| outcome.payoff().is_zero_sum())
     }
 
@@ -495,7 +493,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         let mut best_move = None;
         if self.is_valid_profile(profile) {
             let mut best_util = self.payoff(profile)[player];
-            for adjacent in self.outcomes().adjacent(player, profile) {
+            for adjacent in self.possible_outcomes().adjacent(player, profile) {
                 let util = adjacent.payoff()[player];
                 if util > best_util {
                     best_move = Some(adjacent.profile()[player]);
@@ -582,7 +580,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// ```
     pub fn pure_nash_equilibria(&self) -> Vec<Profile<M, P>> {
         let mut nash = Vec::new();
-        for profile in self.profiles() {
+        for profile in self.possible_profiles() {
             if self.is_stable(profile) {
                 nash.push(profile);
             }
@@ -595,7 +593,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
             let payoff = self.payoff(profile);
             let mut best_profile = None;
             let mut best_improvement = <U as Zero>::zero();
-            for outcome in self.outcomes() {
+            for outcome in self.possible_outcomes() {
                 if let Some(improvement) = payoff.pareto_improvement(*outcome.payoff()) {
                     if improvement.gt(&best_improvement) {
                         best_profile = Some(*outcome.profile());
@@ -619,7 +617,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
 
     pub fn pareto_optimal_solutions(&self) -> Vec<Profile<M, P>> {
         let mut pareto = Vec::new();
-        for profile in self.profiles() {
+        for profile in self.possible_profiles() {
             if self.is_pareto_optimal(profile) {
                 pareto.push(profile)
             }
@@ -654,15 +652,15 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     pub fn dominated_moves_for(&self, player: PlayerIndex<P>) -> Vec<Dominated<M>> {
         let mut dominated = Vec::new();
 
-        for maybe_ted in self.available_moves_for_player(player) {
-            let ted_iter = self.outcomes().include(player, maybe_ted);
+        for maybe_ted in self.possible_moves_for_player(player) {
+            let ted_iter = self.possible_outcomes().include(player, maybe_ted);
 
-            for maybe_tor in self.available_moves_for_player(player) {
+            for maybe_tor in self.possible_moves_for_player(player) {
                 if maybe_ted == maybe_tor {
                     continue;
                 }
 
-                let tor_iter = self.outcomes().include(player, maybe_tor);
+                let tor_iter = self.possible_outcomes().include(player, maybe_tor);
 
                 let mut is_dominated = true;
                 let mut is_strict = true;
