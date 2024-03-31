@@ -1,12 +1,7 @@
-//! This module defines the [`PerPlayer`] collection type that stores one element for each player
-//! in a game.
-
-use crate::{Payoff, Utility};
 use derive_more::{AsMut, AsRef};
-use num::Num;
 use std::fmt::Display;
 use std::iter::IntoIterator;
-use std::ops::{Add, Index, IndexMut};
+use std::ops::{Index, IndexMut};
 
 /// A collection that stores one element corresponding to each player in a game.
 ///
@@ -104,7 +99,7 @@ pub struct PerPlayer<T, const P: usize> {
 /// An index into a [per-player](PerPlayer) collection that is guaranteed to be in-range for a game
 /// with `P` players.
 ///
-/// Note that player's are indexed from zero for consistency with the rest of Rust. That is, the
+/// Note that players are indexed from zero for consistency with the rest of Rust. That is, the
 /// first player in a game has index `0`, the second player has index `1`, and so on. This isn't
 /// ideal since most of the literature on game theory uses one-based terminology. However, I judged
 /// internal consistency to be more important than external consistency, in this case. Juggling
@@ -207,10 +202,10 @@ impl<T, const P: usize> PerPlayer<T, P> {
     /// use t4t::{for4, PerPlayer};
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
-    /// assert_eq!(pp.for_player(for4::P0), "frodo");
-    /// assert_eq!(pp.for_player(for4::P1), "sam");
-    /// assert_eq!(pp.for_player(for4::P2), "merry");
-    /// assert_eq!(pp.for_player(for4::P3), "pippin");
+    /// assert_eq!(*pp.for_player(for4::P0), "frodo");
+    /// assert_eq!(*pp.for_player(for4::P1), "sam");
+    /// assert_eq!(*pp.for_player(for4::P2), "merry");
+    /// assert_eq!(*pp.for_player(for4::P3), "pippin");
     /// ```
     ///
     /// This method is used to implement the [`Index`] trait, which enables using the more concise
@@ -236,13 +231,13 @@ impl<T, const P: usize> PerPlayer<T, P> {
     /// use t4t::{for4, PerPlayer};
     ///
     /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
-    /// pp.for_player_mut(for4::P1) = "samwise";
-    /// pp.for_player_mut(for4::P2) = "meriadoc";
-    /// pp.for_player_mut(for4::P3) = "peregrin";
-    /// assert_eq!(pp.for_player(for4::P0), "frodo");
-    /// assert_eq!(pp.for_player(for4::P1), "samwise");
-    /// assert_eq!(pp.for_player(for4::P2), "meriadoc");
-    /// assert_eq!(pp.for_player(for4::P3), "peregrin");
+    /// *pp.for_player_mut(for4::P1) = "samwise";
+    /// *pp.for_player_mut(for4::P2) = "meriadoc";
+    /// *pp.for_player_mut(for4::P3) = "peregrin";
+    /// assert_eq!(*pp.for_player(for4::P0), "frodo");
+    /// assert_eq!(*pp.for_player(for4::P1), "samwise");
+    /// assert_eq!(*pp.for_player(for4::P2), "meriadoc");
+    /// assert_eq!(*pp.for_player(for4::P3), "peregrin");
     /// ```
     ///
     /// This method is used to implement the [`IndexMut`] trait, which enables using the more
@@ -271,8 +266,8 @@ impl<T: Clone, const P: usize> PerPlayer<T, P> {
         PerPlayer::generate(|_| value.clone())
     }
 
-    /// Map a function over all of the elements in a per-player collection, producing a new
-    /// per-player collection.
+    /// Map a function over all elements in a per-player collection, producing a new per-player
+    /// collection.
     ///
     /// # Examples
     /// ```
@@ -290,8 +285,8 @@ impl<T: Clone, const P: usize> PerPlayer<T, P> {
         PerPlayer::new(self.data.clone().map(f))
     }
 
-    /// Map a function over all of the elements in a per-player collection, producing a new
-    /// per-player collection.
+    /// Map a function over all elements in a per-player collection, producing a new per-player
+    /// collection.
     ///
     /// This variant of map provides each element's index along with the element to the mapped
     /// function.
@@ -351,6 +346,18 @@ impl<T: Default, const P: usize> Default for PerPlayer<T, P> {
 impl<T, const P: usize> From<[T; P]> for PerPlayer<T, P> {
     fn from(data: [T; P]) -> Self {
         PerPlayer::new(data)
+    }
+}
+
+impl<T, const P: usize> PerPlayer<T, P> {
+    /// An iterator over references to elements in the per-player collection.
+    pub fn iter(&self) -> <&[T; P] as IntoIterator>::IntoIter {
+        self.data.iter()
+    }
+
+    /// An iterator over mutable references to elements in the per-player collection.
+    pub fn iter_mut(&mut self) -> <&mut [T; P] as IntoIterator>::IntoIter {
+        self.data.iter_mut()
     }
 }
 
@@ -520,7 +527,7 @@ impl<T, const P: usize> IndexMut<PlayerIndex<P>> for PerPlayer<T, P> {
     }
 }
 
-/// An iterator that produces all of the player indexes of a given index type.
+/// An iterator that produces all player indexes of a given index type.
 pub struct PlayerIndexes<const P: usize> {
     next: usize,
     back: usize,
@@ -559,6 +566,7 @@ impl<const P: usize> DoubleEndedIterator for PlayerIndexes<P> {
 /// Defines indexes into a collection of type `PerPlayer<T, 1>`.
 pub mod for1 {
     use super::PlayerIndex;
+
     /// The only player in a 1-player game.
     pub const P0: PlayerIndex<1> = PlayerIndex(0);
 }
@@ -740,21 +748,21 @@ pub mod for7 {
 pub mod for8 {
     use super::PlayerIndex;
 
-    /// The 1st player in a 8-player game.
+    /// The 1st player in an 8-player game.
     pub const P0: PlayerIndex<8> = PlayerIndex(0);
-    /// The 2nd player in a 8-player game.
+    /// The 2nd player in an 8-player game.
     pub const P1: PlayerIndex<8> = PlayerIndex(1);
-    /// The 3rd player in a 8-player game.
+    /// The 3rd player in an 8-player game.
     pub const P2: PlayerIndex<8> = PlayerIndex(2);
-    /// The 4th player in a 8-player game.
+    /// The 4th player in an 8-player game.
     pub const P3: PlayerIndex<8> = PlayerIndex(3);
-    /// The 5th player in a 8-player game.
+    /// The 5th player in an 8-player game.
     pub const P4: PlayerIndex<8> = PlayerIndex(4);
-    /// The 6th player in a 8-player game.
+    /// The 6th player in an 8-player game.
     pub const P5: PlayerIndex<8> = PlayerIndex(5);
-    /// The 7th player in a 8-player game.
+    /// The 7th player in an 8-player game.
     pub const P6: PlayerIndex<8> = PlayerIndex(6);
-    /// The 8th player in a 8-player game.
+    /// The 8th player in an 8-player game.
     pub const P7: PlayerIndex<8> = PlayerIndex(7);
 }
 
@@ -812,27 +820,27 @@ pub mod for10 {
 pub mod for11 {
     use super::PlayerIndex;
 
-    /// The 1st player in a 11-player game.
+    /// The 1st player in an 11-player game.
     pub const P0: PlayerIndex<11> = PlayerIndex(0);
-    /// The 2nd player in a 11-player game.
+    /// The 2nd player in an 11-player game.
     pub const P1: PlayerIndex<11> = PlayerIndex(1);
-    /// The 3rd player in a 11-player game.
+    /// The 3rd player in an 11-player game.
     pub const P2: PlayerIndex<11> = PlayerIndex(2);
-    /// The 4th player in a 11-player game.
+    /// The 4th player in an 11-player game.
     pub const P3: PlayerIndex<11> = PlayerIndex(3);
-    /// The 5th player in a 11-player game.
+    /// The 5th player in an 11-player game.
     pub const P4: PlayerIndex<11> = PlayerIndex(4);
-    /// The 6th player in a 11-player game.
+    /// The 6th player in an 11-player game.
     pub const P5: PlayerIndex<11> = PlayerIndex(5);
-    /// The 7th player in a 11-player game.
+    /// The 7th player in an 11-player game.
     pub const P6: PlayerIndex<11> = PlayerIndex(6);
-    /// The 8th player in a 11-player game.
+    /// The 8th player in an 11-player game.
     pub const P7: PlayerIndex<11> = PlayerIndex(7);
-    /// The 9th player in a 11-player game.
+    /// The 9th player in an 11-player game.
     pub const P8: PlayerIndex<11> = PlayerIndex(8);
-    /// The 10th player in a 11-player game.
+    /// The 10th player in an 11-player game.
     pub const P9: PlayerIndex<11> = PlayerIndex(9);
-    /// The 11th player in a 11-player game.
+    /// The 11th player in an 11-player game.
     pub const P10: PlayerIndex<11> = PlayerIndex(10);
 }
 

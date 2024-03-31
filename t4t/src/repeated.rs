@@ -35,7 +35,7 @@ impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
     pub fn new(stage_game: &G, remaining: usize) -> Self {
         RepeatedState {
             stage_state: stage_game.rules().state.clone(),
-            completed: History::new(),
+            completed: History::empty(),
             remaining,
         }
     }

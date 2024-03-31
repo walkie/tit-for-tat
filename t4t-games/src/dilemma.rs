@@ -8,7 +8,7 @@
 //! let g = Repeated::new(Dilemma::prisoners_dilemma(), 10);
 //! assert_eq!(
 //!     g.stage_game().as_normal().pure_nash_equilibria(),
-//!     vec![PerPlayer::new([D, D])],
+//!     vec![Profile::new([D, D])],
 //! );
 //! ```
 
@@ -87,7 +87,7 @@ impl Dilemma {
     /// let g = Dilemma::prisoners_dilemma();
     /// assert_eq!(
     ///     g.as_normal().pure_nash_equilibria(),
-    ///     vec![PerPlayer::new([D, D])],
+    ///     vec![Profile::new([D, D])],
     /// );
     /// ```
     pub fn prisoners_dilemma() -> Self {
@@ -118,7 +118,7 @@ impl Dilemma {
     /// let g = Dilemma::stag_hunt();
     /// assert_eq!(
     ///     g.as_normal().pure_nash_equilibria(),
-    ///     vec![PerPlayer::new([C, C]), PerPlayer::new([D, D])],
+    ///     vec![Profile::new([C, C]), Profile::new([D, D])],
     /// );
     /// ```
     pub fn stag_hunt() -> Self {
@@ -138,7 +138,7 @@ impl Dilemma {
     /// let g = Dilemma::assurance_game();
     /// assert_eq!(
     ///     g.as_normal().pure_nash_equilibria(),
-    ///     vec![PerPlayer::new([C, C]), PerPlayer::new([D, D])],
+    ///     vec![Profile::new([C, C]), Profile::new([D, D])],
     /// );
     /// ```
     pub fn assurance_game() -> Self {
@@ -182,11 +182,11 @@ impl Dilemma {
     ///
     /// assert_eq!(
     ///     more_dove.as_normal().pure_nash_equilibria(),
-    ///     vec![PerPlayer::new([C, D]), PerPlayer::new([D, C])],
+    ///     vec![Profile::new([C, D]), Profile::new([D, C])],
     /// );
     /// assert_eq!(
     ///     more_hawk.as_normal().pure_nash_equilibria(),
-    ///     vec![PerPlayer::new([D, D])],
+    ///     vec![Profile::new([D, D])],
     /// );
     /// ```
     pub fn hawk_dove(half_value: i32, half_cost: i32) -> Self {
@@ -212,7 +212,7 @@ impl Dilemma {
     ///
     /// assert_eq!(
     ///     g.as_normal().pure_nash_equilibria(),
-    ///     vec![PerPlayer::new([C, D]), PerPlayer::new([D, C])],
+    ///     vec![Profile::new([C, D]), Profile::new([D, C])],
     /// );
     /// ```
     pub fn chicken(crash: i32) -> Self {
@@ -238,7 +238,7 @@ impl Dilemma {
     /// assert!(!g.is_prisoners_dilemma());
     /// assert_eq!(
     ///     g.as_normal().pure_nash_equilibria(),
-    ///     vec![PerPlayer::new([C, D]), PerPlayer::new([D, C])],
+    ///     vec![Profile::new([C, D]), Profile::new([D, C])],
     /// );
     /// ```
     pub fn snowdrift() -> Self {

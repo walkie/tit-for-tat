@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use crate::{
-    ErrorKind, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, SimultaneousOutcome, Turn,
-    Utility,
+    ErrorKind, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Record, SimultaneousOutcome,
+    Turn, Utility,
 };
 
 /// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
@@ -48,12 +48,12 @@ use crate::{
 /// assert!(!pick_em.is_valid_move_for_player(for2::P0, 5));
 /// assert!(!pick_em.is_valid_move_for_player(for2::P1, -4));
 ///
-/// assert!(pick_em.is_valid_profile(PerPlayer::new([-2, 3])));
-/// assert!(!pick_em.is_valid_profile(PerPlayer::new([-2, 4])));
-/// assert!(!pick_em.is_valid_profile(PerPlayer::new([-3, 5])));
+/// assert!(pick_em.is_valid_profile(Profile::new([-2, 3])));
+/// assert!(!pick_em.is_valid_profile(Profile::new([-2, 4])));
+/// assert!(!pick_em.is_valid_profile(Profile::new([-3, 5])));
 ///
-/// assert_eq!(pick_em.payoff(PerPlayer::new([-4, 7])), Payoff::from([7, -4]));
-/// assert_eq!(pick_em.payoff(PerPlayer::new([0, -1])), Payoff::from([-1, 0]));
+/// assert_eq!(pick_em.payoff(Profile::new([-4, 7])), Payoff::from([7, -4]));
+/// assert_eq!(pick_em.payoff(Profile::new([0, -1])), Payoff::from([-1, 0]));
 /// ```
 pub struct Simultaneous<M, U, const P: usize> {
     move_fn: Box<dyn Fn(PlayerIndex<P>, M) -> bool>,
@@ -70,7 +70,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     fn rules(&self) -> Turn<(), M, SimultaneousOutcome<M, U, P>, P> {
         let state = Rc::new(());
         Turn::all_players(state.clone(), move |_, profile| {
-            for ply in profile.to_iter() {
+            for ply in profile.plies() {
                 let player = ply.player.unwrap();
                 if !self.is_valid_move_for_player(player, ply.the_move) {
                     return Err(ErrorKind::InvalidMove(player, ply.the_move));

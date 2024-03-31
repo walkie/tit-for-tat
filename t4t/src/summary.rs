@@ -15,7 +15,7 @@ pub struct Summary<const P: usize> {
 impl<const P: usize> Default for Summary<P> {
     fn default() -> Self {
         Summary {
-            players: PerPlayer::zeros(),
+            players: PerPlayer::init_with(0),
             chance: 0,
             total: 0,
         }
@@ -35,7 +35,7 @@ impl<const P: usize> Summary<P> {
     /// assert_eq!(s.number_of_moves_by_chance(), 4);
     /// assert_eq!(s.total_number_of_moves(), 10);
     pub fn new(players: PerPlayer<usize, P>, chance: usize) -> Self {
-        let total = players.sum() + chance;
+        let total = players.iter().sum::<usize>() + chance;
         Summary {
             players,
             chance,
@@ -72,7 +72,7 @@ impl<const P: usize> Summary<P> {
     /// assert_eq!(s.total_number_of_moves(), 4);
     pub fn simultaneous() -> Self {
         Summary {
-            players: PerPlayer::generate(1),
+            players: PerPlayer::init_with(1),
             chance: 0,
             total: P,
         }
@@ -141,7 +141,7 @@ impl<const P: usize> Summary<P> {
     /// assert_eq!(s.total_number_of_moves(), 3);
     /// assert_eq!(s.number_of_moves_by_player(for2::P0), 0);
     /// assert_eq!(s.number_of_moves_by_player(for2::P1), 1);
-    /// assert_eq!(s.number_of_moves_by_chance(), 1);
+    /// assert_eq!(s.number_of_moves_by_chance(), 2);
     /// ```
     pub fn increment_moves_by_chance(&mut self) {
         self.increment_moves_by(None)
@@ -164,7 +164,7 @@ impl<const P: usize> Add<Self> for Summary<P> {
     /// ```
     fn add(self, other: Self) -> Self {
         Summary {
-            players: self.players.zip_with(other.players, |a, b| a + b),
+            players: self.players.map_with_index(|p, n| n + other.players[p]),
             chance: self.chance + other.chance,
             total: self.total + other.total,
         }

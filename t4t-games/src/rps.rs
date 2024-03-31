@@ -103,7 +103,7 @@ pub fn big_rock_paper_scissors<const N: usize>() -> Normal<Move, i64, N> {
         let mut rocks = 0;
         let mut papers = 0;
         let mut scissors = 0;
-        for m in profile {
+        for m in profile.per_player() {
             match m {
                 Move::Rock => rocks += 1,
                 Move::Paper => papers += 1,
@@ -114,7 +114,7 @@ pub fn big_rock_paper_scissors<const N: usize>() -> Normal<Move, i64, N> {
         let rock_util = scissors - papers;
         let paper_util = rocks - scissors;
         let scissors_util = papers - rocks;
-        Payoff::new(profile.map(|m|
+        Payoff::new(profile.per_player().map(|m|
             match m {
                 Move::Rock => rock_util,
                 Move::Paper => paper_util,

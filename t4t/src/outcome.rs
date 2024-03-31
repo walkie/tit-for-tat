@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::rc::Rc;
 
-use crate::{Move, Payoff, PlayerIndex, PossibleProfiles, Profile, Transcript, Utility};
+use crate::{Move, Payoff, PlayerIndex, PossibleProfiles, Profile, Record, Transcript, Utility};
 
 /// A (potential) outcome of a game. A payoff combined with a record of the moves that produced it.
 ///
@@ -23,12 +23,6 @@ pub trait Outcome<M: Move, U: Utility, const P: usize>: Clone + Debug + PartialE
 
     /// The payoff associated with this outcome.
     fn payoff(&self) -> &Payoff<U, P>;
-}
-
-/// An iterator over elements of previously played games.
-pub struct Record<'a, T> {
-    length: usize,
-    iterator: Box<dyn DoubleEndedIterator<Item = T> + 'a>,
 }
 
 /// A (potential) outcome of a simultaneous game. The profile of moves played by each player and

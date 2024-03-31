@@ -6,7 +6,8 @@ use std::rc::Rc;
 
 use crate::{
     Dominated, ErrorKind, Game, Move, Payoff, PerPlayer, PlayerIndex, PossibleMoves,
-    PossibleOutcomes, PossibleProfiles, Profile, Simultaneous, SimultaneousOutcome, Turn, Utility,
+    PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous, SimultaneousOutcome, Turn,
+    Utility,
 };
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
@@ -35,19 +36,19 @@ use crate::{
 ///
 /// assert_eq!(
 ///     pd.play(&mut PerPlayer::new([nice(), nice()])),
-///     Ok(SimultaneousOutcome::new(PerPlayer::new(['C', 'C']), Payoff::from([2, 2]))),
+///     Ok(SimultaneousOutcome::new(Profile::new(['C', 'C']), Payoff::from([2, 2]))),
 /// );
 /// assert_eq!(
 ///     pd.play(&mut PerPlayer::new([nice(), mean()])),
-///     Ok(SimultaneousOutcome::new(PerPlayer::new(['C', 'D']), Payoff::from([0, 3]))),
+///     Ok(SimultaneousOutcome::new(Profile::new(['C', 'D']), Payoff::from([0, 3]))),
 /// );
 /// assert_eq!(
 ///     pd.play(&mut PerPlayer::new([mean(), nice()])),
-///     Ok(SimultaneousOutcome::new(PerPlayer::new(['D', 'C']), Payoff::from([3, 0]))),
+///     Ok(SimultaneousOutcome::new(Profile::new(['D', 'C']), Payoff::from([3, 0]))),
 /// );
 /// assert_eq!(
 ///     pd.play(&mut PerPlayer::new([mean(), mean()])),
-///     Ok(SimultaneousOutcome::new(PerPlayer::new(['D', 'D']), Payoff::from([1, 1]))),
+///     Ok(SimultaneousOutcome::new(Profile::new(['D', 'D']), Payoff::from([1, 1]))),
 /// );
 /// ```
 #[derive(Clone)]
@@ -66,7 +67,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     fn rules(&self) -> Turn<(), M, SimultaneousOutcome<M, U, P>, P> {
         let state = Rc::new(());
         Turn::all_players(state.clone(), move |_, profile| {
-            for ply in profile.to_iter() {
+            for ply in profile.plies() {
                 let player = ply.player.unwrap();
                 if !self.is_valid_move_for_player(player, ply.the_move) {
                     return Err(ErrorKind::InvalidMove(player, ply.the_move));
@@ -173,10 +174,10 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// )
     /// .unwrap();
     ///
-    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'C', 'E'])), Payoff::from([1, 2, 3]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'D', 'E'])), Payoff::from([4, 5, 6]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'C', 'E'])), Payoff::from([9, 8, 7]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'D', 'E'])), Payoff::from([6, 5, 4]));
+    /// assert_eq!(g.payoff(Profile::new(['A', 'C', 'E'])), Payoff::from([1, 2, 3]));
+    /// assert_eq!(g.payoff(Profile::new(['A', 'D', 'E'])), Payoff::from([4, 5, 6]));
+    /// assert_eq!(g.payoff(Profile::new(['B', 'C', 'E'])), Payoff::from([9, 8, 7]));
+    /// assert_eq!(g.payoff(Profile::new(['B', 'D', 'E'])), Payoff::from([6, 5, 4]));
     /// ```
     pub fn from_payoff_vec(
         moves: PerPlayer<Vec<M>, P>,
@@ -230,10 +231,10 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///     vec![2, 0, 3, 1],
     /// ).unwrap();
     ///
-    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'C'])), Payoff::from([2, 2]));
-    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'D'])), Payoff::from([0, 3]));
-    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'C'])), Payoff::from([3, 0]));
-    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'D'])), Payoff::from([1, 1]));
+    /// assert_eq!(pd.payoff(Profile::new(['C', 'C'])), Payoff::from([2, 2]));
+    /// assert_eq!(pd.payoff(Profile::new(['C', 'D'])), Payoff::from([0, 3]));
+    /// assert_eq!(pd.payoff(Profile::new(['D', 'C'])), Payoff::from([3, 0]));
+    /// assert_eq!(pd.payoff(Profile::new(['D', 'D'])), Payoff::from([1, 1]));
     /// ```
     ///
     /// Symmetric games can be more than two players. Here's an example of a
@@ -248,14 +249,14 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///     vec![4, 1, 1, 0, 5, 3, 3, 2],
     /// ).unwrap();
     ///
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'C'])), Payoff::from([4, 4, 4]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'D'])), Payoff::from([1, 1, 5]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'C'])), Payoff::from([1, 5, 1]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'D'])), Payoff::from([0, 3, 3]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'C'])), Payoff::from([5, 1, 1]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'D'])), Payoff::from([3, 0, 3]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'C'])), Payoff::from([3, 3, 0]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'D'])), Payoff::from([2, 2, 2]));
+    /// assert_eq!(pd3.payoff(Profile::new(['C', 'C', 'C'])), Payoff::from([4, 4, 4]));
+    /// assert_eq!(pd3.payoff(Profile::new(['C', 'C', 'D'])), Payoff::from([1, 1, 5]));
+    /// assert_eq!(pd3.payoff(Profile::new(['C', 'D', 'C'])), Payoff::from([1, 5, 1]));
+    /// assert_eq!(pd3.payoff(Profile::new(['C', 'D', 'D'])), Payoff::from([0, 3, 3]));
+    /// assert_eq!(pd3.payoff(Profile::new(['D', 'C', 'C'])), Payoff::from([5, 1, 1]));
+    /// assert_eq!(pd3.payoff(Profile::new(['D', 'C', 'D'])), Payoff::from([3, 0, 3]));
+    /// assert_eq!(pd3.payoff(Profile::new(['D', 'D', 'C'])), Payoff::from([3, 3, 0]));
+    /// assert_eq!(pd3.payoff(Profile::new(['D', 'D', 'D'])), Payoff::from([2, 2, 2]));
     /// ```
     ///
     /// And similarly, a 4-player prisoner's dilemma:
@@ -268,22 +269,22 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///     vec![6, 2, 2, 1, 2, 1, 1, 0, 7, 5, 5, 4, 5, 4, 4, 3],
     /// ).unwrap();
     ///
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'C'])), Payoff::from([6, 6, 6, 6]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'D'])), Payoff::from([2, 2, 2, 7]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'C'])), Payoff::from([2, 2, 7, 2]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'D'])), Payoff::from([1, 1, 5, 5]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'C'])), Payoff::from([2, 7, 2, 2]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'D'])), Payoff::from([1, 5, 1, 5]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'C'])), Payoff::from([1, 5, 5, 1]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'D'])), Payoff::from([0, 4, 4, 4]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'C'])), Payoff::from([7, 2, 2, 2]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'D'])), Payoff::from([5, 1, 1, 5]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'C'])), Payoff::from([5, 1, 5, 1]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'D'])), Payoff::from([4, 0, 4, 4]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'C'])), Payoff::from([5, 5, 1, 1]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'D'])), Payoff::from([4, 4, 0, 4]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'C'])), Payoff::from([4, 4, 4, 0]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'D'])), Payoff::from([3, 3, 3, 3]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'C', 'C', 'C'])), Payoff::from([6, 6, 6, 6]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'C', 'C', 'D'])), Payoff::from([2, 2, 2, 7]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'C', 'D', 'C'])), Payoff::from([2, 2, 7, 2]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'C', 'D', 'D'])), Payoff::from([1, 1, 5, 5]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'D', 'C', 'C'])), Payoff::from([2, 7, 2, 2]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'D', 'C', 'D'])), Payoff::from([1, 5, 1, 5]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'D', 'D', 'C'])), Payoff::from([1, 5, 5, 1]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'D', 'D', 'D'])), Payoff::from([0, 4, 4, 4]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'C', 'C', 'C'])), Payoff::from([7, 2, 2, 2]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'C', 'C', 'D'])), Payoff::from([5, 1, 1, 5]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'C', 'D', 'C'])), Payoff::from([5, 1, 5, 1]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'C', 'D', 'D'])), Payoff::from([4, 0, 4, 4]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'D', 'C', 'C'])), Payoff::from([5, 5, 1, 1]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'D', 'C', 'D'])), Payoff::from([4, 4, 0, 4]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'D', 'D', 'C'])), Payoff::from([4, 4, 4, 0]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'D', 'D', 'D'])), Payoff::from([3, 3, 3, 3]));
     /// ```
     #[allow(clippy::needless_range_loop)]
     pub fn symmetric(moves: Vec<M>, utils: Vec<U>) -> Option<Self> {
@@ -371,12 +372,12 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     }
 
     /// Get an iterator over the available moves for the given player.
-    pub fn possible_moves_for_player(&self, player: PlayerIndex<P>) -> PossibleMoves<'_, M, P> {
-        PossibleMoves::from_vec(player, self.moves[player].clone())
+    pub fn possible_moves_for_player(&self, player: PlayerIndex<P>) -> PossibleMoves<'_, M> {
+        PossibleMoves::from_vec(self.moves[player].clone())
     }
 
     /// Get iterators for the moves available to each player.
-    pub fn possible_moves(&self) -> PerPlayer<PossibleMoves<'_, M, P>, P> {
+    pub fn possible_moves(&self) -> PerPlayer<PossibleMoves<'_, M>, P> {
         PerPlayer::generate(|player| self.possible_moves_for_player(player))
     }
 
@@ -473,15 +474,15 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///     ],
     /// ).unwrap();
     ///
-    /// let rock_rock = PerPlayer::new([RPS::Rock, RPS::Rock]);
+    /// let rock_rock = Profile::new([RPS::Rock, RPS::Rock]);
     /// assert_eq!(rps.unilaterally_improve(for2::P0, rock_rock), Some(RPS::Paper));
     /// assert_eq!(rps.unilaterally_improve(for2::P1, rock_rock), Some(RPS::Paper));
     ///
-    /// let paper_scissors = PerPlayer::new([RPS::Paper, RPS::Scissors]);
+    /// let paper_scissors = Profile::new([RPS::Paper, RPS::Scissors]);
     /// assert_eq!(rps.unilaterally_improve(for2::P0, paper_scissors), Some(RPS::Rock));
     /// assert_eq!(rps.unilaterally_improve(for2::P1, paper_scissors), None);
     ///
-    /// let paper_rock = PerPlayer::new([RPS::Paper, RPS::Rock]);
+    /// let paper_rock = Profile::new([RPS::Paper, RPS::Rock]);
     /// assert_eq!(rps.unilaterally_improve(for2::P0, paper_rock), None);
     /// assert_eq!(rps.unilaterally_improve(for2::P1, paper_rock), Some(RPS::Scissors));
     /// ```
@@ -530,10 +531,10 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///     vec![3, 0, 2, 1],
     /// ).unwrap();
     ///
-    /// let cc = PerPlayer::new(['C', 'C']);
-    /// let cd = PerPlayer::new(['C', 'D']);
-    /// let dc = PerPlayer::new(['D', 'C']);
-    /// let dd = PerPlayer::new(['D', 'D']);
+    /// let cc = Profile::new(['C', 'C']);
+    /// let cd = Profile::new(['C', 'D']);
+    /// let dc = Profile::new(['D', 'C']);
+    /// let dd = Profile::new(['D', 'D']);
     ///
     /// assert!(!dilemma.is_stable(cc));
     /// assert!(!dilemma.is_stable(cd));
@@ -571,11 +572,11 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     ///
     /// assert_eq!(
     ///     dilemma.pure_nash_equilibria(),
-    ///     vec![PerPlayer::new(['D', 'D'])],
+    ///     vec![Profile::new(['D', 'D'])],
     /// );
     /// assert_eq!(
     ///     hunt.pure_nash_equilibria(),
-    ///     vec![PerPlayer::new(['C', 'C']), PerPlayer::new(['D', 'D'])],
+    ///     vec![Profile::new(['C', 'C']), Profile::new(['D', 'D'])],
     /// );
     /// ```
     pub fn pure_nash_equilibria(&self) -> Vec<Profile<M, P>> {
@@ -716,12 +717,12 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     /// );
     ///
     /// assert!(g.is_zero_sum());
-    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'D'])), Payoff::from([-3, 3]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'E'])), Payoff::from([-1, 1]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'D'])), Payoff::from([0, 0]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'E'])), Payoff::from([2, -2]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['C', 'D'])), Payoff::from([4, -4]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['C', 'E'])), Payoff::from([6, -6]));
+    /// assert_eq!(g.payoff(Profile::new(['A', 'D'])), Payoff::from([-3, 3]));
+    /// assert_eq!(g.payoff(Profile::new(['A', 'E'])), Payoff::from([-1, 1]));
+    /// assert_eq!(g.payoff(Profile::new(['B', 'D'])), Payoff::from([0, 0]));
+    /// assert_eq!(g.payoff(Profile::new(['B', 'E'])), Payoff::from([2, -2]));
+    /// assert_eq!(g.payoff(Profile::new(['C', 'D'])), Payoff::from([4, -4]));
+    /// assert_eq!(g.payoff(Profile::new(['C', 'E'])), Payoff::from([6, -6]));
     /// ```
     pub fn matrix<const ROWS: usize, const COLS: usize>(
         row_moves: [M; ROWS],
@@ -734,7 +735,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
             for (c, col_move) in col_moves.into_iter().enumerate() {
                 let row_util = row_utils[r][c];
                 let payoff = Payoff::from([row_util, U::zero().sub(row_util)]);
-                let profile = PerPlayer::new([row_move, col_move]);
+                let profile = Profile::new([row_move, col_move]);
                 payoff_map.insert(profile, payoff);
             }
         }
@@ -758,12 +759,12 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///     [[5, 0], [1, 2], [4, 3]],
     /// );
     ///
-    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'D'])), Payoff::from([0, 5]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['A', 'E'])), Payoff::from([5, 0]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'D'])), Payoff::from([4, 1]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['B', 'E'])), Payoff::from([3, 2]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['C', 'D'])), Payoff::from([2, 4]));
-    /// assert_eq!(g.payoff(PerPlayer::new(['C', 'E'])), Payoff::from([1, 3]));
+    /// assert_eq!(g.payoff(Profile::new(['A', 'D'])), Payoff::from([0, 5]));
+    /// assert_eq!(g.payoff(Profile::new(['A', 'E'])), Payoff::from([5, 0]));
+    /// assert_eq!(g.payoff(Profile::new(['B', 'D'])), Payoff::from([4, 1]));
+    /// assert_eq!(g.payoff(Profile::new(['B', 'E'])), Payoff::from([3, 2]));
+    /// assert_eq!(g.payoff(Profile::new(['C', 'D'])), Payoff::from([2, 4]));
+    /// assert_eq!(g.payoff(Profile::new(['C', 'E'])), Payoff::from([1, 3]));
     /// ```
     pub fn bimatrix<const ROWS: usize, const COLS: usize>(
         row_moves: [M; ROWS],
@@ -775,7 +776,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
         let mut payoff_map = HashMap::with_capacity(ROWS * COLS);
         for (r, row_move) in row_moves.into_iter().enumerate() {
             for (c, col_move) in col_moves.into_iter().enumerate() {
-                let profile = PerPlayer::new([row_move, col_move]);
+                let profile = Profile::new([row_move, col_move]);
                 let payoff = Payoff::from([row_utils[r][c], col_utils[r][c]]);
                 payoff_map.insert(profile, payoff);
             }
@@ -796,10 +797,10 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
     ///     [[2, 0], [3, 1]],
     /// );
     ///
-    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'C'])), Payoff::from([2, 2]));
-    /// assert_eq!(pd.payoff(PerPlayer::new(['C', 'D'])), Payoff::from([0, 3]));
-    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'C'])), Payoff::from([3, 0]));
-    /// assert_eq!(pd.payoff(PerPlayer::new(['D', 'D'])), Payoff::from([1, 1]));
+    /// assert_eq!(pd.payoff(Profile::new(['C', 'C'])), Payoff::from([2, 2]));
+    /// assert_eq!(pd.payoff(Profile::new(['C', 'D'])), Payoff::from([0, 3]));
+    /// assert_eq!(pd.payoff(Profile::new(['D', 'C'])), Payoff::from([3, 0]));
+    /// assert_eq!(pd.payoff(Profile::new(['D', 'D'])), Payoff::from([1, 1]));
     /// ```
     pub fn symmetric_for2<const SIZE: usize>(
         moves: [M; SIZE],
@@ -809,7 +810,7 @@ impl<M: Move, U: Utility> Normal<M, U, 2> {
         let mut payoff_map = HashMap::with_capacity(SIZE * SIZE);
         for (r, row_move) in moves.into_iter().enumerate() {
             for (c, col_move) in moves.into_iter().enumerate() {
-                let profile = PerPlayer::new([row_move, col_move]);
+                let profile = Profile::new([row_move, col_move]);
                 let payoff = Payoff::from([row_utils[r][c], row_utils[c][r]]);
                 payoff_map.insert(profile, payoff);
             }
@@ -832,14 +833,14 @@ impl<M: Move, U: Utility> Normal<M, U, 3> {
     ///     [[[4, 1], [1, 0]], [[5, 3], [3, 2]]],
     /// );
     ///
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'C'])), Payoff::from([4, 4, 4]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'C', 'D'])), Payoff::from([1, 1, 5]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'C'])), Payoff::from([1, 5, 1]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['C', 'D', 'D'])), Payoff::from([0, 3, 3]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'C'])), Payoff::from([5, 1, 1]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'C', 'D'])), Payoff::from([3, 0, 3]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'C'])), Payoff::from([3, 3, 0]));
-    /// assert_eq!(pd3.payoff(PerPlayer::new(['D', 'D', 'D'])), Payoff::from([2, 2, 2]));
+    /// assert_eq!(pd3.payoff(Profile::new(['C', 'C', 'C'])), Payoff::from([4, 4, 4]));
+    /// assert_eq!(pd3.payoff(Profile::new(['C', 'C', 'D'])), Payoff::from([1, 1, 5]));
+    /// assert_eq!(pd3.payoff(Profile::new(['C', 'D', 'C'])), Payoff::from([1, 5, 1]));
+    /// assert_eq!(pd3.payoff(Profile::new(['C', 'D', 'D'])), Payoff::from([0, 3, 3]));
+    /// assert_eq!(pd3.payoff(Profile::new(['D', 'C', 'C'])), Payoff::from([5, 1, 1]));
+    /// assert_eq!(pd3.payoff(Profile::new(['D', 'C', 'D'])), Payoff::from([3, 0, 3]));
+    /// assert_eq!(pd3.payoff(Profile::new(['D', 'D', 'C'])), Payoff::from([3, 3, 0]));
+    /// assert_eq!(pd3.payoff(Profile::new(['D', 'D', 'D'])), Payoff::from([2, 2, 2]));
     /// ```
     pub fn symmetric_for3<const SIZE: usize>(
         moves: [M; SIZE],
@@ -854,7 +855,7 @@ impl<M: Move, U: Utility> Normal<M, U, 3> {
                     let u1 = p0_utils[i1][i2][i0];
                     let u2 = p0_utils[i2][i0][i1];
                     let payoff = Payoff::from([u0, u1, u2]);
-                    let profile = PerPlayer::new([m0, m1, m2]);
+                    let profile = Profile::new([m0, m1, m2]);
                     payoff_map.insert(profile, payoff);
                 }
             }
@@ -878,22 +879,22 @@ impl<M: Move, U: Utility> Normal<M, U, 4> {
     ///      [[[7, 5], [5, 4]], [[5, 4], [4, 3]]]],
     /// );
     ///
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'C'])), Payoff::from([6, 6, 6, 6]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'C', 'D'])), Payoff::from([2, 2, 2, 7]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'C'])), Payoff::from([2, 2, 7, 2]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'C', 'D', 'D'])), Payoff::from([1, 1, 5, 5]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'C'])), Payoff::from([2, 7, 2, 2]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'C', 'D'])), Payoff::from([1, 5, 1, 5]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'C'])), Payoff::from([1, 5, 5, 1]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['C', 'D', 'D', 'D'])), Payoff::from([0, 4, 4, 4]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'C'])), Payoff::from([7, 2, 2, 2]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'C', 'D'])), Payoff::from([5, 1, 1, 5]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'C'])), Payoff::from([5, 1, 5, 1]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'C', 'D', 'D'])), Payoff::from([4, 0, 4, 4]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'C'])), Payoff::from([5, 5, 1, 1]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'C', 'D'])), Payoff::from([4, 4, 0, 4]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'C'])), Payoff::from([4, 4, 4, 0]));
-    /// assert_eq!(pd4.payoff(PerPlayer::new(['D', 'D', 'D', 'D'])), Payoff::from([3, 3, 3, 3]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'C', 'C', 'C'])), Payoff::from([6, 6, 6, 6]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'C', 'C', 'D'])), Payoff::from([2, 2, 2, 7]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'C', 'D', 'C'])), Payoff::from([2, 2, 7, 2]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'C', 'D', 'D'])), Payoff::from([1, 1, 5, 5]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'D', 'C', 'C'])), Payoff::from([2, 7, 2, 2]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'D', 'C', 'D'])), Payoff::from([1, 5, 1, 5]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'D', 'D', 'C'])), Payoff::from([1, 5, 5, 1]));
+    /// assert_eq!(pd4.payoff(Profile::new(['C', 'D', 'D', 'D'])), Payoff::from([0, 4, 4, 4]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'C', 'C', 'C'])), Payoff::from([7, 2, 2, 2]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'C', 'C', 'D'])), Payoff::from([5, 1, 1, 5]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'C', 'D', 'C'])), Payoff::from([5, 1, 5, 1]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'C', 'D', 'D'])), Payoff::from([4, 0, 4, 4]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'D', 'C', 'C'])), Payoff::from([5, 5, 1, 1]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'D', 'C', 'D'])), Payoff::from([4, 4, 0, 4]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'D', 'D', 'C'])), Payoff::from([4, 4, 4, 0]));
+    /// assert_eq!(pd4.payoff(Profile::new(['D', 'D', 'D', 'D'])), Payoff::from([3, 3, 3, 3]));
     /// ```
     pub fn symmetric_for4<const SIZE: usize>(
         moves: [M; SIZE],
@@ -910,7 +911,7 @@ impl<M: Move, U: Utility> Normal<M, U, 4> {
                         let u2 = p0_utils[i2][i3][i0][i1];
                         let u3 = p0_utils[i3][i0][i1][i2];
                         let payoff = Payoff::from([u0, u1, u2, u3]);
-                        let profile = PerPlayer::new([m0, m1, m2, m3]);
+                        let profile = Profile::new([m0, m1, m2, m3]);
                         payoff_map.insert(profile, payoff);
                     }
                 }

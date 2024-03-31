@@ -30,7 +30,7 @@ impl<T: Copy + Debug + Default + Num + PartialEq + PartialOrd + 'static> Utility
 ///
 /// The [`Payoff::flat`] function constructs a payoff in which every player receives the same
 /// utility (i.e. a "flat" distribution of utilities). The [`Payoff::zeros`] function constructs a
-/// flat distribution of zeros. Note that the the size of the payoff will be determined by the
+/// flat distribution of zeros. Note that the size of the payoff will be determined by the
 /// ["const generic"](https://blog.rust-lang.org/2021/02/26/const-generics-mvp-beta.html)
 /// argument `P`, which can often be inferred from the context in which the payoff is
 /// used.
@@ -285,7 +285,7 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
         }
     }
 
-    /// Map a function over all of the elements in a payoff.
+    /// Map a function over all elements in a payoff.
     fn map(self, f: impl Fn(U) -> U) -> Self {
         let mut result = [U::zero(); P];
         for (r, v) in result.iter_mut().zip(self) {
@@ -478,6 +478,18 @@ impl<U: Utility, const P: usize> Mul<Self> for Payoff<U, P> {
     }
 }
 
+impl<U, const P: usize> Payoff<U, P> {
+    /// An iterator over references to utilities in the payoff.
+    pub fn iter(&self) -> <&PerPlayer<U, P> as IntoIterator>::IntoIter {
+        self.utilities.iter()
+    }
+
+    /// An iterator over mutable references to utilities in the payoff.
+    pub fn iter_mut(&mut self) -> <&mut PerPlayer<U, P> as IntoIterator>::IntoIter {
+        self.utilities.iter_mut()
+    }
+}
+
 impl<U, const P: usize> IntoIterator for Payoff<U, P> {
     type Item = <PerPlayer<U, P> as IntoIterator>::Item;
     type IntoIter = <PerPlayer<U, P> as IntoIterator>::IntoIter;
@@ -490,7 +502,7 @@ impl<'a, U, const P: usize> IntoIterator for &'a Payoff<U, P> {
     type Item = <&'a PerPlayer<U, P> as IntoIterator>::Item;
     type IntoIter = <&'a PerPlayer<U, P> as IntoIterator>::IntoIter;
     fn into_iter(self) -> <&'a PerPlayer<U, P> as IntoIterator>::IntoIter {
-        (&self.utilities).into_iter()
+        self.utilities.iter()
     }
 }
 
@@ -498,7 +510,7 @@ impl<'a, U, const P: usize> IntoIterator for &'a mut Payoff<U, P> {
     type Item = <&'a mut PerPlayer<U, P> as IntoIterator>::Item;
     type IntoIter = <&'a mut PerPlayer<U, P> as IntoIterator>::IntoIter;
     fn into_iter(self) -> <&'a mut PerPlayer<U, P> as IntoIterator>::IntoIter {
-        (&mut self.utilities).into_iter()
+        self.utilities.iter_mut()
     }
 }
 

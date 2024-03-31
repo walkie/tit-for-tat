@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{Distribution, ErrorKind, Move, PerPlayer, PlayerIndex, Profile};
+use crate::{Distribution, ErrorKind, Move, PlayerIndex, Profile};
 
 pub trait NextTurn<'g, T, S, M, O, const P: usize>:
     FnOnce(Rc<S>, T) -> Result<Turn<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
@@ -59,7 +59,7 @@ impl<'g, S, M: Move, O, const P: usize> Action<'g, S, M, O, P> {
     pub fn all_players(next: impl NextTurn<'g, Profile<M, P>, S, M, O, P>) -> Self {
         Action::players(PlayerIndex::all().collect(), move |state, moves| {
             assert_eq!(moves.len(), P);
-            next(state, PerPlayer::new(moves.try_into().unwrap()))
+            next(state, Profile::new(moves.try_into().unwrap()))
         })
     }
 

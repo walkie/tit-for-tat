@@ -1,4 +1,3 @@
-use crate::{PerPlayer, PlayerIndex};
 use dyn_clone::DynClone;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -19,7 +18,7 @@ pub struct PossibleMoves<'a, M> {
     iterator: Box<dyn CloneableIterator<M> + 'a>,
 }
 
-impl<'a, M> PossibleMoves<'a, M> {
+impl<'a, M: Move> PossibleMoves<'a, M> {
     /// Construct a new possible move iterator from a cloneable iterator of moves.
     pub fn from_iter(iterator: impl Clone + Iterator<Item = M> + 'a) -> Self {
         PossibleMoves {
