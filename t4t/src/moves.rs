@@ -20,7 +20,7 @@ pub struct PossibleMoves<'a, M> {
 
 impl<'a, M: Move> PossibleMoves<'a, M> {
     /// Construct a new possible move iterator from a cloneable iterator of moves.
-    pub fn from_iter(iterator: impl Clone + Iterator<Item = M> + 'a) -> Self {
+    pub fn new(iterator: impl Clone + Iterator<Item = M> + 'a) -> Self {
         PossibleMoves {
             iterator: Box::new(iterator),
         }
@@ -28,7 +28,7 @@ impl<'a, M: Move> PossibleMoves<'a, M> {
 
     /// Construct a new possible move iterator from a vector of moves.
     pub fn from_vec(moves: Vec<M>) -> Self {
-        PossibleMoves::from_iter(moves.into_iter())
+        PossibleMoves::new(moves.into_iter())
     }
 }
 

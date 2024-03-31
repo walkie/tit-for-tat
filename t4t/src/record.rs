@@ -27,9 +27,9 @@ pub trait Record<M: Move, const P: usize> {
     fn played_moves_by_chance(&self) -> PlayedMoves<M> {
         let move_iter = self
             .plies()
-            .filter(move |ply| ply.player == None)
+            .filter(move |ply| ply.player.is_none())
             .map(|ply| ply.the_move);
-        PlayedMoves::from_iter(move_iter)
+        PlayedMoves::new(move_iter)
     }
 
     /// An iterator over all moves by a particular player.
@@ -38,7 +38,7 @@ pub trait Record<M: Move, const P: usize> {
             .plies()
             .filter(move |ply| ply.player == Some(player))
             .map(|ply| ply.the_move);
-        PlayedMoves::from_iter(move_iter)
+        PlayedMoves::new(move_iter)
     }
 
     /// Iterators over the moves by each player.
@@ -52,7 +52,7 @@ pub trait Record<M: Move, const P: usize> {
 /// This iterator is double-ended, so it can be traversed forward (starting from the beginning of
 /// the game) or backward (starting from the most recent move).
 pub struct PlayedMoves<'a, M> {
-    iterator: Box<dyn DoubleEndedIterator<Item=M> + 'a>,
+    iterator: Box<dyn DoubleEndedIterator<Item = M> + 'a>,
 }
 
 impl<'a, M: Move> PlayedMoves<'a, M> {
@@ -69,7 +69,7 @@ impl<'a, M: Move> PlayedMoves<'a, M> {
     }
 
     /// Construct a new played move iterator from a double-ended iterator of moves.
-    pub fn from_iter(iterator: impl DoubleEndedIterator<Item=M> + 'a) -> Self {
+    pub fn new(iterator: impl DoubleEndedIterator<Item = M> + 'a) -> Self {
         PlayedMoves {
             iterator: Box::new(iterator),
         }
@@ -77,7 +77,7 @@ impl<'a, M: Move> PlayedMoves<'a, M> {
 
     /// Construct a new played move iterator from a vector of moves.
     pub fn from_vec(moves: Vec<M>) -> Self {
-        PlayedMoves::from_iter(moves.into_iter())
+        PlayedMoves::new(moves.into_iter())
     }
 }
 
