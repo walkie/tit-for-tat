@@ -83,9 +83,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
         })
     }
 
-    fn state_view(&self, state: &Rc<()>, _player: PlayerIndex<P>) -> Rc<()> {
-        Rc::clone(state)
-    }
+    fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
 
     fn is_valid_move(&self, _state: &(), player: PlayerIndex<P>, the_move: M) -> bool {
         self.is_valid_move_for_player(player, the_move)

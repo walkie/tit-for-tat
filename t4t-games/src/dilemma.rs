@@ -2,17 +2,16 @@
 //!
 //! # Examples
 //! ```
+//! use std::rc::Rc;
 //! use t4t::*;
 //! use t4t_games::dilemma::*;
 //!
-//! let g = Repeated::new(Dilemma::prisoners_dilemma(), 10);
+//! let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 10);
 //! assert_eq!(
 //!     g.stage_game().as_normal().pure_nash_equilibria(),
 //!     vec![Profile::new([D, D])],
 //! );
 //! ```
-
-use std::rc::Rc;
 
 use t4t::*;
 
@@ -367,9 +366,7 @@ impl Game<2> for Dilemma {
         self.as_normal().rules()
     }
 
-    fn state_view(&self, state: &Rc<()>, _player: PlayerIndex<2>) -> Rc<()> {
-        Rc::clone(state)
-    }
+    fn state_view(&self, _state: &(), _player: PlayerIndex<2>) {}
 
     fn is_valid_move(&self, _state: &(), _player: PlayerIndex<2>, _the_move: Move) -> bool {
         true
@@ -421,7 +418,7 @@ pub fn tit_for_tat() -> DilemmaPlayer {
         "Tit for Tat".to_string(),
         Strategy::new(|context: &DilemmaContext| {
             context
-                .state()
+                .state_view()
                 .history()
                 .moves_for_player(context.their_index())
                 .last()
@@ -438,7 +435,7 @@ pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
         "Suspicious Tit for Tat".to_string(),
         Strategy::new(|context: &DilemmaContext| {
             context
-                .state()
+                .state_view()
                 .history()
                 .moves_for_player(context.their_index())
                 .last()
@@ -456,7 +453,7 @@ pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
         format!("Tit for {:?} Tats", n),
         Strategy::new(move |context: &DilemmaContext| {
             let mut last_n = context
-                .state()
+                .state_view()
                 .history()
                 .moves_for_player(context.their_index())
                 .rev()
@@ -480,7 +477,7 @@ pub fn n_tits_for_tat(n: usize) -> DilemmaPlayer {
         format!("{:?} Tits for Tat", n),
         Strategy::new(move |context: &DilemmaContext| {
             let last_n: Vec<Move> = context
-                .state()
+                .state_view()
                 .history()
                 .moves_for_player(context.their_index())
                 .rev()
@@ -514,7 +511,7 @@ pub fn probabilistic_tit_for_tat(
         Strategy::conditional(
             |context: &DilemmaContext| {
                 context
-                    .state()
+                    .state_view()
                     .history()
                     .moves_for_player(context.their_index())
                     .last()
@@ -555,7 +552,7 @@ pub fn firm_but_fair() -> DilemmaPlayer {
         "Firm but Fair".to_string(),
         Strategy::new(|context: &DilemmaContext| {
             context
-                .state()
+                .state_view()
                 .history()
                 .profiles()
                 .last()
@@ -577,7 +574,7 @@ pub fn pavlov() -> DilemmaPlayer {
         "Pavlov".to_string(),
         Strategy::new(|context: &DilemmaContext| {
             context
-                .state()
+                .state_view()
                 .history()
                 .profiles()
                 .last()
@@ -599,7 +596,7 @@ pub fn grim_trigger() -> DilemmaPlayer {
         Strategy::trigger(
             |context: &DilemmaContext| {
                 context
-                    .state()
+                    .state_view()
                     .history()
                     .moves_for_player(context.their_index())
                     .last()

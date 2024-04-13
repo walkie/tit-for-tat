@@ -9,15 +9,16 @@ pub struct Repeated<G: Game<P>, const P: usize> {
 }
 
 pub struct RepeatedState<G: Game<P>, const P: usize> {
+    stage_game: Rc<G>,
     stage_state: Rc<G::State>,
     completed: History<G, P>,
     remaining: usize,
 }
 
 impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
-    pub fn new(stage_game: G, repetitions: usize) -> Self {
+    pub fn new(stage_game: Rc<G>, repetitions: usize) -> Self {
         Repeated {
-            stage_game: Rc::new(stage_game),
+            stage_game,
             repetitions,
         }
     }
@@ -32,17 +33,20 @@ impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
 }
 
 impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
-    pub fn new(stage_game: &G, remaining: usize) -> Self {
+    pub fn new(stage_game: Rc<G>, remaining: usize) -> Self {
+        let stage_state = stage_game.rules().state.clone();
         RepeatedState {
-            stage_state: stage_game.rules().state.clone(),
+            stage_game,
+            stage_state,
             completed: History::empty(),
             remaining,
         }
     }
 
-    // pub fn state_view(&self) -> &G::State {
-    //     &self.stage_state
-    // }
+    pub fn state_view(&self, player: PlayerIndex<P>) -> G::View {
+        self.stage_game
+            .state_view(self.stage_state.as_ref(), player)
+    }
 
     pub fn history(&self) -> &History<G, P> {
         &self.completed
@@ -128,7 +132,7 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
 
     fn rules(&self) -> Turn<RepeatedState<G, P>, G::Move, History<G, P>, P> {
         let init_state = Rc::new(RepeatedState::new(
-            self.stage_game.as_ref(),
+            self.stage_game.clone(),
             self.repetitions - 1,
         ));
 
@@ -141,10 +145,10 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
 
     fn state_view(
         &self,
-        state: &Rc<RepeatedState<G, P>>,
+        state: &RepeatedState<G, P>,
         _player: PlayerIndex<P>,
-    ) -> Rc<RepeatedState<G, P>> {
-        Rc::clone(state)
+    ) -> RepeatedState<G, P> {
+        state.clone() // TODO
     }
 
     fn is_valid_move(
@@ -161,7 +165,8 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
 impl<G: Game<P>, const P: usize> Clone for RepeatedState<G, P> {
     fn clone(&self) -> Self {
         RepeatedState {
-            stage_state: Rc::clone(&self.stage_state),
+            stage_game: self.stage_game.clone(),
+            stage_state: self.stage_state.clone(),
             completed: self.completed.clone(),
             remaining: self.remaining,
         }

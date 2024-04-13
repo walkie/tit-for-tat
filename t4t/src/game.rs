@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use std::rc::Rc;
 
 use crate::{Action, Context, Error, Move, Outcome, PlayerIndex, Players, Turn, Utility};
 
@@ -27,7 +26,7 @@ pub trait Game<const P: usize>: Sized {
     /// The first turn of the game.
     fn rules(&self) -> Turn<Self::State, Self::Move, Self::Outcome, P>;
 
-    fn state_view(&self, state: &Rc<Self::State>, player: PlayerIndex<P>) -> Rc<Self::View>;
+    fn state_view(&self, state: &Self::State, player: PlayerIndex<P>) -> Self::View;
 
     /// Is this a valid move in the given context?
     fn is_valid_move(
