@@ -6,7 +6,7 @@
 //! use t4t::*;
 //! use t4t_games::dilemma::*;
 //!
-//! let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 10);
+//! let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
 //! assert_eq!(
 //!     g.stage_game().as_normal().pure_nash_equilibria(),
 //!     vec![Profile::new([D, D])],
@@ -452,14 +452,15 @@ pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
     Player::new(
         format!("Tit for {:?} Tats", n),
         Strategy::new(move |context: &DilemmaContext| {
-            let mut last_n = context
+            let last_n: Vec<Move> = context
                 .state_view()
                 .history()
                 .moves_for_player(context.their_index())
                 .rev()
-                .take(n);
+                .take(n)
+                .collect();
 
-            if last_n.len() == n && last_n.all(|m| m == D) {
+            if last_n.len() == n && last_n.iter().all(|m| *m == D) {
                 D
             } else {
                 C
@@ -606,4 +607,50 @@ pub fn grim_trigger() -> DilemmaPlayer {
             Strategy::pure(D),
         ),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::rc::Rc;
+
+    #[test]
+    fn defector_vs_cooperator() {
+        let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
+        let mut players = PerPlayer::new([defector(), cooperator()]);
+        let history = g.play(&mut players).unwrap();
+        assert_eq!(history.score(), &Payoff::from([300, 0]));
+    }
+
+    #[test]
+    fn defector_vs_tit_for_tat() {
+        let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
+        let mut players = PerPlayer::new([defector(), tit_for_tat()]);
+        let history = g.play(&mut players).unwrap();
+        assert_eq!(history.score(), &Payoff::from([102, 99]));
+    }
+
+    #[test]
+    fn tit_for_tat_vs_tit_for_tat() {
+        let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
+        let mut players = PerPlayer::new([tit_for_tat(), tit_for_tat()]);
+        let history = g.play(&mut players).unwrap();
+        assert_eq!(history.score(), &Payoff::from([200, 200]));
+    }
+
+    #[test]
+    fn tit_for_tat_vs_suspicious_tit_for_tat() {
+        let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
+        let mut players = PerPlayer::new([tit_for_tat(), suspicious_tit_for_tat()]);
+        let history = g.play(&mut players).unwrap();
+        assert_eq!(history.score(), &Payoff::from([150, 150]));
+    }
+
+    #[test]
+    fn tit_for_two_tats_vs_suspicious_tit_for_tat() {
+        let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
+        let mut players = PerPlayer::new([tit_for_n_tats(2), suspicious_tit_for_tat()]);
+        let history = g.play(&mut players).unwrap();
+        assert_eq!(history.score(), &Payoff::from([198, 201]));
+    }
 }

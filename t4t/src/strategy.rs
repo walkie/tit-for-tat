@@ -34,7 +34,7 @@ impl<V: State> Context<V, 2> {
     /// Get the index of the other player in a two player game. The method is named "their"
     /// (singular) from the perspective of the strategy that receives this context.
     pub fn their_index(&self) -> PlayerIndex<2> {
-        self.index
+        self.index.next()
     }
 }
 
