@@ -6,6 +6,8 @@ edition = "2021"
 description = "Tit-for-tat: a game theory toolbox."
 repository = "https://github.com/walkie/tit-for-tat/"
 license = "MIT"
+categories = ["mathematics", "simulation"]
+keywords = ["game-theory", "economics", "evolution"]
 
 [dependencies]
 derive_more = "0.99.17"
