@@ -1,6 +1,6 @@
 .PHONY: readme
 
-readme: README.md
+readme: t4t/README.md
 
-README.md: t4t/src/lib.rs
-	@ cargo readme -r t4t --no-title --no-indent-headings > README.md
+t4t/README.md: t4t/src/lib.rs
+	@ cargo readme -r t4t --no-title --no-indent-headings > t4t/README.md
