@@ -25,8 +25,9 @@ pub trait Outcome<M: Move, U: Utility, const P: usize>: Clone + Debug + PartialE
     fn payoff(&self) -> &Payoff<U, P>;
 }
 
-/// A (potential) outcome of a simultaneous game. The profile of moves played by each player and
-/// the resulting payoff.
+/// A (potential) outcome of a simultaneous game.
+///
+/// The profile of moves played by each player and the resulting payoff.
 ///
 /// For normal-form games, an outcome corresponds to a cell in the payoff table. The profile is the
 /// address of the cell and the payoff is its value.
@@ -37,16 +38,14 @@ pub struct SimultaneousOutcome<M: Move, U: Utility, const P: usize> {
 }
 
 impl<M: Move, U: Utility, const P: usize> SimultaneousOutcome<M, U, P> {
+    /// Construct a new simultaneous game outcome.
     pub fn new(profile: Profile<M, P>, payoff: Payoff<U, P>) -> Self {
         SimultaneousOutcome { profile, payoff }
     }
 
+    /// The move profile associated with this outcome.
     pub fn profile(&self) -> &Profile<M, P> {
         &self.profile
-    }
-
-    pub fn payoff(&self) -> &Payoff<U, P> {
-        &self.payoff
     }
 }
 
@@ -62,6 +61,9 @@ impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> for SimultaneousOutco
     }
 }
 
+/// A (potential) outcome of a sequential game.
+///
+/// A transcript of moves played by all players and the resulting payoff.
 #[derive(Clone, Debug, PartialEq, Hash)]
 pub struct SequentialOutcome<M: Move, U: Utility, const P: usize> {
     transcript: Transcript<M, P>,
@@ -69,10 +71,12 @@ pub struct SequentialOutcome<M: Move, U: Utility, const P: usize> {
 }
 
 impl<M: Move, U: Utility, const P: usize> SequentialOutcome<M, U, P> {
+    /// Construct a new sequential game outcome.
     pub fn new(transcript: Transcript<M, P>, payoff: Payoff<U, P>) -> Self {
         SequentialOutcome { transcript, payoff }
     }
 
+    /// The move transcript associated with this outcome.
     pub fn transcript(&self) -> &Transcript<M, P> {
         &self.transcript
     }

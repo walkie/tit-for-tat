@@ -56,12 +56,14 @@ pub struct PlayedMoves<'a, M> {
 }
 
 impl<'a, M: Move> PlayedMoves<'a, M> {
+    /// Construct a new played move iterator for a game in which no moves have been played.
     pub fn empty() -> Self {
         PlayedMoves {
             iterator: Box::new(std::iter::empty()),
         }
     }
 
+    /// Construct a new played move iterator for a game in which only one move has been played.
     pub fn from_move(the_move: M) -> Self {
         PlayedMoves {
             iterator: Box::new(std::iter::once(the_move)),

@@ -1,3 +1,6 @@
+#![warn(missing_docs)]
+//! # Tit-for-tat (t4t): a game theory toolbox
+
 mod internal {
     pub trait Sealed {}
 }

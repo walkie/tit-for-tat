@@ -17,15 +17,25 @@ pub trait Game<const P: usize>: Sized {
     /// The type of utility values awarded to each player at the end of the game.
     type Utility: Utility;
 
+    /// The type of value produced by playing the game.
+    /// - For simultaneous games: [SimultaneousOutcome](crate::SimultaneousOutcome)
+    /// - For sequential games: [SequentialOutcome](crate::SequentialOutcome)
+    /// - For repeated games: [History](crate::History)
     type Outcome: Outcome<Self::Move, Self::Utility, P>;
 
+    /// The type of intermediate game state used during the execution of the game.
     type State: State;
 
+    /// The type of the *view* of the intermediate game state presented to players.
+    ///
+    /// This may differ from [State] to support hidden information, that is, aspects of the game
+    /// state that are not visible to players while making strategic decisions.
     type View: State;
 
-    /// The first turn of the game.
-    fn rules(&self) -> Turn<Self::State, Self::Move, Self::Outcome, P>;
+    /// The first turn in the specification of the execution of this game.
+    fn first_turn(&self) -> Turn<Self::State, Self::Move, Self::Outcome, P>;
 
+    /// Produce a view of the game state for the given player.
     fn state_view(&self, state: &Self::State, player: PlayerIndex<P>) -> Self::View;
 
     /// Is this a valid move in the given context?
@@ -41,11 +51,13 @@ pub trait Game<const P: usize>: Sized {
         P
     }
 
+    /// Play this game with the given players, producing a value of the game's outcome type on
+    /// success.
     fn play(
         &self,
         players: &mut Players<Self, P>,
     ) -> Result<Self::Outcome, Error<Self::State, Self::Move, P>> {
-        let mut turn = self.rules();
+        let mut turn = self.first_turn();
 
         loop {
             match turn.action {

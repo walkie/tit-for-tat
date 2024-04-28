@@ -5,10 +5,11 @@ use crate::{
     Turn, Utility,
 };
 
-/// A [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game) in which each player
-/// plays a single move without knowledge of the other players' moves.
+/// A game in which each player plays a single move without knowledge of the other players' moves.
 ///
-/// This is the most general form of simultaneous move game. It is defined by two functions:
+/// This is the most general form of
+/// [simultaneous game](https://en.wikipedia.org/wiki/Simultaneous_game).
+/// It is defined by two functions:
 /// 1. A predicate that recognizes valid moves for each player.
 /// 2. A function that yields the payoff given the moves played by each player.
 ///
@@ -67,7 +68,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     type State = ();
     type View = ();
 
-    fn rules(&self) -> Turn<(), M, SimultaneousOutcome<M, U, P>, P> {
+    fn first_turn(&self) -> Turn<(), M, SimultaneousOutcome<M, U, P>, P> {
         let state = Rc::new(());
         Turn::all_players(state.clone(), move |_, profile| {
             for ply in profile.plies() {

@@ -3,11 +3,17 @@ use std::rc::Rc;
 
 use crate::{Action, Game, History, PlayerIndex, Turn};
 
+/// A finitely [repeated](https://en.wikipedia.org/wiki/Repeated_game) or iterated version of game
+/// `G`.
+///
+/// Game `G` is called the "stage game". This game plays the stage game a specified number of times,
+/// accumulating the payoffs.
 pub struct Repeated<G: Game<P>, const P: usize> {
     stage_game: Rc<G>,
     repetitions: usize,
 }
 
+/// The intermediate state of a repeated game.
 pub struct RepeatedState<G: Game<P>, const P: usize> {
     stage_game: Rc<G>,
     stage_state: Rc<G::State>,
@@ -16,6 +22,7 @@ pub struct RepeatedState<G: Game<P>, const P: usize> {
 }
 
 impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
+    /// Construct a repeated game that plays the stage game the given number of repetitions.
     pub fn new(stage_game: Rc<G>, repetitions: usize) -> Self {
         Repeated {
             stage_game,
@@ -23,18 +30,21 @@ impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
         }
     }
 
+    /// Get the stage game for this repeated game.
     pub fn stage_game(&self) -> &Rc<G> {
         &self.stage_game
     }
 
+    /// Get the number of repetitions the stage game will be played.
     pub fn repetitions(&self) -> usize {
         self.repetitions
     }
 }
 
 impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
+    /// Construct a new repeated game state.
     pub fn new(stage_game: Rc<G>, remaining: usize) -> Self {
-        let stage_state = stage_game.rules().state.clone();
+        let stage_state = stage_game.first_turn().state.clone();
         RepeatedState {
             stage_game,
             stage_state,
@@ -43,15 +53,18 @@ impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
         }
     }
 
+    /// Get the view of the stage game's current intermediate state for the given player.
     pub fn state_view(&self, player: PlayerIndex<P>) -> G::View {
         self.stage_game
             .state_view(self.stage_state.as_ref(), player)
     }
 
+    /// The current history of all completed repetitions of the stage game so far.
     pub fn history(&self) -> &History<G, P> {
         &self.completed
     }
 
+    /// The number of remaining repetitions of the stage game to play.
     pub fn remaining(&self) -> usize {
         self.remaining
     }
@@ -103,7 +116,7 @@ fn lift_turn<'g, G: Game<P> + 'g, const P: usize>(
         ),
 
         Action::End { outcome } if state.remaining > 0 => {
-            let stage_turn = stage_game.rules();
+            let stage_turn = stage_game.first_turn();
 
             let mut next_state = (*state).clone();
             next_state.stage_state = stage_turn.state.clone();
@@ -130,7 +143,7 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
     type State = RepeatedState<G, P>;
     type View = RepeatedState<G, P>; // TODO add RepeatedStateView or some other solution
 
-    fn rules(&self) -> Turn<RepeatedState<G, P>, G::Move, History<G, P>, P> {
+    fn first_turn(&self) -> Turn<RepeatedState<G, P>, G::Move, History<G, P>, P> {
         let init_state = Rc::new(RepeatedState::new(
             self.stage_game.clone(),
             self.repetitions - 1,
@@ -139,7 +152,7 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
         lift_turn(
             self.stage_game.as_ref(),
             init_state,
-            self.stage_game.rules(),
+            self.stage_game.first_turn(),
         )
     }
 

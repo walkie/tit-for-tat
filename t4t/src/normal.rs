@@ -5,7 +5,7 @@ use std::iter::Iterator;
 use std::rc::Rc;
 
 use crate::{
-    Dominated, ErrorKind, Game, Move, Payoff, PerPlayer, PlayerIndex, PossibleMoves,
+    Dominated, ErrorKind, Game, Move, Outcome, Payoff, PerPlayer, PlayerIndex, PossibleMoves,
     PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous, SimultaneousOutcome, Turn,
     Utility,
 };
@@ -64,7 +64,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type State = ();
     type View = ();
 
-    fn rules(&self) -> Turn<(), M, SimultaneousOutcome<M, U, P>, P> {
+    fn first_turn(&self) -> Turn<(), M, SimultaneousOutcome<M, U, P>, P> {
         let state = Rc::new(());
         Turn::all_players(state.clone(), move |_, profile| {
             for ply in profile.plies() {
@@ -587,6 +587,13 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         nash
     }
 
+    /// Return a new profile that represents a
+    /// [Pareto improvement](https://en.wikipedia.org/wiki/Pareto_efficiency)
+    /// on the given profile, if one exists.
+    ///
+    /// A profile is a Pareto improvement over another if the payoff associated with the improved
+    /// profile *increases the utility for at least one player* over the payoff associated with the
+    /// original profile, *without decreasing the utility for any players*.
     pub fn pareto_improve(&self, profile: Profile<M, P>) -> Option<Profile<M, P>> {
         if self.is_valid_profile(profile) {
             let payoff = self.payoff(profile);
@@ -610,10 +617,13 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         }
     }
 
+    /// A profile is [Pareto optimal](https://en.wikipedia.org/wiki/Pareto_efficiency) if there is
+    /// no other profile that represents a [Pareto improvement](Normal::pareto_improve).
     pub fn is_pareto_optimal(&self, profile: Profile<M, P>) -> bool {
         self.pareto_improve(profile).is_none()
     }
 
+    /// Get all profiles that are [Pareto optimal](Normal::is_pareto_optimal).
     pub fn pareto_optimal_solutions(&self) -> Vec<Profile<M, P>> {
         let mut pareto = Vec::new();
         for profile in self.possible_profiles() {
