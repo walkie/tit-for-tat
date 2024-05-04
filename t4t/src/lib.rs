@@ -55,10 +55,6 @@
 //! add ways to visualize game executions and build games and strategies interactively, but we'll
 //! see!
 
-mod internal {
-    pub trait Sealed {}
-}
-
 pub(crate) mod distribution;
 pub(crate) mod dominated;
 pub(crate) mod error;
