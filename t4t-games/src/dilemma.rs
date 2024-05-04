@@ -16,6 +16,7 @@
 use t4t::*;
 
 /// In a social dilemma game, each player may either cooperate or defect.
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum Move {
     Cooperate,

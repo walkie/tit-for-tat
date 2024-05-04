@@ -3,6 +3,7 @@
 use t4t::*;
 
 /// A move in rock-paper-scissors-style game.
+#[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum Move {
     Rock,
