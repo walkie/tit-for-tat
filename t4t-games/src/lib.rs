@@ -3,9 +3,8 @@
 //! This library provides example games and strategies implemented using the
 //! [tit-for-tat (t4t)][t4t] library.
 //!
-//! The games are organized into modules, enumerated and briefly described below, which typically
-//! define several related games and strategies for playing them. The top-level documentation for
-//! each module provides a more detailed overview and examples of the games in action.
+//! The games are organized into modules, which define several related games and strategies for
+//! playing them. The top-level documentation for each module provides a more detailed overview.
 //!
 //! # Dilemma games ([dilemma])
 //!
@@ -14,7 +13,7 @@
 //! several related games such as [stag hunt][stag-hunt], [chicken][chicken], and more!
 //!
 //! The games in this module are typically played [repeated][repeated] several times, with the
-//! payoffs accumualted.
+//! payoffs accumulated.
 //!
 //! The module also includes [several well-known strategies][pd-strategies] for playing the
 //! repeated forms of such games, including the famous [tit-for-tat strategy][tft-strategy] from

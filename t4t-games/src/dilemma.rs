@@ -1,4 +1,8 @@
-//! 2x2 simultaneous, symmetric, cooperation/defection games, e.g. prisoner's dilemma.
+//! Prisoner's dilemma and related games and strategies.
+//!
+//! This module defines the prisoner's dilemma and several other 2x2 simultaneous, symmetric,
+//! cooperation/defection games.
+//!
 //!
 //! # Examples
 //! ```
