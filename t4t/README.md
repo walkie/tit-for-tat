@@ -1,20 +1,15 @@
 # Tit-for-tat: a game theory toolbox
 
-[![GitHub](https://img.shields.io/badge/github-walkie%2Ftit--for--tat-mediumorchid?logo=github)
-](https://github.com/walkie/tit-for-tat)
-[![crates.io](https://img.shields.io/crates/v/t4t?label=crates.io)
-](https://crates.io/crates/t4t)
-[![docs.rs/t4t](https://img.shields.io/badge/docs.rs-t4t-blue?logo=docs.rs)
-](https://docs.rs/t4t)
-[![GitHub actions workflow status](https://img.shields.io/github/actions/workflow/status/walkie/tit-for-tat/rust.yml?logo=rust)
-](https://github.com/walkie/tit-for-tat/actions)
+[![GitHub](https://img.shields.io/badge/github-walkie%2Ftit--for--tat-mediumorchid?logo=github)][github-repo]
+[![crates.io](https://img.shields.io/crates/v/t4t?label=crates.io)][t4t-crate]
+[![docs.rs/t4t](https://img.shields.io/badge/docs.rs-t4t-blue?logo=docs.rs)][t4t-docs]
+[![GitHub actions workflow status](https://img.shields.io/github/actions/workflow/status/walkie/tit-for-tat/rust.yml?logo=rust)][github-build]
 
 Tit-for-tat (t4t) is a [game theory](https://en.wikipedia.org/wiki/Game_theory) library with a
 focus on experimentation over formal analysis. It supports defining games and strategies, then
 executing them repeatedly in order to collect and observe the results.
 
-The companion crate [t4t-games](https://crates.io/crates/t4t-games) provides some example games
-and strategies.
+The companion crate [t4t-games][games-crate] provides some example games and strategies.
 
 
 ## Design goal: expressiveness over performance
@@ -64,3 +59,11 @@ add ways to visualize game executions and build games and strategies interactive
 see!
 
 License: MIT
+
+
+[github-repo]: https://github.com/walkie/tit-for-tat
+[github-build]: https://github.com/walkie/tit-for-tat/actions
+[t4t-crate]: https://crates.io/crates/t4t
+[t4t-docs]: https://docs.rs/t4t
+[games-crate]: https://crates.io/crates/t4t-games
+[games-docs]: https://docs.rs/t4t-games
