@@ -17,7 +17,9 @@ impl<'g, F, T, S, M, O, const P: usize> NextTurn<'g, T, S, M, O, P> for F where
 {
 }
 
-/// One step in the specification of a game's execution.
+/// A description of one step in a game's execution.
+///
+/// Subsequent steps, if applicable, are reachable via the action's `next` method.
 pub struct Turn<'g, S, M, O, const P: usize> {
     /// The game state at this turn.
     pub state: Rc<S>,
@@ -25,7 +27,7 @@ pub struct Turn<'g, S, M, O, const P: usize> {
     pub action: Action<'g, S, M, O, P>,
 }
 
-/// The next action to performed while playing a game.
+/// The next action to perform while playing a game.
 pub enum Action<'g, S, M, O, const P: usize> {
     /// One or more players play a move simultaneously.
     Players {

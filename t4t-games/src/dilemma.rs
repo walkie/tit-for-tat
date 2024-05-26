@@ -416,11 +416,11 @@ pub fn random() -> DilemmaPlayer {
 
 /// A player that cooperates on the first move then copies the opponent's previous move.
 ///
-/// Tit for Tat can be thought of as a strategy that prefers to cooperate but will retaliate if the
+/// Tit-for-Tat can be thought of as a strategy that prefers to cooperate but will retaliate if the
 /// opponent defects.
 pub fn tit_for_tat() -> DilemmaPlayer {
     Player::new(
-        "Tit for Tat".to_string(),
+        "Tit-for-Tat".to_string(),
         Strategy::new(|context: &DilemmaContext| {
             context
                 .state_view()
@@ -434,10 +434,10 @@ pub fn tit_for_tat() -> DilemmaPlayer {
 
 /// A player that defects on the first move then copies the opponent's last move.
 ///
-/// Like [Tit for Tat](tit_for_tat) but defects on the first move.
+/// Like [Tit-for-Tat](tit_for_tat) but defects on the first move.
 pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
     Player::new(
-        "Suspicious Tit for Tat".to_string(),
+        "Suspicious Tit-for-Tat".to_string(),
         Strategy::new(|context: &DilemmaContext| {
             context
                 .state_view()
@@ -451,7 +451,7 @@ pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
 
 /// A player that cooperates unless the opponent has defected in *each* of the last `n` games.
 ///
-/// Like [Tit for Tat](tit_for_tat) but more lenient: it only retaliates if the opponent has
+/// Like [Tit-for-Tat](tit_for_tat) but more lenient: it only retaliates if the opponent has
 /// defected `n` times in a row.
 pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
     Player::new(
@@ -476,7 +476,7 @@ pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
 
 /// A player that cooperates unless the opponent has defected in *any* of the last `n` moves.
 ///
-/// Like [Tit for Tat](tit_for_tat) but more vindictive: it retaliates to a single defection by
+/// Like [Tit-for-Tat](tit_for_tat) but more vindictive: it retaliates to a single defection by
 /// defecting `n` times in a row.
 pub fn n_tits_for_tat(n: usize) -> DilemmaPlayer {
     Player::new(
@@ -499,21 +499,21 @@ pub fn n_tits_for_tat(n: usize) -> DilemmaPlayer {
     )
 }
 
-/// A player that plays [Tit for Tat](tit_for_tat) but draws its moves from an `on_cooperate`
+/// A player that plays [Tit-for-Tat](tit_for_tat) but draws its moves from an `on_cooperate`
 /// distribution when it would cooperate and from an `on_defect` distribution when it would defect.
 ///
 /// The `on_cooperate` distribution should typically be weighted toward cooperation with a small
 /// chance of defection, and vice versa for the `on_defect` distribution.
 ///
 /// The `name_suffix` argument is appended to the player's name to enable playing multiple
-/// Probabilistic Tit for Tat players with different distributions.
+/// Probabilistic Tit-for-Tat players with different distributions.
 pub fn probabilistic_tit_for_tat(
     on_cooperate: Distribution<Move>,
     on_defect: Distribution<Move>,
     name_suffix: &str,
 ) -> DilemmaPlayer {
     Player::new(
-        format!("Probabilistic Tit for Tat {:?}", name_suffix),
+        format!("Probabilistic Tit-for-Tat {:?}", name_suffix),
         Strategy::conditional(
             |context: &DilemmaContext| {
                 context
@@ -529,7 +529,7 @@ pub fn probabilistic_tit_for_tat(
     )
 }
 
-/// A [Probabilistic Tit for Tat](probabilistic_tit_for_tat) player that always cooperates when it
+/// A [Probabilistic Tit-for-Tat](probabilistic_tit_for_tat) player that always cooperates when it
 /// should but has a 10% chance of cooperating when it would otherwise defect.
 pub fn generous_tit_for_tat() -> DilemmaPlayer {
     probabilistic_tit_for_tat(
@@ -539,7 +539,7 @@ pub fn generous_tit_for_tat() -> DilemmaPlayer {
     )
 }
 
-/// A [Probabilistic Tit for Tat](probabilistic_tit_for_tat) player that always defects when it
+/// A [Probabilistic Tit-for-Tat](probabilistic_tit_for_tat) player that always defects when it
 /// should but has a 10% chance of defecting when it would otherwise cooperate.
 pub fn probing_tit_for_tat() -> DilemmaPlayer {
     probabilistic_tit_for_tat(
@@ -552,7 +552,7 @@ pub fn probing_tit_for_tat() -> DilemmaPlayer {
 /// A player that cooperates unless it was the "sucker" (it cooperated but the opponent defected)
 /// in the previous game.
 ///
-/// Different from [Tit for Tat](tit_for_tat) since it will cooperate after mutual defection.
+/// Different from [Tit-for-Tat](tit_for_tat) since it will cooperate after mutual defection.
 pub fn firm_but_fair() -> DilemmaPlayer {
     Player::new(
         "Firm but Fair".to_string(),

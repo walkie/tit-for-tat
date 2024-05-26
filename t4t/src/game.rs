@@ -9,7 +9,7 @@ use crate::{Action, Context, Error, Move, Outcome, PlayerIndex, Players, Turn, U
 pub trait State: Clone + Debug + PartialEq + 'static {}
 impl<T: Clone + Debug + PartialEq + 'static> State for T {}
 
-/// A root trait that all games implement, mostly used for its associated types.
+/// A root trait that all games implement.
 pub trait Game<const P: usize>: Sized {
     /// The type of moves played by players in this game.
     type Move: Move;
@@ -18,9 +18,9 @@ pub trait Game<const P: usize>: Sized {
     type Utility: Utility;
 
     /// The type of value produced by playing the game.
-    /// - For simultaneous games: [SimultaneousOutcome](crate::SimultaneousOutcome)
-    /// - For sequential games: [SequentialOutcome](crate::SequentialOutcome)
-    /// - For repeated games: [History](crate::History)
+    /// - For simultaneous games: [`SimultaneousOutcome`](crate::SimultaneousOutcome)
+    /// - For sequential games: [`SequentialOutcome`](crate::SequentialOutcome)
+    /// - For repeated games: [`History`](crate::History)
     type Outcome: Outcome<Self::Move, Self::Utility, P>;
 
     /// The type of intermediate game state used during the execution of the game.
@@ -28,11 +28,15 @@ pub trait Game<const P: usize>: Sized {
 
     /// The type of the *view* of the intermediate game state presented to players.
     ///
-    /// This may differ from [State] to support hidden information, that is, aspects of the game
+    /// This may differ from [`State`] to support hidden information, that is, aspects of the game
     /// state that are not visible to players while making strategic decisions.
     type View: State;
 
-    /// The first turn in the specification of the execution of this game.
+    /// A specification of how this game is executed.
+    ///
+    /// This method returns the first turn in the specification of the game's execution, from which
+    /// the rest of the specification is reachable through each action's `next` method, if
+    /// applicable.
     fn first_turn(&self) -> Turn<Self::State, Self::Move, Self::Outcome, P>;
 
     /// Produce a view of the game state for the given player.

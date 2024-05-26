@@ -1,4 +1,4 @@
-# t4t-games
+# Tit-for-tat games (t4t-games)
 
 [![GitHub](https://img.shields.io/badge/github-walkie%2Ftit--for--tat-mediumorchid?logo=github)][github-repo]
 [![crates.io](https://img.shields.io/crates/v/t4t-games?label=crates.io)][games-crate]

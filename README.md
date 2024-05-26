@@ -6,10 +6,9 @@
 [![docs.rs/t4t-games](https://img.shields.io/badge/docs.rs-t4t--games-blue?logo=docs.rs)][games-docs]
 [![GitHub actions workflow status](https://img.shields.io/github/actions/workflow/status/walkie/tit-for-tat/rust.yml?logo=rust)][github-build]
 
-Tit-for-tat (t4t) is a [game theory](https://en.wikipedia.org/wiki/Game_theory) library with a
-focus on experimentation over formal analysis, and expressiveness over performance. It supports
-defining games and strategies, then executing them repeatedly in order to collect and observe the
-results.
+Tit-for-tat (t4t) is a [game theory][wiki-game-theory] library with a focus on experimentation over
+formal analysis, and expressiveness over performance. It provides flexible types and traits for
+defining games and strategies, then executing them to observe the results.
 
 This repository hosts two crates:
 
@@ -23,3 +22,4 @@ This repository hosts two crates:
 [t4t-docs]: https://docs.rs/t4t
 [games-crates]: https://crates.io/crates/t4t-games
 [games-docs]: https://docs.rs/t4t-games
+[wiki-game-theory]: https://en.wikipedia.org/wiki/Game_theory
