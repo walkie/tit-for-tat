@@ -32,23 +32,23 @@ use crate::{
 ///     vec![2, 0, 3, 1],
 /// ).unwrap();
 ///
-/// let nice = || Player::new("Nice".to_string(), Strategy::pure('C'));
-/// let mean = || Player::new("Mean".to_string(), Strategy::pure('D'));
+/// let nice = Player::new("Nice".to_string(), || Strategy::pure('C'));
+/// let mean = Player::new("Mean".to_string(), || Strategy::pure('D'));
 ///
 /// assert_eq!(
-///     pd.play(&mut PerPlayer::new([nice(), nice()])),
+///     pd.play(PerPlayer::new([nice.clone(), nice.clone()])),
 ///     Ok(SimultaneousOutcome::new(Profile::new(['C', 'C']), Payoff::from([2, 2]))),
 /// );
 /// assert_eq!(
-///     pd.play(&mut PerPlayer::new([nice(), mean()])),
+///     pd.play(PerPlayer::new([nice.clone(), mean.clone()])),
 ///     Ok(SimultaneousOutcome::new(Profile::new(['C', 'D']), Payoff::from([0, 3]))),
 /// );
 /// assert_eq!(
-///     pd.play(&mut PerPlayer::new([mean(), nice()])),
+///     pd.play(PerPlayer::new([mean.clone(), nice])),
 ///     Ok(SimultaneousOutcome::new(Profile::new(['D', 'C']), Payoff::from([3, 0]))),
 /// );
 /// assert_eq!(
-///     pd.play(&mut PerPlayer::new([mean(), mean()])),
+///     pd.play(PerPlayer::new([mean.clone(), mean])),
 ///     Ok(SimultaneousOutcome::new(Profile::new(['D', 'D']), Payoff::from([1, 1]))),
 /// );
 /// ```

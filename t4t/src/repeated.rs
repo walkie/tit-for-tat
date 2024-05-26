@@ -8,12 +8,14 @@ use crate::{Action, Game, History, PlayerIndex, Turn};
 ///
 /// Game `G` is called the "stage game". This game plays the stage game a specified number of times,
 /// accumulating the payoffs.
+#[derive(Clone)]
 pub struct Repeated<G: Game<P>, const P: usize> {
     stage_game: Arc<G>,
     repetitions: usize,
 }
 
 /// The intermediate state of a repeated game.
+#[derive(Clone)]
 pub struct RepeatedState<G: Game<P>, const P: usize> {
     stage_game: Arc<G>,
     stage_state: Arc<G::State>,
@@ -172,17 +174,6 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
     ) -> bool {
         self.stage_game
             .is_valid_move(&state.stage_state, player, the_move)
-    }
-}
-
-impl<G: Game<P>, const P: usize> Clone for RepeatedState<G, P> {
-    fn clone(&self) -> Self {
-        RepeatedState {
-            stage_game: self.stage_game.clone(),
-            stage_state: self.stage_state.clone(),
-            completed: self.completed.clone(),
-            remaining: self.remaining,
-        }
     }
 }
 

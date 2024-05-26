@@ -9,8 +9,12 @@ use crate::{Action, Context, Error, Move, Outcome, PlayerIndex, Players, Turn, U
 pub trait State: Clone + Debug + PartialEq + 'static {}
 impl<T: Clone + Debug + PartialEq + 'static> State for T {}
 
+/// The result of playing a game. Either an outcome or an error.
+pub type PlayResult<G, const P: usize> =
+    Result<<G as Game<P>>::Outcome, Error<<G as Game<P>>::State, <G as Game<P>>::Move, P>>;
+
 /// A root trait that all games implement.
-pub trait Game<const P: usize>: Sized {
+pub trait Game<const P: usize>: Clone + Sized {
     /// The type of moves played by players in this game.
     type Move: Move;
 
@@ -57,11 +61,9 @@ pub trait Game<const P: usize>: Sized {
 
     /// Play this game with the given players, producing a value of the game's outcome type on
     /// success.
-    fn play(
-        &self,
-        players: &mut Players<Self, P>,
-    ) -> Result<Self::Outcome, Error<Self::State, Self::Move, P>> {
+    fn play(&self, players: Players<Self, P>) -> PlayResult<Self, P> {
         let mut turn = self.first_turn();
+        let mut strategies = players.map(|player| player.new_strategy());
 
         loop {
             match turn.action {
@@ -71,7 +73,7 @@ pub trait Game<const P: usize>: Sized {
                         .map(|&index| {
                             let view = self.state_view(&turn.state, index);
                             let context = Context::new(index, view);
-                            players[index].next_move(&context)
+                            strategies[index].next_move(&context)
                         })
                         .collect();
 

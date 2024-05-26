@@ -1,20 +1,29 @@
-use crate::{Context, Game, PerPlayer, Strategy};
+use crate::{Game, PerPlayer, Strategy};
+use std::sync::Arc;
 
 /// A [per-player](PerPlayer) collection of [players](Player), ready to play a game.
 pub type Players<G, const P: usize> = PerPlayer<Player<G, P>, P>;
 
-/// A player consists of a name and a [strategy](Strategy).
+/// A player consists of a name and a function that produces its [strategy](Strategy).
 ///
-/// A player's name should usually be unique with respect to all players playing the same game.
+/// A player's name must be unique with respect to all other players playing the same game (e.g.
+/// in a tournament).
+#[derive(Clone)]
 pub struct Player<G: Game<P>, const P: usize> {
     name: String,
-    strategy: Strategy<G::View, G::Move, P>,
+    new_strategy: Arc<dyn Fn() -> Strategy<G::View, G::Move, P> + Send + Sync>,
 }
 
 impl<G: Game<P>, const P: usize> Player<G, P> {
-    /// Construct a new player with the given name and strategy.
-    pub fn new(name: String, strategy: Strategy<G::View, G::Move, P>) -> Self {
-        Player { name, strategy }
+    /// Construct a new player with the given name and a function to produce their strategy.
+    pub fn new(
+        name: String,
+        new_strategy: impl Fn() -> Strategy<G::View, G::Move, P> + Send + Sync + 'static,
+    ) -> Self {
+        Player {
+            name,
+            new_strategy: Arc::new(new_strategy),
+        }
     }
 
     /// The player's name.
@@ -22,8 +31,21 @@ impl<G: Game<P>, const P: usize> Player<G, P> {
         &self.name
     }
 
-    /// Get the player's next move to play given a particular game state.
-    pub fn next_move(&mut self, context: &Context<G::View, P>) -> G::Move {
-        self.strategy.next_move(context)
+    /// Get a new copy of this player's strategy for playing a game.
+    pub fn new_strategy(&self) -> Strategy<G::View, G::Move, P> {
+        (self.new_strategy)()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Normal;
+    use impls::impls;
+    use test_log::test;
+
+    #[test]
+    fn player_is_send_sync() {
+        assert!(impls!(Player<Normal<(), u8, 2>, 2>: Send & Sync));
     }
 }

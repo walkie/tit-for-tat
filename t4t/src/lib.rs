@@ -68,53 +68,51 @@
 //! // Define two functions that produce players for playing social dilemma games. The game type is
 //! // generic so that we can reuse these players later for repeated prisoner's dilemma.
 //! fn nice<G: Game<2, Move = DilemmaMove>>() -> Player<G, 2> {
-//!     Player::new("Nice".to_string(), Strategy::pure(DilemmaMove::Cooperate))
+//!     Player::new("Nice".to_string(), || Strategy::pure(DilemmaMove::Cooperate))
 //! }
 //!
 //! fn mean<G: Game<2, Move = DilemmaMove>>() -> Player<G, 2> {
-//!     Player::new("Mean".to_string(), Strategy::pure(DilemmaMove::Defect))
+//!     Player::new("Mean".to_string(), || Strategy::pure(DilemmaMove::Defect))
 //! }
 //!
 //! // Play the game!
-//! let result = pd.play(&mut PerPlayer::new([nice(), mean()]));
+//! let result = pd.play(PerPlayer::new([nice(), mean()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([0, 3]));
 //!
 //! // Define the repeated prisoner's dilemma.
 //! let rpd: Repeated<Dilemma, 2> = Repeated::new(Arc::new(pd), 100);
 //!
-//! // Define the famous tit-for-tat strategy.
-//! pub fn tit_for_tat() -> Player<Repeated<Dilemma, 2>, 2> {
-//!     Player::new(
-//!         "Tit-for-Tat".to_string(),
-//!         Strategy::new(|context: &Context<RepeatedState<Dilemma, 2>, 2>| {
-//!             context
-//!                 .state_view() // get the repeated game state
-//!                 .history() // get the completed game history from the state
-//!                 .moves_for_player(context.their_index()) // get the moves for the other player
-//!                 .last() // take their last move only
-//!                 .unwrap_or(DilemmaMove::Cooperate) // play that, or cooperate if it's the first move
-//!         }),
-//!     )
-//! }
+//! // Define a player that plays the famous tit-for-tat strategy.
+//! let tit_for_tat: Player<Repeated<Dilemma, 2>, 2> = Player::new(
+//!     "Tit-for-Tat".to_string(),
+//!     || Strategy::new(|context: &Context<RepeatedState<Dilemma, 2>, 2>| {
+//!         context
+//!             .state_view() // get the repeated game state
+//!             .history() // get the completed game history from the state
+//!             .moves_for_player(context.their_index()) // get the moves for the other player
+//!             .last() // take their last move only
+//!             .unwrap_or(DilemmaMove::Cooperate) // play that, or cooperate if it's the first move
+//!     }),
+//! );
 //!
 //! // Play every combination of players against each other.
 //! // TODO: Direct support for this with cumulative scores coming soon!
-//! let result = rpd.play(&mut PerPlayer::new([nice(), nice()]));
+//! let result = rpd.play(PerPlayer::new([nice(), nice()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
 //!
-//! let result = rpd.play(&mut PerPlayer::new([nice(), mean()]));
+//! let result = rpd.play(PerPlayer::new([nice(), mean()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([0, 300]));
 //!
-//! let result = rpd.play(&mut PerPlayer::new([nice(), tit_for_tat()]));
+//! let result = rpd.play(PerPlayer::new([nice(), tit_for_tat.clone()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
 //!
-//! let result = rpd.play(&mut PerPlayer::new([mean(), mean()]));
+//! let result = rpd.play(PerPlayer::new([mean(), mean()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([100, 100]));
 //!
-//! let result = rpd.play(&mut PerPlayer::new([mean(), tit_for_tat()]));
+//! let result = rpd.play(PerPlayer::new([mean(), tit_for_tat.clone()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([102, 99]));
 //!
-//! let result = rpd.play(&mut PerPlayer::new([tit_for_tat(), tit_for_tat()]));
+//! let result = rpd.play(PerPlayer::new([tit_for_tat.clone(), tit_for_tat]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
 //! ```
 //!

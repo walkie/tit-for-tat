@@ -56,8 +56,9 @@ use crate::{
 /// assert_eq!(pick_em.payoff(Profile::new([-4, 7])), Payoff::from([7, -4]));
 /// assert_eq!(pick_em.payoff(Profile::new([0, -1])), Payoff::from([-1, 0]));
 /// ```
+#[derive(Clone)]
 pub struct Simultaneous<M, U, const P: usize> {
-    move_fn: Box<dyn Fn(PlayerIndex<P>, M) -> bool + Send + Sync>,
+    move_fn: Arc<dyn Fn(PlayerIndex<P>, M) -> bool + Send + Sync>,
     payoff_fn: Arc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + Send + Sync>,
 }
 
@@ -101,7 +102,7 @@ impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
         PayoffFn: Fn(Profile<M, P>) -> Payoff<U, P> + Send + Sync + 'static,
     {
         Simultaneous {
-            move_fn: Box::new(move_fn),
+            move_fn: Arc::new(move_fn),
             payoff_fn: Arc::new(payoff_fn),
         }
     }
