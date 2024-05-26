@@ -15,9 +15,13 @@ This repository hosts two crates:
 - **[t4t][t4t-crates]:** The library itself.
 - **[t4t-games][games-crates]:** A collection of games and strategies implemented using t4t.
 
+If you use this library for something, or are considering using it, I'd love to hear about it!
+Please get in touch using the contact info on my [Github profile][github-profile].
 
-[github-repo]: https://github.com/walkie/tit-for-tat
+
 [github-build]: https://github.com/walkie/tit-for-tat/actions
+[github-profile]: https://github.com/walkie
+[github-repo]: https://github.com/walkie/tit-for-tat
 [t4t-crates]: https://crates.io/crates/t4t
 [t4t-docs]: https://docs.rs/t4t
 [games-crates]: https://crates.io/crates/t4t-games

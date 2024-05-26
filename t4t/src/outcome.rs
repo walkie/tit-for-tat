@@ -5,11 +5,11 @@ use crate::{Move, Payoff, PlayerIndex, PossibleProfiles, Profile, Record, Transc
 
 /// A (potential) outcome of a game. A payoff combined with a record of the moves that produced it.
 ///
-/// TODO: List example instances
-/// For normal-form games, an outcome corresponds to a cell in the payoff table. The profile is the
-/// address of the cell and the payoff is its value.
-///
-/// For extensive-form games, an outcome corresponds to a path through the game tree.
+/// The outcomes for some built-in game types are:
+/// - [`SimultaneousOutcome`] for [simultaneous](crate::Simultaneous) and
+///   [normal-form](crate::Normal) games.
+/// - [`SequentialOutcome`] for sequential games.
+/// - [`History`](crate::History) for [repeated](crate::Repeated) games.
 pub trait Outcome<M: Move, U: Utility, const P: usize>: Clone + Debug + PartialEq {
     /// A type for capturing the record of moves that produced (or would produce) this outcome.
     ///
@@ -64,6 +64,8 @@ impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> for SimultaneousOutco
 /// A (potential) outcome of a sequential game.
 ///
 /// A transcript of moves played by all players and the resulting payoff.
+///
+/// For extensive-form games, an outcome corresponds to a path through the game tree.
 #[derive(Clone, Debug, PartialEq, Hash)]
 pub struct SequentialOutcome<M: Move, U: Utility, const P: usize> {
     transcript: Transcript<M, P>,
