@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::{Move, Payoff, PlayerIndex, PossibleProfiles, Profile, Record, Transcript, Utility};
 
@@ -103,14 +103,14 @@ impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> for SequentialOutcome
 #[derive(Clone)]
 pub struct PossibleOutcomes<'g, M: Move, U: Utility, const P: usize> {
     profile_iter: PossibleProfiles<'g, M, P>,
-    payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + 'g>,
+    payoff_fn: Arc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + Send + Sync + 'g>,
 }
 
 impl<'g, M: Move, U: Utility, const P: usize> PossibleOutcomes<'g, M, U, P> {
     /// Construct a new outcome iterator given an iterator over profiles and a payoff function.
     pub fn new(
         profile_iter: PossibleProfiles<'g, M, P>,
-        payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + 'g>,
+        payoff_fn: Arc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + Send + Sync + 'g>,
     ) -> Self {
         PossibleOutcomes {
             profile_iter,
@@ -181,5 +181,17 @@ impl<'g, M: Move, U: Utility, const P: usize> Iterator for PossibleOutcomes<'g, 
             let payoff = (*self.payoff_fn)(profile);
             SimultaneousOutcome::new(profile, payoff)
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use impls::impls;
+    use test_log::test;
+
+    #[test]
+    fn possible_outcomes_is_send_sync() {
+        assert!(impls!(PossibleOutcomes<'_, (), u8, 2>: Send & Sync));
     }
 }

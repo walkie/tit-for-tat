@@ -48,7 +48,7 @@
 //! them.
 //!
 //! ```
-//! use std::rc::Rc;
+//! use std::sync::Arc;
 //! use log::warn;
 //! use t4t::*;
 //!
@@ -80,7 +80,7 @@
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([0, 3]));
 //!
 //! // Define the repeated prisoner's dilemma.
-//! let rpd: Repeated<Dilemma, 2> = Repeated::new(Rc::new(pd), 100);
+//! let rpd: Repeated<Dilemma, 2> = Repeated::new(Arc::new(pd), 100);
 //!
 //! // Define the famous tit-for-tat strategy.
 //! pub fn tit_for_tat() -> Player<Repeated<Dilemma, 2>, 2> {

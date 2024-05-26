@@ -323,7 +323,13 @@ impl<'g, M: Move, const P: usize> Iterator for PossibleProfiles<'g, M, P> {
 mod tests {
     use super::*;
     use crate::{for3, PerPlayer};
+    use impls::impls;
     use test_log::test;
+
+    #[test]
+    fn possible_profiles_is_send_sync() {
+        assert!(impls!(PossibleProfiles<'_, (), 2>: Send & Sync));
+    }
 
     #[test]
     fn adjacent_profiles_for3_correct() {

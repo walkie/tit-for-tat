@@ -10,10 +10,10 @@ categories = ["mathematics", "simulation"]
 keywords = ["game-theory", "economics", "evolution"]
 
 [dependencies]
-log = "0.4.20"
+log = "0.4.21"
 t4t = "0.0.3"
 # t4t = { path = "../t4t" }
 
 [dev-dependencies]
-env_logger = "0.10.0"
-test-log = "0.2.12"
+env_logger = "0.11.3"
+test-log = "0.2.16"

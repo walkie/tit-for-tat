@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::{Distribution, ErrorKind, Move, PlayerIndex, Profile};
 
@@ -8,12 +8,12 @@ use crate::{Distribution, ErrorKind, Move, PlayerIndex, Profile};
 /// This trait is effectively a type synonym for the function type it extends. A blanket
 /// implementation covers all possible instances, so it should not be implemented directly.
 pub trait NextTurn<'g, T, S, M, O, const P: usize>:
-    FnOnce(Rc<S>, T) -> Result<Turn<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
+    FnOnce(Arc<S>, T) -> Result<Turn<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
 {
 }
 
 impl<'g, F, T, S, M, O, const P: usize> NextTurn<'g, T, S, M, O, P> for F where
-    F: FnOnce(Rc<S>, T) -> Result<Turn<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
+    F: FnOnce(Arc<S>, T) -> Result<Turn<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
 {
 }
 
@@ -22,7 +22,7 @@ impl<'g, F, T, S, M, O, const P: usize> NextTurn<'g, T, S, M, O, P> for F where
 /// Subsequent steps, if applicable, are reachable via the action's `next` method.
 pub struct Turn<'g, S, M, O, const P: usize> {
     /// The game state at this turn.
-    pub state: Rc<S>,
+    pub state: Arc<S>,
     /// The action to take at this turn.
     pub action: Action<'g, S, M, O, P>,
 }
@@ -100,14 +100,14 @@ impl<'g, S, M: Move, O, const P: usize> Action<'g, S, M, O, P> {
 
 impl<'g, S, M: Move, O, const P: usize> Turn<'g, S, M, O, P> {
     /// Construct a new turn with the given state and action.
-    pub fn new(state: Rc<S>, action: Action<'g, S, M, O, P>) -> Self {
+    pub fn new(state: Arc<S>, action: Action<'g, S, M, O, P>) -> Self {
         Turn { state, action }
     }
 
     /// Construct a turn where a single player must make a move and the next turn is computed
     /// from the move they choose.
     pub fn player(
-        state: Rc<S>,
+        state: Arc<S>,
         player: PlayerIndex<P>,
         next: impl NextTurn<'g, M, S, M, O, P>,
     ) -> Self {
@@ -117,7 +117,7 @@ impl<'g, S, M: Move, O, const P: usize> Turn<'g, S, M, O, P> {
     /// Construct a turn where several players must make a move simultaneously and the next turn
     /// is computed from the moves they choose.
     pub fn players(
-        state: Rc<S>,
+        state: Arc<S>,
         players: Vec<PlayerIndex<P>>,
         next: impl NextTurn<'g, Vec<M>, S, M, O, P>,
     ) -> Self {
@@ -126,14 +126,14 @@ impl<'g, S, M: Move, O, const P: usize> Turn<'g, S, M, O, P> {
 
     /// Construct a turn where all players must make a move simultaneously and the next turn is
     /// computed from the moves they choose.
-    pub fn all_players(state: Rc<S>, next: impl NextTurn<'g, Profile<M, P>, S, M, O, P>) -> Self {
+    pub fn all_players(state: Arc<S>, next: impl NextTurn<'g, Profile<M, P>, S, M, O, P>) -> Self {
         Turn::new(state, Action::all_players(next))
     }
 
     /// Construct a turn where a move is selected from a distribution and the next turn is
     /// computed from the selected move.
     pub fn chance(
-        state: Rc<S>,
+        state: Arc<S>,
         distribution: Distribution<M>,
         next: impl NextTurn<'g, M, S, M, O, P>,
     ) -> Self {
@@ -141,7 +141,7 @@ impl<'g, S, M: Move, O, const P: usize> Turn<'g, S, M, O, P> {
     }
 
     /// Construct a turn ending the game with the given outcome.
-    pub fn end(state: Rc<S>, outcome: O) -> Self {
+    pub fn end(state: Arc<S>, outcome: O) -> Self {
         Turn::new(state, Action::end(outcome))
     }
 }

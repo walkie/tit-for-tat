@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::{
     ErrorKind, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Record, SimultaneousOutcome,
@@ -57,8 +57,8 @@ use crate::{
 /// assert_eq!(pick_em.payoff(Profile::new([0, -1])), Payoff::from([-1, 0]));
 /// ```
 pub struct Simultaneous<M, U, const P: usize> {
-    move_fn: Box<dyn Fn(PlayerIndex<P>, M) -> bool>,
-    payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P>>,
+    move_fn: Box<dyn Fn(PlayerIndex<P>, M) -> bool + Send + Sync>,
+    payoff_fn: Arc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + Send + Sync>,
 }
 
 impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
@@ -69,7 +69,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     type View = ();
 
     fn first_turn(&self) -> Turn<(), M, SimultaneousOutcome<M, U, P>, P> {
-        let state = Rc::new(());
+        let state = Arc::new(());
         Turn::all_players(state.clone(), move |_, profile| {
             for ply in profile.plies() {
                 let player = ply.player.unwrap();
@@ -97,12 +97,12 @@ impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
     /// containing a valid move played by each player.
     pub fn from_payoff_fn<MoveFn, PayoffFn>(move_fn: MoveFn, payoff_fn: PayoffFn) -> Self
     where
-        MoveFn: Fn(PlayerIndex<P>, M) -> bool + 'static,
-        PayoffFn: Fn(Profile<M, P>) -> Payoff<U, P> + 'static,
+        MoveFn: Fn(PlayerIndex<P>, M) -> bool + Send + Sync + 'static,
+        PayoffFn: Fn(Profile<M, P>) -> Payoff<U, P> + Send + Sync + 'static,
     {
         Simultaneous {
             move_fn: Box::new(move_fn),
-            payoff_fn: Rc::new(payoff_fn),
+            payoff_fn: Arc::new(payoff_fn),
         }
     }
 
@@ -110,8 +110,8 @@ impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
     /// valid for a given player, and (2) a utility function for each player.
     pub fn from_utility_fns<MoveFn, UtilFn>(move_fn: MoveFn, util_fns: PerPlayer<UtilFn, P>) -> Self
     where
-        MoveFn: Fn(PlayerIndex<P>, M) -> bool + 'static,
-        UtilFn: Fn(M) -> U + 'static,
+        MoveFn: Fn(PlayerIndex<P>, M) -> bool + Send + Sync + 'static,
+        UtilFn: Fn(M) -> U + Send + Sync + 'static,
     {
         let payoff_fn = move |profile: Profile<M, P>| {
             Payoff::new(PerPlayer::generate(|player| {
@@ -138,5 +138,17 @@ impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
     /// [invalid profile](crate::Simultaneous::is_valid_profile).
     pub fn payoff(&self, profile: Profile<M, P>) -> Payoff<U, P> {
         (*self.payoff_fn)(profile)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use impls::impls;
+    use test_log::test;
+
+    #[test]
+    fn simultaneous_is_send_sync() {
+        assert!(impls!(Simultaneous<(), u8, 2>: Send & Sync));
     }
 }

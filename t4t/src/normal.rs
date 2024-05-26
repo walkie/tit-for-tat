@@ -2,7 +2,7 @@ use num::Zero;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::iter::Iterator;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::{
     Dominated, ErrorKind, Game, Move, Outcome, Payoff, PerPlayer, PlayerIndex, PossibleMoves,
@@ -54,7 +54,7 @@ use crate::{
 #[derive(Clone)]
 pub struct Normal<M, U, const P: usize> {
     moves: PerPlayer<Vec<M>, P>,
-    payoff_fn: Rc<dyn Fn(Profile<M, P>) -> Payoff<U, P>>,
+    payoff_fn: Arc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + Send + Sync>,
 }
 
 impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
@@ -65,7 +65,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type View = ();
 
     fn first_turn(&self) -> Turn<(), M, SimultaneousOutcome<M, U, P>, P> {
-        let state = Rc::new(());
+        let state = Arc::new(());
         Turn::all_players(state.clone(), move |_, profile| {
             for ply in profile.plies() {
                 let player = ply.player.unwrap();
@@ -96,11 +96,11 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// directly.
     pub fn from_payoff_fn(
         moves: PerPlayer<Vec<M>, P>,
-        payoff_fn: impl Fn(Profile<M, P>) -> Payoff<U, P> + 'static,
+        payoff_fn: impl Fn(Profile<M, P>) -> Payoff<U, P> + Send + Sync + 'static,
     ) -> Self {
         Normal {
             moves,
-            payoff_fn: Rc::new(payoff_fn),
+            payoff_fn: Arc::new(payoff_fn),
         }
     }
 
@@ -112,7 +112,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// directly.
     pub fn from_utility_fns(
         moves: PerPlayer<Vec<M>, P>,
-        util_fns: PerPlayer<impl Fn(M) -> U + 'static, P>,
+        util_fns: PerPlayer<impl Fn(M) -> U + Send + Sync + 'static, P>,
     ) -> Self {
         let payoff_fn = move |profile: Profile<M, P>| {
             Payoff::new(PerPlayer::generate(|player| {
@@ -926,5 +926,17 @@ impl<M: Move, U: Utility> Normal<M, U, 4> {
             }
         }
         Normal::from_payoff_map(all_moves, payoff_map)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use impls::impls;
+    use test_log::test;
+
+    #[test]
+    fn normal_is_send_sync() {
+        assert!(impls!(Normal<(), u8, 2>: Send & Sync));
     }
 }
