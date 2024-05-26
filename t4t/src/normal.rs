@@ -1,4 +1,5 @@
 use num::Zero;
+use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::iter::Iterator;
@@ -587,6 +588,19 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         nash
     }
 
+    /// A variant of [`pure_nash_equilibria`] that analyzes the outcomes in parallel.
+    pub fn pure_nash_equlibria_parallel(&self) -> Vec<Profile<M, P>> {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        self.possible_profiles()
+            .par_bridge()
+            .for_each_with(sender, |s, profile| {
+                if self.is_stable(profile) {
+                    s.send(profile).unwrap();
+                }
+            });
+        receiver.iter().collect()
+    }
+
     /// Return a new profile that represents a
     /// [Pareto improvement](https://en.wikipedia.org/wiki/Pareto_efficiency)
     /// on the given profile, if one exists.
@@ -632,6 +646,19 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
             }
         }
         pareto
+    }
+
+    /// A variant of [`pareto_optimal_solutions`] that analyzes the outcomes in parallel.
+    pub fn pareto_optimal_solutions_parallel(&self) -> Vec<Profile<M, P>> {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        self.possible_profiles()
+            .par_bridge()
+            .for_each_with(sender, |s, profile| {
+                if self.is_pareto_optimal(profile) {
+                    s.send(profile).unwrap();
+                }
+            });
+        receiver.iter().collect()
     }
 
     /// Get all dominated move relationships for the given player. If a move is dominated by

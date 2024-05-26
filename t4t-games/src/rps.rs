@@ -94,7 +94,7 @@ pub fn fire_water() -> Normal<Move, i64, 2> {
 ///
 /// Note that `rps1000` demonstrates that `Normal` can represent extremely large games---this game
 /// has a payoff table with `3^1000` entries! Such large games can be represented and played
-/// without issue, but any function that iterates over the outcomes (such as
+/// without issue. However, any function that iterates over the outcomes (such as
 /// [`is_zero_sum`](t4t::Normal::is_zero_sum) or any solution concept), will leave you waiting
 /// beyond the heat death of the universe.
 #[rustfmt::skip]
