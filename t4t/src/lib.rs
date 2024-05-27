@@ -76,7 +76,7 @@
 //! }
 //!
 //! // Play the game!
-//! let result = pd.play(PerPlayer::new([nice(), mean()]));
+//! let result = pd.play(&PerPlayer::new([nice(), mean()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([0, 3]));
 //!
 //! // Define the repeated prisoner's dilemma.
@@ -97,22 +97,22 @@
 //!
 //! // Play every combination of players against each other.
 //! // TODO: Direct support for this with cumulative scores coming soon!
-//! let result = rpd.play(PerPlayer::new([nice(), nice()]));
+//! let result = rpd.play(&PerPlayer::new([nice(), nice()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
 //!
-//! let result = rpd.play(PerPlayer::new([nice(), mean()]));
+//! let result = rpd.play(&PerPlayer::new([nice(), mean()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([0, 300]));
 //!
-//! let result = rpd.play(PerPlayer::new([nice(), tit_for_tat.clone()]));
+//! let result = rpd.play(&PerPlayer::new([nice(), tit_for_tat.clone()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
 //!
-//! let result = rpd.play(PerPlayer::new([mean(), mean()]));
+//! let result = rpd.play(&PerPlayer::new([mean(), mean()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([100, 100]));
 //!
-//! let result = rpd.play(PerPlayer::new([mean(), tit_for_tat.clone()]));
+//! let result = rpd.play(&PerPlayer::new([mean(), tit_for_tat.clone()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([102, 99]));
 //!
-//! let result = rpd.play(PerPlayer::new([tit_for_tat.clone(), tit_for_tat]));
+//! let result = rpd.play(&PerPlayer::new([tit_for_tat.clone(), tit_for_tat]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
 //! ```
 //!
@@ -162,6 +162,7 @@ pub(crate) mod repeated;
 pub(crate) mod simultaneous;
 pub(crate) mod strategy;
 pub(crate) mod summary;
+pub(crate) mod tournament;
 pub(crate) mod transcript;
 pub(crate) mod turn;
 // pub(crate) mod tree;
@@ -186,6 +187,7 @@ pub use repeated::*;
 pub use simultaneous::*;
 pub use strategy::*;
 pub use summary::*;
+pub use tournament::*;
 pub use transcript::*;
 pub use turn::*;
 // pub use tree::*;

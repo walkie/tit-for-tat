@@ -36,19 +36,19 @@ use crate::{
 /// let mean = Player::new("Mean".to_string(), || Strategy::pure('D'));
 ///
 /// assert_eq!(
-///     pd.play(PerPlayer::new([nice.clone(), nice.clone()])),
+///     pd.play(&PerPlayer::new([nice.clone(), nice.clone()])),
 ///     Ok(SimultaneousOutcome::new(Profile::new(['C', 'C']), Payoff::from([2, 2]))),
 /// );
 /// assert_eq!(
-///     pd.play(PerPlayer::new([nice.clone(), mean.clone()])),
+///     pd.play(&PerPlayer::new([nice.clone(), mean.clone()])),
 ///     Ok(SimultaneousOutcome::new(Profile::new(['C', 'D']), Payoff::from([0, 3]))),
 /// );
 /// assert_eq!(
-///     pd.play(PerPlayer::new([mean.clone(), nice])),
+///     pd.play(&PerPlayer::new([mean.clone(), nice])),
 ///     Ok(SimultaneousOutcome::new(Profile::new(['D', 'C']), Payoff::from([3, 0]))),
 /// );
 /// assert_eq!(
-///     pd.play(PerPlayer::new([mean.clone(), mean])),
+///     pd.play(&PerPlayer::new([mean.clone(), mean])),
 ///     Ok(SimultaneousOutcome::new(Profile::new(['D', 'D']), Payoff::from([1, 1]))),
 /// );
 /// ```

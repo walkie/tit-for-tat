@@ -266,6 +266,55 @@ impl<T: Clone, const P: usize> PerPlayer<T, P> {
         PerPlayer::generate(|_| value.clone())
     }
 
+    /// Execute a function for each element in a per-player collection.
+    ///
+    /// # Examples
+    /// ```
+    /// use t4t::PerPlayer;
+    ///
+    /// let mut longest = "";
+    /// let pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    ///
+    /// pp.for_each(|s| {
+    ///    if s.len() > longest.len() {
+    ///      longest = s;
+    ///     }
+    /// });
+    /// assert_eq!(longest, "pippin");
+    /// ```
+    pub fn for_each<F: FnMut(&T)>(&self, f: F) {
+        self.data.iter().for_each(f)
+    }
+
+    /// Execute a function for each element-index pair in a per-player collection.
+    ///
+    /// # Examples
+    /// ```
+    /// use t4t::{for4, PerPlayer};
+    ///
+    /// let mut longest = "";
+    /// let mut longest_index = for4::P0;
+    /// let pp = PerPlayer::new(["frodo", "sam", "pippin", "merry"]);
+    ///
+    /// pp.for_each_with_index(|i, s| {
+    ///    println!("{}, {}, {}", i, s, s.len());
+    ///    if s.len() > longest.len() {
+    ///      println!("updating to {}, {}", i, s);
+    ///      longest = s;
+    ///      longest_index = i;
+    ///     }
+    /// });
+    /// assert_eq!(longest, "pippin");
+    /// assert_eq!(longest_index, for4::P2);
+    /// ```
+    pub fn for_each_with_index<F: FnMut(PlayerIndex<P>, &T)>(&self, mut f: F) {
+        let mut indexes = PlayerIndex::all();
+        self.data.iter().for_each(move |elem| {
+            let index = indexes.next().unwrap();
+            f(index, elem)
+        });
+    }
+
     /// Map a function over all elements in a per-player collection, producing a new per-player
     /// collection.
     ///
@@ -273,7 +322,7 @@ impl<T: Clone, const P: usize> PerPlayer<T, P> {
     /// ```
     /// use t4t::PerPlayer;
     ///
-    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    /// let pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
     ///
     /// let mut lengths = pp.map(|s| s.len());
     /// assert_eq!(lengths, PerPlayer::new([5, 3, 5, 6]));
@@ -285,17 +334,14 @@ impl<T: Clone, const P: usize> PerPlayer<T, P> {
         PerPlayer::new(self.data.clone().map(f))
     }
 
-    /// Map a function over all elements in a per-player collection, producing a new per-player
-    /// collection.
-    ///
-    /// This variant of map provides each element's index along with the element to the mapped
-    /// function.
+    /// Map a function over each element-index pair in a per-player collection, producing a new
+    /// per-player collection.
     ///
     /// # Examples
     /// ```
     /// use t4t::PerPlayer;
     ///
-    /// let mut pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
+    /// let pp = PerPlayer::new(["frodo", "sam", "merry", "pippin"]);
     ///
     /// let mut pairs = pp.map_with_index(|i, s| (i.as_usize(), s.len()));
     /// assert_eq!(pairs, PerPlayer::new([(0, 5), (1, 3), (2, 5), (3, 6)]));
@@ -303,7 +349,7 @@ impl<T: Clone, const P: usize> PerPlayer<T, P> {
     /// let mut nths = pp.map_with_index(|i, s| s.chars().nth(i.as_usize()).unwrap());
     /// assert_eq!(nths, PerPlayer::new(['f', 'a', 'r', 'p']));
     /// ```
-    pub fn map_with_index<U, F: Fn(PlayerIndex<P>, T) -> U>(&self, f: F) -> PerPlayer<U, P> {
+    pub fn map_with_index<U, F: FnMut(PlayerIndex<P>, T) -> U>(&self, mut f: F) -> PerPlayer<U, P> {
         let mut indexes = PlayerIndex::all();
         PerPlayer::new(self.data.clone().map(move |elem| {
             let index = indexes.next().unwrap();
