@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Action, Context, Error, Move, Outcome, PlayerIndex, Players, Turn, Utility};
+use crate::{Action, Context, Error, Matchup, Move, Outcome, PlayerIndex, Turn, Utility};
 
 /// A trait that collects the trait requirements of a game state.
 ///
@@ -61,9 +61,9 @@ pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
 
     /// Play this game with the given players, producing a value of the game's outcome type on
     /// success.
-    fn play(&self, players: &Players<Self, P>) -> PlayResult<Self, P> {
+    fn play(&self, matchup: &Matchup<Self, P>) -> PlayResult<Self, P> {
         let mut turn = self.first_turn();
-        let mut strategies = players.map(|player| player.new_strategy());
+        let mut strategies = matchup.strategies();
 
         loop {
             match turn.action {

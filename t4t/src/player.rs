@@ -1,8 +1,6 @@
-use crate::{Game, PerPlayer, Strategy};
+use crate::{Game, Strategy};
+use std::fmt;
 use std::sync::Arc;
-
-/// A [per-player](PerPlayer) collection of [players](Player), ready to play a game.
-pub type Players<G, const P: usize> = PerPlayer<Player<G, P>, P>;
 
 /// A player consists of a name and a function that produces its [strategy](Strategy).
 ///
@@ -34,6 +32,12 @@ impl<G: Game<P>, const P: usize> Player<G, P> {
     /// Get a new copy of this player's strategy for playing a game.
     pub fn new_strategy(&self) -> Strategy<G::View, G::Move, P> {
         (self.new_strategy)()
+    }
+}
+
+impl<G: Game<P>, const P: usize> std::fmt::Debug for Player<G, P> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "Player({})", self.name)
     }
 }
 

@@ -76,7 +76,7 @@
 //! }
 //!
 //! // Play the game!
-//! let result = pd.play(&PerPlayer::new([nice(), mean()]));
+//! let result = pd.play(&Matchup::from_players([nice(), mean()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([0, 3]));
 //!
 //! // Define the repeated prisoner's dilemma.
@@ -97,22 +97,22 @@
 //!
 //! // Play every combination of players against each other.
 //! // TODO: Direct support for this with cumulative scores coming soon!
-//! let result = rpd.play(&PerPlayer::new([nice(), nice()]));
+//! let result = rpd.play(&Matchup::from_players([nice(), nice()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
 //!
-//! let result = rpd.play(&PerPlayer::new([nice(), mean()]));
+//! let result = rpd.play(&Matchup::from_players([nice(), mean()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([0, 300]));
 //!
-//! let result = rpd.play(&PerPlayer::new([nice(), tit_for_tat.clone()]));
+//! let result = rpd.play(&Matchup::from_players([nice(), tit_for_tat.clone()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
 //!
-//! let result = rpd.play(&PerPlayer::new([mean(), mean()]));
+//! let result = rpd.play(&Matchup::from_players([mean(), mean()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([100, 100]));
 //!
-//! let result = rpd.play(&PerPlayer::new([mean(), tit_for_tat.clone()]));
+//! let result = rpd.play(&Matchup::from_players([mean(), tit_for_tat.clone()]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([102, 99]));
 //!
-//! let result = rpd.play(&PerPlayer::new([tit_for_tat.clone(), tit_for_tat]));
+//! let result = rpd.play(&Matchup::from_players([tit_for_tat.clone(), tit_for_tat]));
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
 //! ```
 //!
@@ -147,6 +147,7 @@ pub(crate) mod dominated;
 pub(crate) mod error;
 pub(crate) mod game;
 pub(crate) mod history;
+pub(crate) mod matchup;
 pub(crate) mod moves;
 pub(crate) mod normal;
 pub(crate) mod outcome;
@@ -172,6 +173,7 @@ pub use dominated::*;
 pub use error::*;
 pub use game::*;
 pub use history::*;
+pub use matchup::*;
 pub use moves::*;
 pub use normal::*;
 pub use outcome::*;

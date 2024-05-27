@@ -1,4 +1,5 @@
-use crate::{Game, Outcome, PerPlayer, PlayResult, Players};
+use crate::{Game, Matchup, Outcome, PerPlayer, PlayResult, Player};
+use itertools::Itertools;
 use log::error;
 use rayon::prelude::*;
 use std::collections::HashMap;
@@ -7,7 +8,7 @@ use std::sync::Arc;
 /// A tournament in which several players play a game against each other in a series of matchups.
 pub struct Tournament<G: Game<P>, const P: usize> {
     game: Arc<G>,
-    matchups: Vec<Players<G, P>>,
+    matchups: Vec<Matchup<G, P>>,
 }
 
 /// The collected results from running a tournament.
@@ -18,10 +19,31 @@ pub struct TournamentResult<G: Game<P>, const P: usize> {
 }
 
 impl<G: Game<P>, const P: usize> Tournament<G, P> {
-    /// Construct a new tournament for the given game with the given matchups.
-    pub fn new(game: Arc<G>, matchups: Vec<Players<G, P>>) -> Self {
+    /// Construct a new tournament for the given game with the given explicit list of matchups.
+    pub fn new(game: Arc<G>, matchups: Vec<Matchup<G, P>>) -> Self {
         Tournament { game, matchups }
     }
+
+    /// Construct a new tournament for the given game where the matchups are the cartesian product
+    /// of the given per-player collection of lists of players, that is, every combination where one
+    /// player is drawn from each list.
+    ///
+    /// This constructor is particularly useful for non-symmetric games where different groups of
+    /// players are designed for different roles in the game.
+    pub fn product(game: Arc<G>, players_per_slot: PerPlayer<Vec<Arc<Player<G, P>>>, P>) -> Self {
+        Tournament::new(
+            game,
+            players_per_slot
+                .into_iter()
+                .multi_cartesian_product()
+                .map(|player_vec| Matchup::new(PerPlayer::new(player_vec.try_into().unwrap())))
+                .collect(),
+        )
+    }
+
+    // pub fn symmetric(game: Arc<G>, players: Vec<Player<G, P>>) -> Self {
+    //     itertools
+    // }
 
     /// Run the tournament and collect the results.
     pub fn play(&self) -> TournamentResult<G, P> {
@@ -33,10 +55,9 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
 
         self.matchups
             .par_iter()
-            .for_each_with(sender, |s, players| {
-                let names = players.map(|player| player.name().to_owned());
-                let result = self.game.play(players);
-                let send_result = s.send((names, result));
+            .for_each_with(sender, |s, matchup| {
+                let result = self.game.play(matchup);
+                let send_result = s.send((matchup.names(), result));
                 if let Err(err) = send_result {
                     error!("error sending result: {:?}", err);
                 }
