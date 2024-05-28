@@ -6,11 +6,11 @@
 //!
 //! # Examples
 //! ```
-//! use std::rc::Rc;
+//! use std::sync::Arc;
 //! use t4t::*;
 //! use t4t_games::dilemma::*;
 //!
-//! let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
+//! let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
 //! assert_eq!(
 //!     g.stage_game().as_normal().pure_nash_equilibria(),
 //!     vec![Profile::new([D, D])],
@@ -55,6 +55,7 @@ pub const D: Move = Move::Defect;
 ///
 /// In this module, I'm calling these "social dilemma" games, though that term usually has a
 /// different (but overlapping) definition in the field.
+#[derive(Clone)]
 pub struct Dilemma {
     game: Normal<Move, i32, 2>,
     utils: [i32; 4],
@@ -388,30 +389,29 @@ pub type DilemmaContext = Context<RepeatedState<Dilemma, 2>, 2>;
 
 /// A player that always cooperates.
 pub fn cooperator() -> DilemmaPlayer {
-    Player::new("Cooperator".to_string(), Strategy::pure(C))
+    Player::new("Cooperator".to_string(), || Strategy::pure(C))
 }
 
 /// A player that always defects.
 pub fn defector() -> DilemmaPlayer {
-    Player::new("Defector".to_string(), Strategy::pure(D))
+    Player::new("Defector".to_string(), || Strategy::pure(D))
 }
 
 /// Construct a player that plays a periodic sequence of moves.
-pub fn periodic(moves: &[Move]) -> DilemmaPlayer {
+pub fn periodic(moves: Vec<Move>) -> DilemmaPlayer {
     let name = format!(
         "Periodic ({:?})*",
         String::from_iter(moves.iter().map(|m| m.to_char()))
     );
 
-    Player::new(name, Strategy::periodic_pure(moves))
+    Player::new(name, move || Strategy::periodic_pure(moves.clone()))
 }
 
 /// A player that plays completely randomly.
 pub fn random() -> DilemmaPlayer {
-    Player::new(
-        "Random".to_string(),
-        Strategy::mixed_flat(vec![C, D]).unwrap(),
-    )
+    Player::new("Random".to_string(), || {
+        Strategy::mixed_flat(vec![C, D]).unwrap()
+    })
 }
 
 /// A player that cooperates on the first move then copies the opponent's previous move.
@@ -419,8 +419,7 @@ pub fn random() -> DilemmaPlayer {
 /// Tit-for-Tat can be thought of as a strategy that prefers to cooperate but will retaliate if the
 /// opponent defects.
 pub fn tit_for_tat() -> DilemmaPlayer {
-    Player::new(
-        "Tit-for-Tat".to_string(),
+    Player::new("Tit-for-Tat".to_string(), || {
         Strategy::new(|context: &DilemmaContext| {
             context
                 .state_view()
@@ -428,16 +427,15 @@ pub fn tit_for_tat() -> DilemmaPlayer {
                 .moves_for_player(context.their_index())
                 .last()
                 .unwrap_or(C)
-        }),
-    )
+        })
+    })
 }
 
 /// A player that defects on the first move then copies the opponent's last move.
 ///
 /// Like [Tit-for-Tat](tit_for_tat) but defects on the first move.
 pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
-    Player::new(
-        "Suspicious Tit-for-Tat".to_string(),
+    Player::new("Suspicious Tit-for-Tat".to_string(), || {
         Strategy::new(|context: &DilemmaContext| {
             context
                 .state_view()
@@ -445,8 +443,8 @@ pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
                 .moves_for_player(context.their_index())
                 .last()
                 .unwrap_or(D)
-        }),
-    )
+        })
+    })
 }
 
 /// A player that cooperates unless the opponent has defected in *each* of the last `n` games.
@@ -454,8 +452,7 @@ pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
 /// Like [Tit-for-Tat](tit_for_tat) but more lenient: it only retaliates if the opponent has
 /// defected `n` times in a row.
 pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
-    Player::new(
-        format!("Tit for {:?} Tats", n),
+    Player::new(format!("Tit for {:?} Tats", n), move || {
         Strategy::new(move |context: &DilemmaContext| {
             let last_n: Vec<Move> = context
                 .state_view()
@@ -470,8 +467,8 @@ pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
             } else {
                 C
             }
-        }),
-    )
+        })
+    })
 }
 
 /// A player that cooperates unless the opponent has defected in *any* of the last `n` moves.
@@ -479,8 +476,7 @@ pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
 /// Like [Tit-for-Tat](tit_for_tat) but more vindictive: it retaliates to a single defection by
 /// defecting `n` times in a row.
 pub fn n_tits_for_tat(n: usize) -> DilemmaPlayer {
-    Player::new(
-        format!("{:?} Tits for Tat", n),
+    Player::new(format!("{:?} Tits for Tat", n), move || {
         Strategy::new(move |context: &DilemmaContext| {
             let last_n: Vec<Move> = context
                 .state_view()
@@ -495,8 +491,8 @@ pub fn n_tits_for_tat(n: usize) -> DilemmaPlayer {
             } else {
                 C
             }
-        }),
-    )
+        })
+    })
 }
 
 /// A player that plays [Tit-for-Tat](tit_for_tat) but draws its moves from an `on_cooperate`
@@ -514,18 +510,20 @@ pub fn probabilistic_tit_for_tat(
 ) -> DilemmaPlayer {
     Player::new(
         format!("Probabilistic Tit-for-Tat {:?}", name_suffix),
-        Strategy::conditional(
-            |context: &DilemmaContext| {
-                context
-                    .state_view()
-                    .history()
-                    .moves_for_player(context.their_index())
-                    .last()
-                    .map_or(false, |m| m == D)
-            },
-            Strategy::mixed(on_defect),
-            Strategy::mixed(on_cooperate),
-        ),
+        move || {
+            Strategy::conditional(
+                |context: &DilemmaContext| {
+                    context
+                        .state_view()
+                        .history()
+                        .moves_for_player(context.their_index())
+                        .last()
+                        .map_or(false, |m| m == D)
+                },
+                Strategy::mixed(on_defect.clone()),
+                Strategy::mixed(on_cooperate.clone()),
+            )
+        },
     )
 }
 
@@ -554,8 +552,7 @@ pub fn probing_tit_for_tat() -> DilemmaPlayer {
 ///
 /// Different from [Tit-for-Tat](tit_for_tat) since it will cooperate after mutual defection.
 pub fn firm_but_fair() -> DilemmaPlayer {
-    Player::new(
-        "Firm but Fair".to_string(),
+    Player::new("Firm but Fair".to_string(), || {
         Strategy::new(|context: &DilemmaContext| {
             context
                 .state_view()
@@ -569,15 +566,14 @@ pub fn firm_but_fair() -> DilemmaPlayer {
                         C
                     }
                 })
-        }),
-    )
+        })
+    })
 }
 
 /// A player that cooperates on the first move, thereafter it repeats its previous move if the
 /// opponent cooperated or else flips its move if the opponent defected.
 pub fn pavlov() -> DilemmaPlayer {
-    Player::new(
-        "Pavlov".to_string(),
+    Player::new("Pavlov".to_string(), || {
         Strategy::new(|context: &DilemmaContext| {
             context
                 .state_view()
@@ -591,14 +587,13 @@ pub fn pavlov() -> DilemmaPlayer {
                         Move::Defect => my_move.opposite(),
                     }
                 })
-        }),
-    )
+        })
+    })
 }
 
 /// A player that cooperates until the opponent defects once, then defects forever after.
 pub fn grim_trigger() -> DilemmaPlayer {
-    Player::new(
-        "Grim Trigger".to_string(),
+    Player::new("Grim Trigger".to_string(), || {
         Strategy::trigger(
             |context: &DilemmaContext| {
                 context
@@ -610,52 +605,52 @@ pub fn grim_trigger() -> DilemmaPlayer {
             },
             Strategy::pure(C),
             Strategy::pure(D),
-        ),
-    )
+        )
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::rc::Rc;
+    use std::sync::Arc;
 
     #[test]
     fn defector_vs_cooperator() {
-        let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
-        let mut players = PerPlayer::new([defector(), cooperator()]);
-        let history = g.play(&mut players).unwrap();
+        let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
+        let matchup = Matchup::from_players([defector(), cooperator()]);
+        let history = g.play(&matchup).unwrap();
         assert_eq!(history.score(), &Payoff::from([300, 0]));
     }
 
     #[test]
     fn defector_vs_tit_for_tat() {
-        let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
-        let mut players = PerPlayer::new([defector(), tit_for_tat()]);
-        let history = g.play(&mut players).unwrap();
+        let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
+        let matchup = Matchup::from_players([defector(), tit_for_tat()]);
+        let history = g.play(&matchup).unwrap();
         assert_eq!(history.score(), &Payoff::from([102, 99]));
     }
 
     #[test]
     fn tit_for_tat_vs_tit_for_tat() {
-        let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
-        let mut players = PerPlayer::new([tit_for_tat(), tit_for_tat()]);
-        let history = g.play(&mut players).unwrap();
+        let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
+        let matchup = Matchup::from_players([tit_for_tat(), tit_for_tat()]);
+        let history = g.play(&matchup).unwrap();
         assert_eq!(history.score(), &Payoff::from([200, 200]));
     }
 
     #[test]
     fn tit_for_tat_vs_suspicious_tit_for_tat() {
-        let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
-        let mut players = PerPlayer::new([tit_for_tat(), suspicious_tit_for_tat()]);
-        let history = g.play(&mut players).unwrap();
+        let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
+        let matchup = Matchup::from_players([tit_for_tat(), suspicious_tit_for_tat()]);
+        let history = g.play(&matchup).unwrap();
         assert_eq!(history.score(), &Payoff::from([150, 150]));
     }
 
     #[test]
     fn tit_for_two_tats_vs_suspicious_tit_for_tat() {
-        let g = Repeated::new(Rc::new(Dilemma::prisoners_dilemma()), 100);
-        let mut players = PerPlayer::new([tit_for_n_tats(2), suspicious_tit_for_tat()]);
-        let history = g.play(&mut players).unwrap();
+        let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
+        let matchup = Matchup::from_players([tit_for_n_tats(2), suspicious_tit_for_tat()]);
+        let history = g.play(&matchup).unwrap();
         assert_eq!(history.score(), &Payoff::from([198, 201]));
     }
 }
