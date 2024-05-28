@@ -98,8 +98,8 @@ impl<V: State + 'static, M: Move, const P: usize> Strategy<V, M, P> {
     }
     /// Construct a periodic strategy of pure strategies. That is, play the given moves in order
     /// and repeat indefinitely.
-    pub fn periodic_pure(moves: &[M]) -> Self {
-        let strategies = Vec::from_iter(moves.iter().map(|m| Strategy::pure(m.to_owned())));
+    pub fn periodic_pure(moves: Vec<M>) -> Self {
+        let strategies = Vec::from_iter(moves.into_iter().map(|m| Strategy::pure(m)));
         Strategy::periodic(strategies)
     }
 
