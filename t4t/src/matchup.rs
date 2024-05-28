@@ -2,7 +2,7 @@ use crate::{Game, PerPlayer, Player, Strategy};
 use std::sync::Arc;
 
 /// A collection of players ready to play a game.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Matchup<G: Game<P>, const P: usize> {
     players: PerPlayer<Arc<Player<G, P>>, P>,
 }

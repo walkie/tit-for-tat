@@ -588,7 +588,8 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         nash
     }
 
-    /// A variant of [`pure_nash_equilibria`] that analyzes the outcomes in parallel.
+    /// A variant of [`pure_nash_equilibria`](Self::pure_nash_equilibria) that analyzes the outcomes
+    /// in parallel.
     pub fn pure_nash_equlibria_parallel(&self) -> Vec<Profile<M, P>> {
         let (sender, receiver) = std::sync::mpsc::channel();
         self.possible_profiles()
@@ -648,7 +649,8 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         pareto
     }
 
-    /// A variant of [`pareto_optimal_solutions`] that analyzes the outcomes in parallel.
+    /// A variant of [`pareto_optimal_solutions`](Self::pareto_optimal_solutions) that analyzes the
+    /// outcomes in parallel.
     pub fn pareto_optimal_solutions_parallel(&self) -> Vec<Profile<M, P>> {
         let (sender, receiver) = std::sync::mpsc::channel();
         self.possible_profiles()

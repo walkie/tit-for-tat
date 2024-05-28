@@ -122,6 +122,12 @@ impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
         Self::from_payoff_fn(move_fn, payoff_fn)
     }
 
+    /// Construct a trivial game in which all moves are valid and the payoff is the default utility
+    /// for each player. Useful mainly for testing.
+    pub fn trivial() -> Self {
+        Self::from_utility_fns(|_, _| true, PerPlayer::generate(|_| |_| U::default()))
+    }
+
     /// Is this a valid move for the given player?
     pub fn is_valid_move_for_player(&self, player: PlayerIndex<P>, the_move: M) -> bool {
         (*self.move_fn)(player, the_move)
