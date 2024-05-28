@@ -12,12 +12,6 @@ pub struct Tournament<G: Game<P>, const P: usize> {
     matchups: Vec<Matchup<G, P>>,
 }
 
-/// Build a tournament by generating and filtering the matchups.
-pub struct TournamentBuilder<G: Game<P>, const P: usize> {
-    game: Arc<G>,
-    matchups: Vec<Matchup<G, P>>,
-}
-
 /// The collected results from running a tournament.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TournamentResult<G: Game<P>, const P: usize> {
@@ -348,26 +342,6 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     /// Get all the matchups in this tournament.
     pub fn matchups(&self) -> &Vec<Matchup<G, P>> {
         &self.matchups
-    }
-}
-
-impl<G: Game<P> + 'static, const P: usize> TournamentBuilder<G, P> {
-    /// Construct a new tournament builder for the given game.
-    pub fn new(game: Arc<G>) -> Self {
-        TournamentBuilder {
-            game,
-            matchups: Vec::new(),
-        }
-    }
-
-    /// Add a matchup to the tournament.
-    pub fn add_matchup(&mut self, matchup: Matchup<G, P>) {
-        self.matchups.push(matchup);
-    }
-
-    /// Build the tournament from the added matchups.
-    pub fn build(self) -> Tournament<G, P> {
-        Tournament::new(self.game, self.matchups)
     }
 }
 
