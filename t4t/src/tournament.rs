@@ -1,6 +1,7 @@
 use crate::{Game, Matchup, Outcome, PerPlayer, PlayResult, Player};
 use itertools::Itertools;
 use log::error;
+use num::Zero;
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -301,7 +302,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     /// Run the tournament and collect the results.
     pub fn play(&self) -> TournamentResult<G, P> {
         let mut results = HashMap::new();
-        let mut scores = HashMap::new();
+        let mut scores: HashMap<String, G::Utility> = HashMap::new();
         let mut has_errors = false;
 
         let (sender, receiver) = std::sync::mpsc::channel();
@@ -319,7 +320,8 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
         receiver.iter().for_each(|(names, result)| {
             if let Ok(outcome) = &result {
                 names.for_each_with_index(|i, name| {
-                    scores.insert(name.to_owned(), outcome.payoff()[i]);
+                    let current_score = *scores.get(name).unwrap_or(&G::Utility::zero());
+                    scores.insert(name.to_owned(), current_score + outcome.payoff()[i]);
                 });
             } else {
                 has_errors = true;

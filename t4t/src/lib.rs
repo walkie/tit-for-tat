@@ -48,8 +48,8 @@
 //! them.
 //!
 //! ```
+//! use itertools::*;
 //! use std::sync::Arc;
-//! use log::warn;
 //! use t4t::*;
 //!
 //! // Possibles moves in social dilemma games, like the Prisoner's Dilemma.
@@ -95,25 +95,27 @@
 //!     }),
 //! );
 //!
-//! // Play every combination of players against each other.
-//! // TODO: Direct support for this with cumulative scores coming soon!
-//! let result = rpd.play(&Matchup::from_players([nice(), nice()]));
-//! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
+//! // Create a tournament in which every player plays every player, including themselves.
+//! let tournament = Tournament::combinations_with_replacement(
+//!     Arc::new(rpd),
+//!     vec![Arc::new(nice()), Arc::new(mean()), Arc::new(tit_for_tat)],
+//! );
 //!
-//! let result = rpd.play(&Matchup::from_players([nice(), mean()]));
-//! assert_eq!(result.unwrap().payoff(), &Payoff::from([0, 300]));
-//!
-//! let result = rpd.play(&Matchup::from_players([nice(), tit_for_tat.clone()]));
-//! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
-//!
-//! let result = rpd.play(&Matchup::from_players([mean(), mean()]));
-//! assert_eq!(result.unwrap().payoff(), &Payoff::from([100, 100]));
-//!
-//! let result = rpd.play(&Matchup::from_players([mean(), tit_for_tat.clone()]));
-//! assert_eq!(result.unwrap().payoff(), &Payoff::from([102, 99]));
-//!
-//! let result = rpd.play(&Matchup::from_players([tit_for_tat.clone(), tit_for_tat]));
-//! assert_eq!(result.unwrap().payoff(), &Payoff::from([200, 200]));
+//! // Run all the matches in parallel and accumulate the resulting scores.
+//! let results = tournament.play();
+//! assert_eq!(
+//!     results
+//!         .scores()
+//!         .iter()
+//!         .map(|(name, score)| (name.as_str(), *score))
+//!         .sorted()
+//!         .collect_vec(),
+//!     vec![
+//!         ("Mean", 602),
+//!         ("Nice", 600),
+//!         ("Tit-for-Tat", 699),
+//!     ],
+//! );
 //! ```
 //!
 //! If you'd like to define your own new game forms or transformations, your best bet is currently
