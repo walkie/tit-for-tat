@@ -131,12 +131,11 @@
 //! solid for perfect-information games. You can define [players](crate::Player) and
 //! [strategies](crate::Strategy) for these games, and they can be played.
 //!
+//! There is a mechanism to efficiently run [tournaments](crate::Tournament) by playing a game with
+//! all combinations or permutations of a set of entrants.
+//!
 //! There is a lot of infrastructure in place for sequential and state-based types, but the library
 //! is still missing the main top-level types to make this convenient to use.
-//!
-//! Also missing and useful for many experimental game theory applications convenient mechanisms to
-//! run "tournaments" (e.g. play a game with all combinations of players drawn from a set of
-//! entrants).
 //!
 //! Long-term, I'd like to add ways to visualize game executions and build games and strategies
 //! interactively, but we'll see!
