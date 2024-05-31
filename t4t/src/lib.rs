@@ -98,22 +98,17 @@
 //! // Create a tournament in which every player plays every player, including themselves.
 //! let tournament = Tournament::combinations_with_replacement(
 //!     Arc::new(rpd),
-//!     vec![Arc::new(nice()), Arc::new(mean()), Arc::new(tit_for_tat)],
+//!     &vec![Arc::new(nice()), Arc::new(mean()), Arc::new(tit_for_tat)],
 //! );
 //!
 //! // Run all the matches in parallel and accumulate the resulting scores.
 //! let results = tournament.play();
 //! assert_eq!(
-//!     results
-//!         .scores()
-//!         .iter()
-//!         .map(|(name, score)| (name.as_str(), *score))
-//!         .sorted()
-//!         .collect_vec(),
+//!     results.score().best_to_worst(),
 //!     vec![
+//!         ("Tit-for-Tat", 699),
 //!         ("Mean", 602),
 //!         ("Nice", 600),
-//!         ("Tit-for-Tat", 699),
 //!     ],
 //! );
 //! ```
@@ -161,6 +156,7 @@ pub(crate) mod possible_profiles;
 pub(crate) mod profile;
 pub(crate) mod record;
 pub(crate) mod repeated;
+pub(crate) mod score;
 pub(crate) mod simultaneous;
 pub(crate) mod strategy;
 pub(crate) mod summary;
@@ -187,6 +183,7 @@ pub use possible_profiles::*;
 pub use profile::*;
 pub use record::*;
 pub use repeated::*;
+pub use score::*;
 pub use simultaneous::*;
 pub use strategy::*;
 pub use summary::*;

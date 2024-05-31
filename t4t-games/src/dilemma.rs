@@ -3,18 +3,28 @@
 //! This module defines the prisoner's dilemma and several other 2x2 simultaneous, symmetric,
 //! cooperation/defection games.
 //!
+//! The players are defined as free functions in this module that produce the described player.
+//!
+//! The games are defined as constructor functions attached to the
+//! [`Dilemma`][crate::dilemma::Dilemma] type.
+//!
 //!
 //! # Examples
-//! ```
-//! use std::sync::Arc;
-//! use t4t::*;
-//! use t4t_games::dilemma::*;
 //!
-//! let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
-//! assert_eq!(
-//!     g.stage_game().as_normal().pure_nash_equilibria(),
-//!     vec![Profile::new([D, D])],
-//! );
+//! The following example runs several tournaments using the players and games defined in this
+//! module, accumulating the scores for each player across each tournament.
+//!
+//! You can run this example to see the resulting scores by downloading this crate and running:
+//! ```bash
+//! $ cargo run --example axelrod
+//! ```
+//!
+//! The example program is named for [Robert Axelrod](https://en.wikipedia.org/wiki/Robert_Axelrod),
+//! whose famous prisoner's dilemma tournaments are one of the best known applications of
+//! experimental game theory.
+//!
+//! ```
+#![doc = include_str!("../examples/axelrod.rs")]
 //! ```
 
 use t4t::*;
@@ -57,19 +67,19 @@ pub const D: Move = Move::Defect;
 /// different (but overlapping) definition in the field.
 #[derive(Clone)]
 pub struct Dilemma {
-    game: Normal<Move, i32, 2>,
-    utils: [i32; 4],
+    game: Normal<Move, i64, 2>,
+    utils: [i64; 4],
 }
 
 impl Dilemma {
     /// Create a new social dilemma game from the utility values for player `P0`.
-    pub fn new(utils: [i32; 4]) -> Self {
+    pub fn new(utils: [i64; 4]) -> Self {
         let game = Normal::symmetric(vec![C, D], Vec::from(utils)).unwrap();
         Dilemma { game, utils }
     }
 
     /// Get the normal form representation of this game.
-    pub fn as_normal(&self) -> &Normal<Move, i32, 2> {
+    pub fn as_normal(&self) -> &Normal<Move, i64, 2> {
         &self.game
     }
 
@@ -104,7 +114,7 @@ impl Dilemma {
     ///
     /// Friend-or-foe is related to the prisoner's dilemma except that mutual defection is only a
     /// weak Nash equilibrium and so is not risk dominant.
-    pub fn friend_or_foe(&self) -> Self {
+    pub fn friend_or_foe() -> Self {
         Dilemma::new([1, 0, 2, 0])
     }
 
@@ -194,7 +204,7 @@ impl Dilemma {
     ///     vec![Profile::new([D, D])],
     /// );
     /// ```
-    pub fn hawk_dove(half_value: i32, half_cost: i32) -> Self {
+    pub fn hawk_dove(half_value: i64, half_cost: i64) -> Self {
         Dilemma::new([half_value, 0, half_value * 2, half_value - half_cost])
     }
 
@@ -220,7 +230,7 @@ impl Dilemma {
     ///     vec![Profile::new([C, D]), Profile::new([D, C])],
     /// );
     /// ```
-    pub fn chicken(crash: i32) -> Self {
+    pub fn chicken(crash: i64) -> Self {
         Dilemma::new([0, -1, 1, -crash])
     }
 
@@ -363,12 +373,12 @@ impl Dilemma {
 
 impl Game<2> for Dilemma {
     type Move = Move;
-    type Utility = i32;
-    type Outcome = SimultaneousOutcome<Move, i32, 2>;
+    type Utility = i64;
+    type Outcome = SimultaneousOutcome<Move, i64, 2>;
     type State = ();
     type View = ();
 
-    fn first_turn(&self) -> Turn<(), Move, SimultaneousOutcome<Move, i32, 2>, 2> {
+    fn first_turn(&self) -> Turn<(), Move, SimultaneousOutcome<Move, i64, 2>, 2> {
         self.as_normal().first_turn()
     }
 
@@ -400,17 +410,24 @@ pub fn defector() -> DilemmaPlayer {
 /// Construct a player that plays a periodic sequence of moves.
 pub fn periodic(moves: Vec<Move>) -> DilemmaPlayer {
     let name = format!(
-        "Periodic ({:?})*",
+        "Periodic ({})*",
         String::from_iter(moves.iter().map(|m| m.to_char()))
     );
 
     Player::new(name, move || Strategy::periodic_pure(moves.clone()))
 }
 
-/// A player that plays completely randomly.
+/// A player that plays randomly with a 1:1 expected ratio of cooperation to defection.
 pub fn random() -> DilemmaPlayer {
-    Player::new("Random".to_string(), || {
+    Player::new("Random 1:1".to_string(), || {
         Strategy::mixed_flat(vec![C, D]).unwrap()
+    })
+}
+
+/// A player that plays randomly with a 2:1 expected ratio of cooperation to defection.
+pub fn random_ccd() -> DilemmaPlayer {
+    Player::new("Random 2:1".to_string(), || {
+        Strategy::mixed_flat(vec![C, C, D]).unwrap()
     })
 }
 
@@ -452,7 +469,7 @@ pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
 /// Like [Tit-for-Tat](tit_for_tat) but more lenient: it only retaliates if the opponent has
 /// defected `n` times in a row.
 pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
-    Player::new(format!("Tit for {:?} Tats", n), move || {
+    Player::new(format!("Tit-for-{}-Tats", n), move || {
         Strategy::new(move |context: &DilemmaContext| {
             let last_n: Vec<Move> = context
                 .state_view()
@@ -476,7 +493,7 @@ pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
 /// Like [Tit-for-Tat](tit_for_tat) but more vindictive: it retaliates to a single defection by
 /// defecting `n` times in a row.
 pub fn n_tits_for_tat(n: usize) -> DilemmaPlayer {
-    Player::new(format!("{:?} Tits for Tat", n), move || {
+    Player::new(format!("{}-Tits-for-Tat", n), move || {
         Strategy::new(move |context: &DilemmaContext| {
             let last_n: Vec<Move> = context
                 .state_view()
@@ -509,7 +526,7 @@ pub fn probabilistic_tit_for_tat(
     name_suffix: &str,
 ) -> DilemmaPlayer {
     Player::new(
-        format!("Probabilistic Tit-for-Tat {:?}", name_suffix),
+        format!("Probabilistic Tit-for-Tat {}", name_suffix),
         move || {
             Strategy::conditional(
                 |context: &DilemmaContext| {
@@ -552,7 +569,7 @@ pub fn probing_tit_for_tat() -> DilemmaPlayer {
 ///
 /// Different from [Tit-for-Tat](tit_for_tat) since it will cooperate after mutual defection.
 pub fn firm_but_fair() -> DilemmaPlayer {
-    Player::new("Firm but Fair".to_string(), || {
+    Player::new("Firm-but-Fair".to_string(), || {
         Strategy::new(|context: &DilemmaContext| {
             context
                 .state_view()

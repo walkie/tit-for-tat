@@ -7,6 +7,8 @@
 
 A library of games and strategies implemented with the [t4t][t4t-crate] library.
 
+See the [top-level documentation][games-docs] for an overview of the included games and strategies.
+
 
 [github-repo]: https://github.com/walkie/tit-for-tat
 [github-build]: https://github.com/walkie/tit-for-tat/actions

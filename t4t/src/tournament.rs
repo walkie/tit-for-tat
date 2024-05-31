@@ -1,7 +1,6 @@
-use crate::{Game, Matchup, Outcome, PerPlayer, PlayResult, Player};
+use crate::{Game, Matchup, Outcome, PerPlayer, PlayResult, Player, Score};
 use itertools::Itertools;
 use log::error;
-use num::Zero;
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -17,7 +16,7 @@ pub struct Tournament<G: Game<P>, const P: usize> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct TournamentResult<G: Game<P>, const P: usize> {
     results: HashMap<PerPlayer<String, P>, PlayResult<G, P>>,
-    scores: HashMap<String, G::Utility>,
+    score: Score<G::Utility>,
     has_errors: bool,
 }
 
@@ -43,13 +42,13 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     /// let players = vec!["A", "B", "C"]
     ///     .into_iter()
     ///     .map(|name| Arc::new(Player::new(name.to_string(), || Strategy::pure(()))))
-    ///     .collect();
+    ///     .collect::<Vec<_>>();
     ///
     /// let game: Simultaneous<(), u8, 3> = Simultaneous::trivial();
     ///
     /// let tournament = Tournament::combinations_with_replacement(
     ///     Arc::new(game),
-    ///     players,
+    ///     &players,
     /// );
     ///
     /// assert_eq!(
@@ -57,7 +56,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     ///         .matchups()
     ///         .iter()
     ///         .map(|m| m.names())
-    ///         .collect::<Vec<PerPlayer<String, 3>>>(),
+    ///         .collect::<Vec<_>>(),
     ///     vec![
     ///         PerPlayer::new(["A", "A", "A"]).map(|s| s.to_string()),
     ///         PerPlayer::new(["A", "A", "B"]).map(|s| s.to_string()),
@@ -72,11 +71,12 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     ///     ],
     /// )
     /// ```
-    pub fn combinations_with_replacement(game: Arc<G>, players: Vec<Arc<Player<G, P>>>) -> Self {
+    pub fn combinations_with_replacement(game: Arc<G>, players: &[Arc<Player<G, P>>]) -> Self {
         Tournament::new(
             game,
             players
-                .into_iter()
+                .iter()
+                .cloned()
                 .combinations_with_replacement(P)
                 .map(|player_vec| Matchup::new(PerPlayer::new(player_vec.try_into().unwrap())))
                 .collect(),
@@ -99,13 +99,13 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     /// let players = vec!["A", "B", "C", "D", "E"]
     ///     .into_iter()
     ///     .map(|name| Arc::new(Player::new(name.to_string(), || Strategy::pure(()))))
-    ///     .collect();
+    ///     .collect::<Vec<_>>();
     ///
     /// let game: Simultaneous<(), u8, 3> = Simultaneous::trivial();
     ///
     /// let tournament = Tournament::combinations_without_replacement(
     ///     Arc::new(game),
-    ///     players,
+    ///     &players,
     /// );
     ///
     /// assert_eq!(
@@ -113,7 +113,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     ///         .matchups()
     ///         .iter()
     ///         .map(|m| m.names())
-    ///         .collect::<Vec<PerPlayer<String, 3>>>(),
+    ///         .collect::<Vec<_>>(),
     ///     vec![
     ///         PerPlayer::new(["A", "B", "C"]).map(|s| s.to_string()),
     ///         PerPlayer::new(["A", "B", "D"]).map(|s| s.to_string()),
@@ -128,11 +128,12 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     ///     ],
     /// )
     /// ```
-    pub fn combinations_without_replacement(game: Arc<G>, players: Vec<Arc<Player<G, P>>>) -> Self {
+    pub fn combinations_without_replacement(game: Arc<G>, players: &[Arc<Player<G, P>>]) -> Self {
         Tournament::new(
             game,
             players
-                .into_iter()
+                .iter()
+                .cloned()
                 .combinations(P)
                 .map(|player_vec| Matchup::new(PerPlayer::new(player_vec.try_into().unwrap())))
                 .collect(),
@@ -155,13 +156,13 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     /// let players = vec!["A", "B"]
     ///     .into_iter()
     ///     .map(|name| Arc::new(Player::new(name.to_string(), || Strategy::pure(()))))
-    ///     .collect();
+    ///     .collect::<Vec<_>>();
     ///
     /// let game: Simultaneous<(), u8, 3> = Simultaneous::trivial();
     ///
     /// let tournament = Tournament::permutations_with_replacement(
     ///     Arc::new(game),
-    ///     players,
+    ///     &players,
     /// );
     ///
     /// assert_eq!(
@@ -169,7 +170,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     ///         .matchups()
     ///         .iter()
     ///         .map(|m| m.names())
-    ///         .collect::<Vec<PerPlayer<String, 3>>>(),
+    ///         .collect::<Vec<_>>(),
     ///     vec![
     ///         PerPlayer::new(["A", "A", "A"]).map(|s| s.to_string()),
     ///         PerPlayer::new(["A", "A", "B"]).map(|s| s.to_string()),
@@ -182,10 +183,10 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     ///     ],
     /// )
     /// ```
-    pub fn permutations_with_replacement(game: Arc<G>, players: Vec<Arc<Player<G, P>>>) -> Self {
+    pub fn permutations_with_replacement(game: Arc<G>, players: &[Arc<Player<G, P>>]) -> Self {
         Tournament::new(
             game,
-            itertools::repeat_n(players, P)
+            itertools::repeat_n(players.to_vec(), P)
                 .multi_cartesian_product()
                 .map(|player_vec| Matchup::new(PerPlayer::new(player_vec.try_into().unwrap())))
                 .collect(),
@@ -208,13 +209,13 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     /// let players = vec!["A", "B", "C"]
     ///     .into_iter()
     ///     .map(|name| Arc::new(Player::new(name.to_string(), || Strategy::pure(()))))
-    ///     .collect();
+    ///     .collect::<Vec<_>>();
     ///
     /// let game: Simultaneous<(), u8, 2> = Simultaneous::trivial();
     ///
     /// let tournament = Tournament::permutations_without_replacement(
     ///     Arc::new(game),
-    ///     players,
+    ///     &players,
     /// );
     ///
     /// assert_eq!(
@@ -222,7 +223,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     ///         .matchups()
     ///         .iter()
     ///         .map(|m| m.names())
-    ///         .collect::<Vec<PerPlayer<String, 2>>>(),
+    ///         .collect::<Vec<_>>(),
     ///     vec![
     ///         PerPlayer::new(["A", "B"]).map(|s| s.to_string()),
     ///         PerPlayer::new(["A", "C"]).map(|s| s.to_string()),
@@ -233,11 +234,12 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     ///     ],
     /// )
     /// ```
-    pub fn permutations_without_replacement(game: Arc<G>, players: Vec<Arc<Player<G, P>>>) -> Self {
+    pub fn permutations_without_replacement(game: Arc<G>, players: &[Arc<Player<G, P>>]) -> Self {
         Tournament::new(
             game,
             players
-                .into_iter()
+                .iter()
+                .cloned()
                 .permutations(P)
                 .map(|player_vec| Matchup::new(PerPlayer::new(player_vec.try_into().unwrap())))
                 .collect(),
@@ -257,13 +259,13 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     /// use t4t::*;
     ///
     /// let [a, b, c, d, e, f, g] = ["A", "B", "C", "D", "E", "F", "G"]
-    ///     .map(|name| Arc::new(Player::new(name.to_string(), || Strategy::pure(()))));    ///
+    ///     .map(|name| Arc::new(Player::new(name.to_string(), || Strategy::pure(()))));
     ///
     /// let game: Simultaneous<(), u8, 3> = Simultaneous::trivial();
     ///
     /// let tournament = Tournament::product(
     ///     Arc::new(game),
-    ///     PerPlayer::new([vec![a, b, c], vec![d, e], vec![f, g]])
+    ///     PerPlayer::new([&vec![a, b, c], &vec![d, e], &vec![f, g]])
     /// );
     ///
     /// assert_eq!(
@@ -271,7 +273,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     ///         .matchups()
     ///         .iter()
     ///         .map(|m| m.names())
-    ///         .collect::<Vec<PerPlayer<String, 3>>>(),
+    ///         .collect::<Vec<_>>(),
     ///     vec![
     ///         PerPlayer::new(["A", "D", "F"]).map(|s| s.to_string()),
     ///         PerPlayer::new(["A", "D", "G"]).map(|s| s.to_string()),
@@ -288,10 +290,11 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     ///     ],
     /// )
     /// ```
-    pub fn product(game: Arc<G>, players_per_slot: PerPlayer<Vec<Arc<Player<G, P>>>, P>) -> Self {
+    pub fn product(game: Arc<G>, players_per_slot: PerPlayer<&[Arc<Player<G, P>>], P>) -> Self {
         Tournament::new(
             game,
             players_per_slot
+                .map(|slice| slice.to_vec())
                 .into_iter()
                 .multi_cartesian_product()
                 .map(|player_vec| Matchup::new(PerPlayer::new(player_vec.try_into().unwrap())))
@@ -302,7 +305,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     /// Run the tournament and collect the results.
     pub fn play(&self) -> TournamentResult<G, P> {
         let mut results = HashMap::new();
-        let mut scores: HashMap<String, G::Utility> = HashMap::new();
+        let mut score = Score::new();
         let mut has_errors = false;
 
         let (sender, receiver) = std::sync::mpsc::channel();
@@ -320,8 +323,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
         receiver.iter().for_each(|(names, result)| {
             if let Ok(outcome) = &result {
                 names.for_each_with_index(|i, name| {
-                    let current_score = *scores.get(name).unwrap_or(&G::Utility::zero());
-                    scores.insert(name.to_owned(), current_score + outcome.payoff()[i]);
+                    score.add(name, outcome.payoff()[i]);
                 });
             } else {
                 has_errors = true;
@@ -331,7 +333,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
 
         TournamentResult {
             results,
-            scores,
+            score,
             has_errors,
         }
     }
@@ -357,8 +359,8 @@ impl<G: Game<P>, const P: usize> TournamentResult<G, P> {
     ///
     /// Note that failed matchups will result in no added utility for either player in the matchup,
     /// so this value should not be relied on if [`has_errors`](Self::has_errors) is true.
-    pub fn scores(&self) -> &HashMap<String, G::Utility> {
-        &self.scores
+    pub fn score(&self) -> &Score<G::Utility> {
+        &self.score
     }
 
     /// Did any of the matchups end in an error rather than a successful outcome?

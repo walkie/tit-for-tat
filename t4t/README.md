@@ -12,8 +12,9 @@ defining games and strategies, then executing them to observe the results.
 
 ## Examples and documentation
 
-- The companion crate [t4t-games][games-crate] provides a few example games and strategies.
 - See the [crate documentation on docs.rs][t4t-docs] for documentation and code examples.
+- The companion crate [t4t-games][games-crate] provides games and strategies implemented with this
+  crate.
 
 
 ## Reach out
