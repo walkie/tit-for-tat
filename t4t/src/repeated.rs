@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::{Action, Game, History, PlayerIndex, Turn};
+use crate::{Action, Game, History, PlayerIndex, Step};
 
 /// A finitely [repeated](https://en.wikipedia.org/wiki/Repeated_game) or iterated version of game
 /// `G`.
@@ -46,7 +46,7 @@ impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
 impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
     /// Construct a new repeated game state.
     pub fn new(stage_game: Arc<G>, remaining: usize) -> Self {
-        let stage_state = stage_game.first_turn().state.clone();
+        let stage_state = stage_game.rules().state.clone();
         RepeatedState {
             stage_game,
             stage_state,
@@ -72,45 +72,45 @@ impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
     }
 }
 
-fn lift_turn<'g, G: Game<P> + 'g, const P: usize>(
+fn lift_step<'g, G: Game<P> + 'g, const P: usize>(
     stage_game: &'g G,
     state: Arc<RepeatedState<G, P>>,
-    turn: Turn<'g, G::State, G::Move, G::Outcome, P>,
-) -> Turn<'g, RepeatedState<G, P>, G::Move, History<G, P>, P> {
-    match turn.action {
-        Action::Players {
+    step: Step<'g, G::State, G::Move, G::Outcome, P>,
+) -> Step<'g, RepeatedState<G, P>, G::Move, History<G, P>, P> {
+    match step.action {
+        Action::Turn {
             to_move: players,
             next,
-        } => Turn::players(
+        } => Step::players(
             state.clone(),
             players,
             move |repeated_state: Arc<RepeatedState<G, P>>, moves: Vec<G::Move>| match next(
                 repeated_state.stage_state.clone(),
                 moves,
             ) {
-                Ok(stage_turn) => {
+                Ok(stage_step) => {
                     let mut next_state = (*state).clone();
-                    next_state.stage_state = stage_turn.state.clone();
+                    next_state.stage_state = stage_step.state.clone();
 
-                    Ok(lift_turn(stage_game, Arc::new(next_state), stage_turn))
+                    Ok(lift_step(stage_game, Arc::new(next_state), stage_step))
                 }
 
                 Err(kind) => Err(kind),
             },
         ),
 
-        Action::Chance { distribution, next } => Turn::chance(
+        Action::Chance { distribution, next } => Step::chance(
             state.clone(),
             distribution,
             move |repeated_state: Arc<RepeatedState<G, P>>, the_move: G::Move| match next(
                 repeated_state.stage_state.clone(),
                 the_move,
             ) {
-                Ok(stage_turn) => {
+                Ok(stage_step) => {
                     let mut next_state = (*state).clone();
-                    next_state.stage_state = stage_turn.state.clone();
+                    next_state.stage_state = stage_step.state.clone();
 
-                    Ok(lift_turn(stage_game, Arc::new(next_state), stage_turn))
+                    Ok(lift_step(stage_game, Arc::new(next_state), stage_step))
                 }
 
                 Err(kind) => Err(kind),
@@ -118,22 +118,22 @@ fn lift_turn<'g, G: Game<P> + 'g, const P: usize>(
         ),
 
         Action::End { outcome } if state.remaining > 0 => {
-            let stage_turn = stage_game.first_turn();
+            let stage_step = stage_game.rules();
 
             let mut next_state = (*state).clone();
-            next_state.stage_state = stage_turn.state.clone();
+            next_state.stage_state = stage_step.state.clone();
 
             next_state.completed.add(outcome);
             next_state.remaining -= 1;
 
-            lift_turn(stage_game, Arc::new(next_state), stage_turn)
+            lift_step(stage_game, Arc::new(next_state), stage_step)
         }
 
         Action::End { outcome } => {
             let mut history = state.completed.clone(); // TODO avoid this clone
             history.add(outcome);
 
-            Turn::end(state, history)
+            Step::end(state, history)
         }
     }
 }
@@ -145,16 +145,16 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
     type State = RepeatedState<G, P>;
     type View = RepeatedState<G, P>; // TODO add RepeatedStateView or some other solution
 
-    fn first_turn(&self) -> Turn<RepeatedState<G, P>, G::Move, History<G, P>, P> {
+    fn rules(&self) -> Step<RepeatedState<G, P>, G::Move, History<G, P>, P> {
         let init_state = Arc::new(RepeatedState::new(
             self.stage_game.clone(),
             self.repetitions - 1,
         ));
 
-        lift_turn(
+        lift_step(
             self.stage_game.as_ref(),
             init_state,
-            self.stage_game.first_turn(),
+            self.stage_game.rules(),
         )
     }
 

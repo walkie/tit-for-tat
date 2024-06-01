@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::{
     Dominated, ErrorKind, Game, Move, Outcome, Payoff, PerPlayer, PlayerIndex, PossibleMoves,
-    PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous, SimultaneousOutcome, Turn,
+    PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous, SimultaneousOutcome, Step,
     Utility,
 };
 
@@ -65,16 +65,16 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type State = ();
     type View = ();
 
-    fn first_turn(&self) -> Turn<(), M, SimultaneousOutcome<M, U, P>, P> {
+    fn rules(&self) -> Step<(), M, SimultaneousOutcome<M, U, P>, P> {
         let state = Arc::new(());
-        Turn::all_players(state.clone(), move |_, profile| {
+        Step::all_players(state.clone(), move |_, profile| {
             for ply in profile.plies() {
                 let player = ply.player.unwrap();
                 if !self.is_valid_move_for_player(player, ply.the_move) {
                     return Err(ErrorKind::InvalidMove(player, ply.the_move));
                 }
             }
-            Ok(Turn::end(
+            Ok(Step::end(
                 state,
                 SimultaneousOutcome::new(profile, self.payoff(profile)),
             ))

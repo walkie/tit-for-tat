@@ -11,8 +11,8 @@ keywords = ["game-theory", "economics", "evolution"]
 
 [dependencies]
 log = "0.4.21"
-t4t = "0.1.0"
-# t4t = { path = "../t4t" }
+# t4t = "0.1.0"
+t4t = { path = "../t4t" }
 
 [dev-dependencies]
 env_logger = "0.11.3"
