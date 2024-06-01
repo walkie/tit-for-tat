@@ -129,7 +129,7 @@
 //! There is a mechanism to efficiently run [tournaments](crate::Tournament) by playing a game with
 //! all combinations or permutations of a set of entrants.
 //!
-//! There is a lot of infrastructure in place for sequential and state-based types, but the library
+//! There is a lot of infrastructure in place for sequential and state-based games, but the library
 //! is still missing the main top-level types to make this convenient to use.
 //!
 //! Long-term, I'd like to add ways to visualize game executions and build games and strategies
