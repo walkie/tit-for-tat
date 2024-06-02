@@ -19,7 +19,7 @@
 //!
 //! A subtler but more extreme case of this tradeoff is how games are executed. The [`Game`] trait
 //! is quite generic, and implementers of this trait do not implement the execution of their game
-//! directly, but rather produce a [*description*](crate::Step) of how the game is executed. This
+//! directly, but rather produce a [*description*](crate::Node) of how the game is executed. This
 //! is much less efficient, but enables generically transforming the execution of a game, for
 //! example, defining new games that modify the behavior of existing games.
 //!
@@ -156,14 +156,13 @@ pub(crate) mod possible_profiles;
 pub(crate) mod profile;
 pub(crate) mod record;
 pub(crate) mod repeated;
-pub(crate) mod rules;
 pub(crate) mod score;
 pub(crate) mod simultaneous;
 pub(crate) mod strategy;
 pub(crate) mod summary;
 pub(crate) mod tournament;
 pub(crate) mod transcript;
-// pub(crate) mod tree;
+pub(crate) mod tree;
 
 pub use distribution::*;
 pub use dominated::*;
@@ -183,11 +182,10 @@ pub use possible_profiles::*;
 pub use profile::*;
 pub use record::*;
 pub use repeated::*;
-pub use rules::*;
 pub use score::*;
 pub use simultaneous::*;
 pub use strategy::*;
 pub use summary::*;
 pub use tournament::*;
 pub use transcript::*;
-// pub use tree::*;
+pub use tree::*;

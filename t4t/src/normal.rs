@@ -6,8 +6,8 @@ use std::iter::Iterator;
 use std::sync::Arc;
 
 use crate::{
-    Dominated, ErrorKind, Game, Move, Outcome, Payoff, PerPlayer, PlayerIndex, PossibleMoves,
-    PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous, SimultaneousOutcome, Step,
+    Dominated, ErrorKind, Game, Move, Node, Outcome, Payoff, PerPlayer, PlayerIndex, PossibleMoves,
+    PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous, SimultaneousOutcome,
     Utility,
 };
 
@@ -65,16 +65,16 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type State = ();
     type View = ();
 
-    fn rules(&self) -> Step<(), M, SimultaneousOutcome<M, U, P>, P> {
+    fn game_tree(&self) -> Node<(), M, SimultaneousOutcome<M, U, P>, P> {
         let state = Arc::new(());
-        Step::all_players(state.clone(), move |_, profile| {
+        Node::all_players(state.clone(), move |_, profile| {
             for ply in profile.plies() {
                 let player = ply.player.unwrap();
                 if !self.is_valid_move_for_player(player, ply.the_move) {
                     return Err(ErrorKind::InvalidMove(player, ply.the_move));
                 }
             }
-            Ok(Step::end(
+            Ok(Node::end(
                 state,
                 SimultaneousOutcome::new(profile, self.payoff(profile)),
             ))

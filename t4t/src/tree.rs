@@ -1,141 +1,149 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
-use crate::{Distribution, Move, Payoff, PlayerIndex, Utility};
+use crate::{Distribution, ErrorKind, Move, PlayerIndex, Profile};
 
-#[derive(Clone)]
-pub struct GameTree<M, U, S, const P: usize> {
-    state: S,
-    node: Node<M, U, S, P>,
+/// The outgoing edges of a node in a game tree, represented as a function.
+///
+/// The function yields the next node in the tree, given the current game state and the result of
+/// this node's action.
+///
+/// This trait is effectively a type synonym for the function type it extends. A blanket
+/// implementation covers all possible instances, so it should not be implemented directly.
+pub trait NextNode<'g, T, S, M, O, const P: usize>:
+    FnOnce(Arc<S>, T) -> Result<Node<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
+{
 }
 
-#[derive(Clone)]
-pub enum Node<M, U, S, const P: usize> {
+impl<'g, F, T, S, M, O, const P: usize> NextNode<'g, T, S, M, O, P> for F where
+    F: FnOnce(Arc<S>, T) -> Result<Node<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
+{
+}
+
+/// A node in a game tree. The current game state and an [action][Action] to perform.
+///
+/// Subsequent nodes, if applicable, are reachable via the action's `next` function.
+pub struct Node<'g, S, M, O, const P: usize> {
+    /// The game state at this node.
+    pub state: Arc<S>,
+    /// The action to take at this node.
+    pub action: Action<'g, S, M, O, P>,
+}
+
+/// The game action to perform at a given node in the game tree.
+pub enum Action<'g, S, M, O, const P: usize> {
+    /// One or more players play a move simultaneously.
     Turn {
-        player: PlayerIndex<P>,
-        moves: Moves<M>,
-        edges: Edges<M, U, S, P>,
+        /// The players to move simultaneously.
+        to_move: Vec<PlayerIndex<P>>,
+        /// Compute the next node from the moves played by the players.
+        next: Box<dyn NextNode<'g, Vec<M>, S, M, O, P>>,
     },
+
+    /// Make a move of chance according to the given distribution.
     Chance {
+        /// The distribution to draw a move from.
         distribution: Distribution<M>,
-        edges: Edges<M, U, S, P>,
+        /// Compute the next node from the move drawn from the distribution.
+        next: Box<dyn NextNode<'g, M, S, M, O, P>>,
     },
-    Payoff {
-        payoff: Payoff<U, P>,
+
+    /// End a game and return the outcome, which includes the game's payoff.
+    End {
+        /// The final outcome of the game.
+        outcome: O,
     },
 }
 
-/// The moves available from a position in a game.
-#[derive(Clone)]
-pub enum Moves<M> {
-    /// A finite domain of moves.
-    Finite(Vec<M>),
-    NonFinite(Rc<dyn Fn(M) -> bool>),
-}
-
-pub type Edges<M, U, S, const P: usize> = Rc<dyn Fn(M) -> Option<GameTree<M, U, S, P>>>;
-
-impl<M: Move, U: Utility, S, const P: usize> GameTree<M, U, S, P> {
-    pub fn new(state: S, node: Node<M, U, S, P>) -> Self {
-        GameTree { state, node }
+impl<'g, S, M: Move, O, const P: usize> Action<'g, S, M, O, P> {
+    /// Construct an action where a single player must make a move and the next node is computed
+    /// from the move they choose.
+    pub fn player(to_move: PlayerIndex<P>, next: impl NextNode<'g, M, S, M, O, P>) -> Self {
+        Action::players(vec![to_move], move |state, moves| {
+            assert_eq!(moves.len(), 1);
+            next(state, moves[0])
+        })
     }
 
-    pub fn turn(
-        state: S,
-        player: PlayerIndex<P>,
-        moves: Moves<M>,
-        edge_fn: impl Fn(M) -> Option<GameTree<M, U, S, P>> + 'static,
+    /// Construct an action where several players must make a move simultaneously and the next node
+    /// is computed from the moves they choose.
+    pub fn players(
+        to_move: Vec<PlayerIndex<P>>,
+        next: impl NextNode<'g, Vec<M>, S, M, O, P>,
     ) -> Self {
-        GameTree::new(state, Node::turn(player, moves, edge_fn))
-    }
-
-    pub fn turn_finite(
-        state: S,
-        player: PlayerIndex<P>,
-        moves: Vec<M>,
-        edge_fn: impl Fn(M) -> Option<GameTree<M, U, S, P>> + 'static,
-    ) -> Self {
-        GameTree::new(state, Node::turn_finite(player, moves, edge_fn))
-    }
-
-    pub fn turn_nonfinite(
-        state: S,
-        player: PlayerIndex<P>,
-        move_fn: impl Fn(M) -> bool + 'static,
-        edge_fn: impl Fn(M) -> Option<GameTree<M, U, S, P>> + 'static,
-    ) -> Self {
-        GameTree::new(state, Node::turn_nonfinite(player, move_fn, edge_fn))
-    }
-
-    pub fn chance(
-        state: S,
-        distribution: Distribution<M>,
-        edge_fn: impl Fn(M) -> Option<GameTree<M, U, S, P>> + 'static,
-    ) -> Self {
-        GameTree::new(state, Node::chance(distribution, edge_fn))
-    }
-
-    pub fn payoff(state: S, payoff: Payoff<U, P>) -> Self {
-        GameTree::new(state, Node::payoff(payoff))
-    }
-
-    pub fn state(&self) -> &S {
-        &self.state
-    }
-
-    pub fn node(&self) -> &Node<M, U, S, P> {
-        &self.node
-    }
-}
-
-impl<M: Move, U: Utility, S, const P: usize> Node<M, U, S, P> {
-    pub fn turn(
-        player: PlayerIndex<P>,
-        moves: Moves<M>,
-        edge_fn: impl Fn(M) -> Option<GameTree<M, U, S, P>> + 'static,
-    ) -> Self {
-        Node::Turn {
-            player,
-            moves,
-            edges: Rc::new(edge_fn),
+        Action::Turn {
+            to_move,
+            next: Box::new(next),
         }
     }
 
-    pub fn turn_finite(
-        player: PlayerIndex<P>,
-        moves: Vec<M>,
-        edge_fn: impl Fn(M) -> Option<GameTree<M, U, S, P>> + 'static,
-    ) -> Self {
-        Node::turn(player, Moves::Finite(moves), edge_fn)
+    /// Construct an action where all players must make a move simultaneously and the next node is
+    /// computed from the moves they choose.
+    pub fn all_players(next: impl NextNode<'g, Profile<M, P>, S, M, O, P>) -> Self {
+        Action::players(PlayerIndex::all().collect(), move |state, moves| {
+            assert_eq!(moves.len(), P);
+            next(state, Profile::new(moves.try_into().unwrap()))
+        })
     }
 
-    pub fn turn_nonfinite(
-        player: PlayerIndex<P>,
-        move_fn: impl Fn(M) -> bool + 'static,
-        edge_fn: impl Fn(M) -> Option<GameTree<M, U, S, P>> + 'static,
-    ) -> Self {
-        Node::turn(player, Moves::NonFinite(Rc::new(move_fn)), edge_fn)
-    }
-
-    pub fn chance(
-        distribution: Distribution<M>,
-        edge_fn: impl Fn(M) -> Option<GameTree<M, U, S, P>> + 'static,
-    ) -> Self {
-        Node::Chance {
+    /// Construct an action where a move is selected from a distribution and the next node is
+    /// computed from the selected move.
+    pub fn chance(distribution: Distribution<M>, next: impl NextNode<'g, M, S, M, O, P>) -> Self {
+        Action::Chance {
             distribution,
-            edges: Rc::new(edge_fn),
+            next: Box::new(next),
         }
     }
 
-    pub fn payoff(payoff: Payoff<U, P>) -> Self {
-        Node::Payoff { payoff }
+    /// Construct an action ending the game with the given outcome.
+    pub fn end(outcome: O) -> Self {
+        Action::End { outcome }
     }
 }
 
-impl<M: Move> Moves<M> {
-    pub fn is_valid_move(&self, the_move: M) -> bool {
-        match self {
-            Moves::Finite(moves) => moves.contains(&the_move),
-            Moves::NonFinite(valid) => valid(the_move),
-        }
+impl<'g, S, M: Move, O, const P: usize> Node<'g, S, M, O, P> {
+    /// Construct a new game node with the given state and action.
+    pub fn new(state: Arc<S>, action: Action<'g, S, M, O, P>) -> Self {
+        Node { state, action }
+    }
+
+    /// Construct a game node where a single player must make a move and the next node is computed
+    /// from the move they choose.
+    pub fn player(
+        state: Arc<S>,
+        player: PlayerIndex<P>,
+        next: impl NextNode<'g, M, S, M, O, P>,
+    ) -> Self {
+        Node::new(state, Action::player(player, next))
+    }
+
+    /// Construct a game node where several players must make a move simultaneously and the next
+    /// node is computed from the moves they choose.
+    pub fn players(
+        state: Arc<S>,
+        players: Vec<PlayerIndex<P>>,
+        next: impl NextNode<'g, Vec<M>, S, M, O, P>,
+    ) -> Self {
+        Node::new(state, Action::players(players, next))
+    }
+
+    /// Construct a game node where all players must make a move simultaneously and the next node
+    /// is computed from the moves they choose.
+    pub fn all_players(state: Arc<S>, next: impl NextNode<'g, Profile<M, P>, S, M, O, P>) -> Self {
+        Node::new(state, Action::all_players(next))
+    }
+
+    /// Construct a game node where a move is selected from a distribution and the next node is
+    /// computed from the selected move.
+    pub fn chance(
+        state: Arc<S>,
+        distribution: Distribution<M>,
+        next: impl NextNode<'g, M, S, M, O, P>,
+    ) -> Self {
+        Node::new(state, Action::chance(distribution, next))
+    }
+
+    /// Construct a game node ending the game with the given outcome.
+    pub fn end(state: Arc<S>, outcome: O) -> Self {
+        Node::new(state, Action::end(outcome))
     }
 }

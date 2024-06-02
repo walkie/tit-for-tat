@@ -23,12 +23,10 @@ impl<S, M, const P: usize> Error<S, M, P> {
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum ErrorKind<M, const P: usize> {
     /// A player played an invalid move.
-    // #[error("player P{} played an invalid move: {the_move}", .player.0)]
     InvalidMove(PlayerIndex<P>, M),
 
     /// An apparently valid move did not produce the next intermediate state the game. This is
-    /// likely an error in the construction of the game.
-    // #[error("no next state for apparently valid move: {the_move}")]
+    /// likely an error in the construction of the game tree.
     NoNextState(M),
 }
 

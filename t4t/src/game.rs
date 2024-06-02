@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
-use crate::rules::Rules;
-use crate::{Action, Context, Error, Matchup, Move, Outcome, PlayerIndex, Utility};
+use crate::{Action, Context, Error, Matchup, Move, Node, Outcome, PlayerIndex, Utility};
 
 /// A trait that collects the trait requirements of a game state.
 ///
@@ -37,11 +36,11 @@ pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
     /// state that are not visible to players while making strategic decisions.
     type View: State;
 
-    /// A step-by-step executable description of how this game is played.
+    /// The root of the game tree for this game.
     ///
-    /// This method returns the first step in the game's rules, from which subsequent steps can be
-    /// reached through each action's `next` method, if applicable.
-    fn rules(&self) -> Rules<Self::State, Self::Move, Self::Outcome, P>;
+    /// The game tree is effectively a step-by-step executable description of how this game is
+    /// played.
+    fn game_tree(&self) -> Node<Self::State, Self::Move, Self::Outcome, P>;
 
     /// Produce a view of the game state for the given player.
     fn state_view(&self, state: &Self::State, player: PlayerIndex<P>) -> Self::View;
@@ -59,28 +58,29 @@ pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
         P
     }
 
-    /// Play this game with the given players, producing a value of the game's outcome type on
-    /// success.
+    /// Play this game with the given players by executing the game tree.
+    ///
+    /// Produces a value of the game's outcome type on success, otherwise an error.
     fn play(&self, matchup: &Matchup<Self, P>) -> PlayResult<Self, P> {
-        let mut step = self.rules();
+        let mut node = self.game_tree();
         let mut strategies = matchup.strategies();
 
         loop {
-            match step.action {
+            match node.action {
                 Action::Turn { to_move, next } => {
                     let moves = to_move
                         .iter()
                         .map(|&index| {
-                            let view = self.state_view(&step.state, index);
+                            let view = self.state_view(&node.state, index);
                             let context = Context::new(index, view);
                             strategies[index].next_move(&context)
                         })
                         .collect();
 
-                    match next(step.state.clone(), moves) {
-                        Ok(next_step) => step = next_step,
+                    match next(node.state.clone(), moves) {
+                        Ok(next_node) => node = next_node,
                         Err(kind) => {
-                            return Err(Error::new(step.state, kind));
+                            return Err(Error::new(node.state, kind));
                         }
                     }
                 }
@@ -88,10 +88,10 @@ pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
                 Action::Chance { distribution, next } => {
                     let the_move = distribution.sample();
 
-                    match next(step.state.clone(), *the_move) {
-                        Ok(next_step) => step = next_step,
+                    match next(node.state.clone(), *the_move) {
+                        Ok(next_node) => node = next_node,
                         Err(kind) => {
-                            return Err(Error::new(step.state, kind));
+                            return Err(Error::new(node.state, kind));
                         }
                     }
                 }

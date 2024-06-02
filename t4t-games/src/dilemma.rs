@@ -378,8 +378,8 @@ impl Game<2> for Dilemma {
     type State = ();
     type View = ();
 
-    fn rules(&self) -> Rules<(), Move, SimultaneousOutcome<Move, i64, 2>, 2> {
-        self.as_normal().rules()
+    fn game_tree(&self) -> Node<(), Move, SimultaneousOutcome<Move, i64, 2>, 2> {
+        self.as_normal().game_tree()
     }
 
     fn state_view(&self, _state: &(), _player: PlayerIndex<2>) {}

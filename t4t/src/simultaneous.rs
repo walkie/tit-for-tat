@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    ErrorKind, Game, Move, Payoff, PerPlayer, PlayerIndex, Profile, Record, SimultaneousOutcome,
-    Step, Utility,
+    ErrorKind, Game, Move, Node, Payoff, PerPlayer, PlayerIndex, Profile, Record,
+    SimultaneousOutcome, Utility,
 };
 
 /// A game in which each player plays a single move without knowledge of the other players' moves.
@@ -69,16 +69,16 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     type State = ();
     type View = ();
 
-    fn rules(&self) -> Step<(), M, SimultaneousOutcome<M, U, P>, P> {
+    fn game_tree(&self) -> Node<(), M, SimultaneousOutcome<M, U, P>, P> {
         let state = Arc::new(());
-        Step::all_players(state.clone(), move |_, profile| {
+        Node::all_players(state.clone(), move |_, profile| {
             for ply in profile.plies() {
                 let player = ply.player.unwrap();
                 if !self.is_valid_move_for_player(player, ply.the_move) {
                     return Err(ErrorKind::InvalidMove(player, ply.the_move));
                 }
             }
-            Ok(Step::end(
+            Ok(Node::end(
                 state,
                 SimultaneousOutcome::new(profile, self.payoff(profile)),
             ))
