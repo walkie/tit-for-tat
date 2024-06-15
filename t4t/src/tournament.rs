@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// A tournament in which several players play a game against each other in a series of matchups.
+/// A tournament in which several players play a game in a series of matchups, executed in parallel.
 #[derive(Clone, Debug)]
 pub struct Tournament<G: Game<P>, const P: usize> {
     game: Arc<G>,
@@ -302,7 +302,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
         )
     }
 
-    /// Run the tournament and collect the results.
+    /// Run the matchups of the tournament in parallel and collect the results.
     pub fn play(&self) -> TournamentResult<G, P> {
         let mut results = HashMap::new();
         let mut score = Score::new();
