@@ -43,7 +43,7 @@ impl<M: Move, const P: usize> Record<M, P> for Profile<M, P> {
         Plies::from_iter(
             P,
             self.as_ref()
-                .map_with_index(|p, m| Ply::new_player(p, m))
+                .map_with_index(|p, m| Ply::player(p, m))
                 .into_iter(),
         )
     }

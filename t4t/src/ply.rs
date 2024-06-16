@@ -17,12 +17,12 @@ impl<M: Move, const P: usize> Ply<M, P> {
     }
 
     /// Construct a move played by the given player.
-    pub fn new_player(player: PlayerIndex<P>, the_move: M) -> Self {
+    pub fn player(player: PlayerIndex<P>, the_move: M) -> Self {
         Ply::new(Some(player), the_move)
     }
 
     /// Construct a move played by chance.
-    pub fn new_chance(the_move: M) -> Self {
+    pub fn chance(the_move: M) -> Self {
         Ply::new(None, the_move)
     }
 
