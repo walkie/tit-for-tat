@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::{Action, Game, History, Node, PlayerIndex};
+use crate::{Action, Game, GameTree, History, PlayerIndex};
 
 /// A finitely [repeated](https://en.wikipedia.org/wiki/Repeated_game) or iterated version of game
 /// `G`.
@@ -75,13 +75,13 @@ impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
 fn lift_node<'g, G: Game<P> + 'g, const P: usize>(
     stage_game: &'g G,
     state: Arc<RepeatedState<G, P>>,
-    node: Node<'g, G::State, G::Move, G::Outcome, P>,
-) -> Node<'g, RepeatedState<G, P>, G::Move, History<G, P>, P> {
+    node: GameTree<'g, G::State, G::Move, G::Outcome, P>,
+) -> GameTree<'g, RepeatedState<G, P>, G::Move, History<G, P>, P> {
     match node.action {
-        Action::Turn {
+        Action::Turns {
             to_move: players,
             next,
-        } => Node::players(
+        } => GameTree::players(
             state.clone(),
             players,
             move |repeated_state: Arc<RepeatedState<G, P>>, moves: Vec<G::Move>| match next(
@@ -99,7 +99,7 @@ fn lift_node<'g, G: Game<P> + 'g, const P: usize>(
             },
         ),
 
-        Action::Chance { distribution, next } => Node::chance(
+        Action::Chance { distribution, next } => GameTree::chance(
             state.clone(),
             distribution,
             move |repeated_state: Arc<RepeatedState<G, P>>, the_move: G::Move| match next(
@@ -133,7 +133,7 @@ fn lift_node<'g, G: Game<P> + 'g, const P: usize>(
             let mut history = state.completed.clone(); // TODO avoid this clone
             history.add(outcome);
 
-            Node::end(state, history)
+            GameTree::end(state, history)
         }
     }
 }
@@ -145,7 +145,7 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
     type State = RepeatedState<G, P>;
     type View = RepeatedState<G, P>; // TODO add RepeatedStateView or some other solution
 
-    fn game_tree(&self) -> Node<RepeatedState<G, P>, G::Move, History<G, P>, P> {
+    fn game_tree(&self) -> GameTree<RepeatedState<G, P>, G::Move, History<G, P>, P> {
         let init_state = Arc::new(RepeatedState::new(
             self.stage_game.clone(),
             self.repetitions - 1,

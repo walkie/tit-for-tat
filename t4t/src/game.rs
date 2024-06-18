@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Action, Context, Error, Matchup, Move, Node, Outcome, PlayerIndex, Utility};
+use crate::{Action, Context, Error, GameTree, Matchup, Move, Outcome, PlayerIndex, Utility};
 
 /// A trait that collects the trait requirements of a game state.
 ///
@@ -40,7 +40,7 @@ pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
     ///
     /// The game tree is effectively a step-by-step executable description of how this game is
     /// played.
-    fn game_tree(&self) -> Node<Self::State, Self::Move, Self::Outcome, P>;
+    fn game_tree(&self) -> GameTree<Self::State, Self::Move, Self::Outcome, P>;
 
     /// Produce a view of the game state for the given player.
     fn state_view(&self, state: &Self::State, player: PlayerIndex<P>) -> Self::View;
@@ -67,7 +67,7 @@ pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
 
         loop {
             match node.action {
-                Action::Turn { to_move, next } => {
+                Action::Turns { to_move, next } => {
                     let moves = to_move
                         .iter()
                         .map(|&index| {

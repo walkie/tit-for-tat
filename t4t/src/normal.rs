@@ -6,16 +6,25 @@ use std::iter::Iterator;
 use std::sync::Arc;
 
 use crate::{
-    Dominated, ErrorKind, Game, Move, Node, Outcome, Payoff, PerPlayer, PlayerIndex, PossibleMoves,
-    PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous, SimultaneousOutcome,
-    Utility,
+    Dominated, ErrorKind, Game, GameTree, Move, Outcome, Payoff, PerPlayer, PlayerIndex,
+    PossibleMoves, PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous,
+    SimultaneousOutcome, Utility,
 };
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
 ///
 /// In a normal-form game, each player plays a single move from a finite set of available moves,
-/// without knowledge of other players' moves, and the payoff is determined by referring to a table
-/// of possible outcomes.
+/// without knowledge of other players' moves. The moves played by each player collectively form a
+/// [strategy profile](crate::Profile). The payoff is determined by looking up the payoff
+/// associated with the given profile.
+///
+/// In textbooks, normal-form games are usually represented as a 2-dimensional table of payoffs,
+/// with the available moves for each player listed in the row and column headers. A profile then
+/// consists of two moves which are used to index into the table.
+///
+/// The representation here is much more general. Instead, the game is represented as a function
+/// from profiles to payoffs. This enables normal-form games of arbitrary size and between
+/// arbitrary numbers of players.
 ///
 /// # Type variables
 ///
@@ -65,16 +74,16 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type State = ();
     type View = ();
 
-    fn game_tree(&self) -> Node<(), M, SimultaneousOutcome<M, U, P>, P> {
+    fn game_tree(&self) -> GameTree<(), M, SimultaneousOutcome<M, U, P>, P> {
         let state = Arc::new(());
-        Node::all_players(state.clone(), move |_, profile| {
+        GameTree::all_players(state.clone(), move |_, profile| {
             for ply in profile.plies() {
                 let player = ply.player.unwrap();
                 if !self.is_valid_move_for_player(player, ply.the_move) {
                     return Err(ErrorKind::InvalidMove(player, ply.the_move));
                 }
             }
-            Ok(Node::end(
+            Ok(GameTree::end(
                 state,
                 SimultaneousOutcome::new(profile, self.payoff(profile)),
             ))

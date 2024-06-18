@@ -1,25 +1,64 @@
 #![warn(missing_docs)]
 
-//! Tit-for-tat (t4t) is a [game theory][wiki-game-theory] library with a focus on experimentation
-//! over formal analysis, and expressiveness over performance. It provides flexible types and traits
-//! for defining games and strategies, then executing them to observe the results.
+//! Tit-for-tat (t4t) is a [game theory][wiki-game-theory] library focusing on expressiveness, type
+//! safety, and experimentation. It provides flexible types and traits for defining games and
+//! strategies, then executing them to observe the results.
 //!
 //! The companion crate [t4t-games][games-crate] provides some example games and strategies.
+//!
+//! # Features
+//!
+//! **Defining games**
+//!
+//! The library provides a variety of types for defining common kinds of games:
+//!
+//! - [`Normal`] -- A general representation of n-ary [normal-form games][normal-form-game].
+//!   An arbitrary number of players simultaneously play a single move selected from a finite set
+//!   of available moves.
+//! - [`Simultaneous`] -- N-ary [simultaneous games][simultaneous-game].
+//!   Similar to [`Normal`], except the moves available to each player may be non-finite.
+//! - `Extensive` (coming soon): A simple representation of [extensive-form games][extensive-form-game].
+//!   Games represented as complete game trees, where players take turns making moves,
+//!   possibly with moves of chance interspersed.
+//! - `StateBased` (coming soon): Games that revolve around manipulating a shared state.
+//! - [`Repeated`]: Games where another game is played repeatedly a given number of times.
+//!
+//! Each of these game types represents a class of games that work in a similar way, and most
+//! specific games you may want to define can be defined using the constructors on these types.
+//!
+//! Each game type implements the [`Game`] trait, which provides a common interface for playing
+//! any kind of game.
+//!
+//! The [`Game`] trait can be implemented by users of the library to define more exotic kinds of
+//! games. The key method of this trait translates the game into a generic [`GameTree`] type that
+//! describes how the game is played.
+//!
+//! **Defining players and strategies**
+//!
+//! TODO:
+//! [`Strategy`] and [`Player`].
+//!
+//! **Running tournaments**
+//!
+//! The [`Tournament`] type provides a way to play a game with all combinations or permutations of a
+//! set of players, aggregating the results.
 //!
 //! # Expressiveness over performance
 //!
 //! This library prioritizes expressiveness over performance. It aims to provide a powerful set of
 //! abstractions for defining arbitrary games and strategies, without sacrificing type safety.
 //!
-//! This tradeoff is easy to see in the representation of [normal-form games](crate::Normal), which
-//! are represented not as, say, a matrix of float-tuples, but instead as a function from generic
+//! This tradeoff is evident in the representation of [normal-form games](crate::Normal), which are
+//! represented not as, say, a matrix of float-tuples, but instead as a function from generic
 //! [move profiles](crate::Profile) to generic [payoffs](crate::Payoff). This enables normal-form
 //! games of arbitrary size, between arbitrary numbers of players, and with arbitrary move and
 //! utility values, but is somewhat less efficient than a simple matrix.
 //!
-//! A subtler but more extreme case of this tradeoff is how games are executed. The [`Game`] trait
+//! Games are defined by translation into a generic [game tree](crate::GameTree) representation.
+//!
+//! A subtler but more extreme example of this tradeoff is how games are executed. The [`Game`] trait
 //! is quite generic, and implementers of this trait do not implement the execution of their game
-//! directly, but rather produce a [*description*](crate::Node) of how the game is executed. This
+//! directly, but rather produce a [*description*](crate::GameTree) of how the game is executed. This
 //! is much less efficient, but enables generically transforming the execution of a game, for
 //! example, defining new games that modify the behavior of existing games.
 //!
@@ -136,11 +175,16 @@
 //! interactively, but we'll see!
 //!
 //! [wiki-game-theory]: https://en.wikipedia.org/wiki/Game_theory
+//! [normal-form-game]: https://en.wikipedia.org/wiki/Normal-form_game
+//! [simultaneous-game]: https://en.wikipedia.org/wiki/Simultaneous_game
+//! [extensive-form-game]: https://en.wikipedia.org/wiki/Extensive-form_game
+//! [repeated-game]: https://en.wikipedia.org/wiki/Repeated_game
 //! [games-crate]: https://crates.io/crates/t4t-games
 
 pub(crate) mod distribution;
 pub(crate) mod dominated;
 pub(crate) mod error;
+// pub(crate) mod extensive;
 pub(crate) mod game;
 pub(crate) mod history;
 pub(crate) mod matchup;
@@ -167,6 +211,7 @@ pub(crate) mod tree;
 pub use distribution::*;
 pub use dominated::*;
 pub use error::*;
+// pub use extensive::*;
 pub use game::*;
 pub use history::*;
 pub use matchup::*;
