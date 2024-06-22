@@ -62,36 +62,6 @@ pub struct Simultaneous<M, U, const P: usize> {
     payoff_fn: Arc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + Send + Sync>,
 }
 
-impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
-    type Move = M;
-    type Utility = U;
-    type Outcome = SimultaneousOutcome<M, U, P>;
-    type State = ();
-    type View = ();
-
-    fn game_tree(&self) -> GameTree<(), M, SimultaneousOutcome<M, U, P>, P> {
-        let state = Arc::new(());
-        GameTree::all_players(state.clone(), move |_, profile| {
-            for ply in profile.plies() {
-                let player = ply.player.unwrap();
-                if !self.is_valid_move_for_player(player, ply.the_move) {
-                    return Err(ErrorKind::InvalidMove(player, ply.the_move));
-                }
-            }
-            Ok(GameTree::end(
-                state,
-                SimultaneousOutcome::new(profile, self.payoff(profile)),
-            ))
-        })
-    }
-
-    fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
-
-    fn is_valid_move(&self, _state: &(), player: PlayerIndex<P>, the_move: M) -> bool {
-        self.is_valid_move_for_player(player, the_move)
-    }
-}
-
 impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
     /// Construct a new simultaneous move game given (1) a predicate that determines if a move is
     /// valid for a given player, and (2) a function that yields the payoff given a profile
@@ -145,6 +115,36 @@ impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
     /// [invalid profile](crate::Simultaneous::is_valid_profile).
     pub fn payoff(&self, profile: Profile<M, P>) -> Payoff<U, P> {
         (*self.payoff_fn)(profile)
+    }
+}
+
+impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
+    type Move = M;
+    type Utility = U;
+    type Outcome = SimultaneousOutcome<M, U, P>;
+    type State = ();
+    type View = ();
+
+    fn game_tree(&self) -> GameTree<(), M, SimultaneousOutcome<M, U, P>, P> {
+        let state = Arc::new(());
+        GameTree::all_players(state.clone(), move |_, profile| {
+            for ply in profile.plies() {
+                let player = ply.player.unwrap();
+                if !self.is_valid_move_for_player(player, ply.the_move) {
+                    return Err(ErrorKind::InvalidMove(player, ply.the_move));
+                }
+            }
+            Ok(GameTree::end(
+                state,
+                SimultaneousOutcome::new(profile, self.payoff(profile)),
+            ))
+        })
+    }
+
+    fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
+
+    fn is_valid_move(&self, _state: &(), player: PlayerIndex<P>, the_move: M) -> bool {
+        self.is_valid_move_for_player(player, the_move)
     }
 }
 

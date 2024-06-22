@@ -6,8 +6,8 @@ use std::iter::Iterator;
 use std::sync::Arc;
 
 use crate::{
-    Dominated, ErrorKind, Game, GameTree, Move, Outcome, Payoff, PerPlayer, PlayerIndex,
-    PossibleMoves, PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous,
+    Dominated, ErrorKind, FiniteGame, Game, GameTree, Move, Outcome, Payoff, PerPlayer,
+    PlayerIndex, PossibleMoves, PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous,
     SimultaneousOutcome, Utility,
 };
 
@@ -65,36 +65,6 @@ use crate::{
 pub struct Normal<M, U, const P: usize> {
     moves: PerPlayer<Vec<M>, P>,
     payoff_fn: Arc<dyn Fn(Profile<M, P>) -> Payoff<U, P> + Send + Sync>,
-}
-
-impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
-    type Move = M;
-    type Utility = U;
-    type Outcome = SimultaneousOutcome<M, U, P>;
-    type State = ();
-    type View = ();
-
-    fn game_tree(&self) -> GameTree<(), M, SimultaneousOutcome<M, U, P>, P> {
-        let state = Arc::new(());
-        GameTree::all_players(state.clone(), move |_, profile| {
-            for ply in profile.plies() {
-                let player = ply.player.unwrap();
-                if !self.is_valid_move_for_player(player, ply.the_move) {
-                    return Err(ErrorKind::InvalidMove(player, ply.the_move));
-                }
-            }
-            Ok(GameTree::end(
-                state,
-                SimultaneousOutcome::new(profile, self.payoff(profile)),
-            ))
-        })
-    }
-
-    fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
-
-    fn is_valid_move(&self, _state: &(), player: PlayerIndex<P>, the_move: M) -> bool {
-        self.is_valid_move_for_player(player, the_move)
-    }
 }
 
 impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
@@ -385,7 +355,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     }
 
     /// Get iterators for the moves available to each player.
-    pub fn possible_moves(&self) -> PerPlayer<PossibleMoves<'_, M>, P> {
+    pub fn possible_moves_per_player(&self) -> PerPlayer<PossibleMoves<'_, M>, P> {
         PerPlayer::generate(|player| self.possible_moves_for_player(player))
     }
 
@@ -411,7 +381,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     /// Get the number of moves available to each player, which corresponds to the dimensions of
     /// the payoff matrix.
     pub fn dimensions(&self) -> PerPlayer<usize, P> {
-        self.possible_moves().map(|ms| ms.count())
+        self.possible_moves_per_player().map(|ms| ms.count())
     }
 
     /// Get this normal form game as a simultaneous move game.
@@ -424,10 +394,10 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
         )
     }
 
-    /// An iterator over all of the [valid](Normal::is_valid_profile) pure strategy profiles for
+    /// An iterator over all [valid](Normal::is_valid_profile) pure strategy profiles for
     /// this game.
     pub fn possible_profiles(&self) -> PossibleProfiles<'_, M, P> {
-        PossibleProfiles::from_move_iters(self.possible_moves())
+        PossibleProfiles::from_move_iters(self.possible_moves_per_player())
     }
 
     /// An iterator over all possible outcomes of the game.
@@ -964,6 +934,42 @@ impl<M: Move, U: Utility> Normal<M, U, 4> {
             }
         }
         Normal::from_payoff_map(all_moves, payoff_map)
+    }
+}
+
+impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
+    type Move = M;
+    type Utility = U;
+    type Outcome = SimultaneousOutcome<M, U, P>;
+    type State = ();
+    type View = ();
+
+    fn game_tree(&self) -> GameTree<(), M, SimultaneousOutcome<M, U, P>, P> {
+        let state = Arc::new(());
+        GameTree::all_players(state.clone(), move |_, profile| {
+            for ply in profile.plies() {
+                let player = ply.player.unwrap();
+                if !self.is_valid_move_for_player(player, ply.the_move) {
+                    return Err(ErrorKind::InvalidMove(player, ply.the_move));
+                }
+            }
+            Ok(GameTree::end(
+                state,
+                SimultaneousOutcome::new(profile, self.payoff(profile)),
+            ))
+        })
+    }
+
+    fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
+
+    fn is_valid_move(&self, _state: &(), player: PlayerIndex<P>, the_move: M) -> bool {
+        self.is_valid_move_for_player(player, the_move)
+    }
+}
+
+impl<M: Move, U: Utility, const P: usize> FiniteGame<P> for Normal<M, U, P> {
+    fn possible_moves(&self, player: PlayerIndex<P>, _state: &()) -> PossibleMoves<'_, M> {
+        self.possible_moves_for_player(player)
     }
 }
 

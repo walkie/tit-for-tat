@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::{Action, Game, GameTree, History, PlayerIndex};
+use crate::{Action, FiniteGame, Game, GameTree, History, PlayerIndex, PossibleMoves};
 
 /// A finitely [repeated](https://en.wikipedia.org/wiki/Repeated_game) or iterated version of game
 /// `G`.
@@ -174,6 +174,17 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
     ) -> bool {
         self.stage_game
             .is_valid_move(&state.stage_state, player, the_move)
+    }
+}
+
+impl<G: FiniteGame<P> + 'static, const P: usize> FiniteGame<P> for Repeated<G, P> {
+    fn possible_moves(
+        &self,
+        player: PlayerIndex<P>,
+        state: &Self::State,
+    ) -> PossibleMoves<'_, Self::Move> {
+        self.stage_game
+            .possible_moves(player, state.stage_state.as_ref())
     }
 }
 

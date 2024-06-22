@@ -184,6 +184,7 @@
 pub(crate) mod distribution;
 pub(crate) mod dominated;
 pub(crate) mod error;
+pub(crate) mod finite;
 // pub(crate) mod extensive;
 pub(crate) mod game;
 pub(crate) mod history;
@@ -211,6 +212,7 @@ pub(crate) mod tree;
 pub use distribution::*;
 pub use dominated::*;
 pub use error::*;
+pub use finite::*;
 // pub use extensive::*;
 pub use game::*;
 pub use history::*;
