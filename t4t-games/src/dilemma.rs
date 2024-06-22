@@ -31,7 +31,7 @@ use t4t::*;
 
 /// In a social dilemma game, each player may either cooperate or defect.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Move {
     Cooperate,
     Defect,
@@ -100,10 +100,13 @@ impl Dilemma {
     /// use t4t_games::dilemma::*;
     ///
     /// let g = Dilemma::prisoners_dilemma();
-    /// assert_eq!(
-    ///     g.as_normal().pure_nash_equilibria(),
-    ///     vec![Profile::new([D, D])],
-    /// );
+    ///
+    /// let nash = g.as_normal().pure_nash_equilibria_parallel();
+    /// assert_eq!(nash, vec![Profile::new([D, D])]);
+    ///
+    /// let mut pareto = g.as_normal().pareto_optimal_solutions_parallel();
+    /// pareto.sort();
+    /// assert_eq!(pareto, vec![Profile::new([C, C]), Profile::new([C, D]), Profile::new([D, C])]);
     /// ```
     pub fn prisoners_dilemma() -> Self {
         Dilemma::new([2, 0, 3, 1])
@@ -113,7 +116,8 @@ impl Dilemma {
     /// game with utility values `[1, 0, 2, 0]`.
     ///
     /// Friend-or-foe is related to the prisoner's dilemma except that mutual defection is only a
-    /// weak Nash equilibrium and so is not risk dominant.
+    /// weak Nash equilibrium and so is not
+    /// [risk dominant](https://en.wikipedia.org/wiki/Risk_dominance).
     pub fn friend_or_foe() -> Self {
         Dilemma::new([1, 0, 2, 0])
     }
@@ -122,8 +126,9 @@ impl Dilemma {
     /// utility values `[3, 0, 2, 1]`.
     ///
     /// In the canonical stag hunt, mutual cooperation and mutual defection are both Nash
-    /// equilibria, with mutual cooperation being payoff dominant and mutual defection being
-    /// [risk dominant](https://en.wikipedia.org/wiki/Risk_dominance).
+    /// equilibria, with mutual cooperation being payoff dominant
+    /// (i.e. [Pareto optimal](https://en.wikipedia.org/wiki/Pareto_efficiency))
+    /// and mutual defection being [risk dominant](https://en.wikipedia.org/wiki/Risk_dominance).
     ///
     /// # Examples
     /// ```
@@ -131,10 +136,13 @@ impl Dilemma {
     /// use t4t_games::dilemma::*;
     ///
     /// let g = Dilemma::stag_hunt();
-    /// assert_eq!(
-    ///     g.as_normal().pure_nash_equilibria(),
-    ///     vec![Profile::new([C, C]), Profile::new([D, D])],
-    /// );
+    ///
+    /// let nash = g.as_normal().pure_nash_equilibria_parallel();
+    /// assert_eq!(nash, vec![Profile::new([C, C]), Profile::new([D, D])]);
+    ///
+    /// let mut pareto = g.as_normal().pareto_optimal_solutions_parallel();
+    /// pareto.sort();
+    /// assert_eq!(pareto, vec![Profile::new([C, C])]);
     /// ```
     pub fn stag_hunt() -> Self {
         Dilemma::new([3, 0, 2, 1])

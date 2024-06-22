@@ -4,7 +4,7 @@ use std::ops::{Index, IndexMut};
 use crate::{Move, PerPlayer, PlayedMoves, PlayerIndex, Plies, Ply, Record, Summary, Transcript};
 
 /// A pure strategy profile for a simultaneous game: one move played by each player.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, AsMut, AsRef)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd, AsMut, AsRef)]
 pub struct Profile<M, const P: usize>(PerPlayer<M, P>);
 
 impl<M, const P: usize> Profile<M, P> {

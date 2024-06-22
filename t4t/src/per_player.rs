@@ -91,7 +91,7 @@ use std::ops::{Index, IndexMut};
 /// pp[for3::P0] = "gort";
 /// assert_eq!(pp[for3::P0], "gort");
 /// ```
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, AsMut, AsRef)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd, AsMut, AsRef)]
 pub struct PerPlayer<T, const P: usize> {
     data: [T; P],
 }

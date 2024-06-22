@@ -599,7 +599,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
 
     /// A variant of [`pure_nash_equilibria`](Self::pure_nash_equilibria) that analyzes the outcomes
     /// in parallel.
-    pub fn pure_nash_equlibria_parallel(&self) -> Vec<Profile<M, P>> {
+    pub fn pure_nash_equilibria_parallel(&self) -> Vec<Profile<M, P>> {
         let (sender, receiver) = std::sync::mpsc::channel();
         self.possible_profiles()
             .par_bridge()
