@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{Distribution, ErrorKind, Move, PlayerIndex, Profile};
+use crate::{Distribution, ErrorKind, Game, Move, Outcome, PlayerIndex, Profile, State, Utility};
 
 /// The outgoing edges of a node in a game tree, represented as a function.
 ///
@@ -10,18 +10,19 @@ use crate::{Distribution, ErrorKind, Move, PlayerIndex, Profile};
 /// This trait is effectively a type synonym for the function type it extends. A blanket
 /// implementation covers all possible instances, so it should not be implemented directly.
 pub trait NextGameTree<'g, T, S, M, O, const P: usize>:
-    FnOnce(Arc<S>, T) -> Result<GameTree<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
+    Fn(Arc<S>, T) -> Result<GameTree<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
 {
 }
 
 impl<'g, F, T, S, M, O, const P: usize> NextGameTree<'g, T, S, M, O, P> for F where
-    F: FnOnce(Arc<S>, T) -> Result<GameTree<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
+    F: Fn(Arc<S>, T) -> Result<GameTree<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
 {
 }
 
 /// A node in a game tree. The current game state and an [action](Action) to perform.
 ///
 /// Subsequent nodes, if applicable, are reachable via the action's `next` function.
+#[derive(Clone)]
 pub struct GameTree<'g, S, M, O, const P: usize> {
     /// The game state at this node.
     pub state: Arc<S>,
@@ -30,13 +31,14 @@ pub struct GameTree<'g, S, M, O, const P: usize> {
 }
 
 /// The game action to perform at a given node in the game tree.
+#[derive(Clone)]
 pub enum Action<'g, S, M, O, const P: usize> {
     /// One or more players play a move simultaneously.
     Turns {
         /// The players to move simultaneously.
         to_move: Vec<PlayerIndex<P>>,
         /// Compute the next node from the moves played by the players.
-        next: Box<dyn NextGameTree<'g, Vec<M>, S, M, O, P>>,
+        next: Arc<dyn NextGameTree<'g, Vec<M>, S, M, O, P>>,
     },
 
     /// Make a move of chance according to the given distribution.
@@ -44,7 +46,7 @@ pub enum Action<'g, S, M, O, const P: usize> {
         /// The distribution to draw a move from.
         distribution: Distribution<M>,
         /// Compute the next node from the move drawn from the distribution.
-        next: Box<dyn NextGameTree<'g, M, S, M, O, P>>,
+        next: Arc<dyn NextGameTree<'g, M, S, M, O, P>>,
     },
 
     /// End a game and return the outcome, which includes the game's payoff.
@@ -72,7 +74,7 @@ impl<'g, S, M: Move, O, const P: usize> Action<'g, S, M, O, P> {
     ) -> Self {
         Action::Turns {
             to_move,
-            next: Box::new(next),
+            next: Arc::new(next),
         }
     }
 
@@ -93,7 +95,7 @@ impl<'g, S, M: Move, O, const P: usize> Action<'g, S, M, O, P> {
     ) -> Self {
         Action::Chance {
             distribution,
-            next: Box::new(next),
+            next: Arc::new(next),
         }
     }
 

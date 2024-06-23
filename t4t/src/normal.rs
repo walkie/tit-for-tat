@@ -954,7 +954,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
                 }
             }
             Ok(GameTree::end(
-                state,
+                state.clone(),
                 SimultaneousOutcome::new(profile, self.payoff(profile)),
             ))
         })

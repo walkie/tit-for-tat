@@ -135,7 +135,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
                 }
             }
             Ok(GameTree::end(
-                state,
+                state.clone(),
                 SimultaneousOutcome::new(profile, self.payoff(profile)),
             ))
         })
