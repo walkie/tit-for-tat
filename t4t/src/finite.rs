@@ -5,7 +5,7 @@ use crate::{Game, PlayerIndex, PossibleMoves};
 /// Note that there are two definitions of "finite game" in game theory. The more common definition
 /// is a game with a finite number of turns, which is not the definition used here.
 pub trait FiniteGame<const P: usize>: Game<P> {
-    /// Get an iterate over the moves available to the given player from the given game state.
+    /// Get an iterator over the moves available to the given player from the given game state.
     fn possible_moves(
         &self,
         player: PlayerIndex<P>,
