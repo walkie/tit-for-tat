@@ -36,22 +36,22 @@ pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
     /// state that are not visible to players while making strategic decisions.
     type View: State;
 
-    /// The root of the game tree for this game.
+    /// Convert this game into the corresponding game tree.
     ///
     /// The game tree is effectively a step-by-step executable description of how this game is
     /// played.
-    fn game_tree(&self) -> GameTree<Self::State, Self::Move, Self::Outcome, P>;
+    fn into_game_tree(self) -> GameTree<Self::State, Self::Move, Self::Utility, Self::Outcome, P>;
+
+    /// Get the corresponding game tree for this game.
+    ///
+    /// The game tree is effectively a step-by-step executable description of how this game is
+    /// played.
+    fn game_tree(&self) -> GameTree<Self::State, Self::Move, Self::Utility, Self::Outcome, P> {
+        self.clone().into_game_tree()
+    }
 
     /// Produce a view of the game state for the given player.
     fn state_view(&self, state: &Self::State, player: PlayerIndex<P>) -> Self::View;
-
-    /// Is this a valid move in the given context?
-    fn is_valid_move(
-        &self,
-        state: &Self::State,
-        player: PlayerIndex<P>,
-        the_move: Self::Move,
-    ) -> bool;
 
     /// The number of players this game is for.
     fn num_players(&self) -> usize {
@@ -96,7 +96,7 @@ pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
                     }
                 }
 
-                Action::End { outcome } => return Ok(outcome),
+                Action::End { outcome, .. } => return Ok(outcome),
             }
         }
     }

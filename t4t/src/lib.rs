@@ -12,13 +12,15 @@
 //!
 //! The library provides a variety of types for defining common kinds of games:
 //!
+//! - [`GameTree`]: A very generic game-tree representation. This is not very convenient to use
+//!   directly, but all games are eventually translated into this type in order to be executed.
 //! - [`Normal`] -- A general representation of n-ary [normal-form games][normal-form-game].
 //!   An arbitrary number of players simultaneously play a single move selected from a finite set
 //!   of available moves.
 //! - [`Simultaneous`] -- N-ary [simultaneous games][simultaneous-game].
 //!   Similar to [`Normal`], except the moves available to each player may be non-finite.
-//! - `Extensive` (coming soon): A simple representation of [extensive-form games][extensive-form-game].
-//!   Games represented as complete game trees, where players take turns making moves,
+//! - `Extensive` (coming soon): A simple representation of [extensive-form games][extensive-form-game],
+//!   that is, games represented as complete game trees, where players take turns making moves,
 //!   possibly with moves of chance interspersed.
 //! - `StateBased` (coming soon): Games that revolve around manipulating a shared state.
 //! - [`Repeated`]: Games where another game is played repeatedly a given number of times.

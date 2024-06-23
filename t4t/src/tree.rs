@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::{Distribution, ErrorKind, Game, Move, Outcome, PlayerIndex, Profile, State, Utility};
@@ -9,13 +10,13 @@ use crate::{Distribution, ErrorKind, Game, Move, Outcome, PlayerIndex, Profile, 
 ///
 /// This trait is effectively a type synonym for the function type it extends. A blanket
 /// implementation covers all possible instances, so it should not be implemented directly.
-pub trait NextGameTree<'g, T, S, M, O, const P: usize>:
-    Fn(Arc<S>, T) -> Result<GameTree<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
+pub trait NextGameTree<T, S, M, U, O, const P: usize>:
+    Fn(Arc<S>, T) -> Result<GameTree<S, M, U, O, P>, ErrorKind<M, P>> + Send + Sync + 'static
 {
 }
 
-impl<'g, F, T, S, M, O, const P: usize> NextGameTree<'g, T, S, M, O, P> for F where
-    F: Fn(Arc<S>, T) -> Result<GameTree<'g, S, M, O, P>, ErrorKind<M, P>> + 'g
+impl<F, T, S, M, U, O, const P: usize> NextGameTree<T, S, M, U, O, P> for F where
+    F: Fn(Arc<S>, T) -> Result<GameTree<S, M, U, O, P>, ErrorKind<M, P>> + Send + Sync + 'static
 {
 }
 
@@ -23,22 +24,22 @@ impl<'g, F, T, S, M, O, const P: usize> NextGameTree<'g, T, S, M, O, P> for F wh
 ///
 /// Subsequent nodes, if applicable, are reachable via the action's `next` function.
 #[derive(Clone)]
-pub struct GameTree<'g, S, M, O, const P: usize> {
+pub struct GameTree<S, M, U, O, const P: usize> {
     /// The game state at this node.
     pub state: Arc<S>,
     /// The action to take at this node.
-    pub action: Action<'g, S, M, O, P>,
+    pub action: Action<S, M, U, O, P>,
 }
 
 /// The game action to perform at a given node in the game tree.
 #[derive(Clone)]
-pub enum Action<'g, S, M, O, const P: usize> {
+pub enum Action<S, M, U, O, const P: usize> {
     /// One or more players play a move simultaneously.
     Turns {
         /// The players to move simultaneously.
         to_move: Vec<PlayerIndex<P>>,
         /// Compute the next node from the moves played by the players.
-        next: Arc<dyn NextGameTree<'g, Vec<M>, S, M, O, P>>,
+        next: Arc<dyn NextGameTree<Vec<M>, S, M, U, O, P>>,
     },
 
     /// Make a move of chance according to the given distribution.
@@ -46,20 +47,22 @@ pub enum Action<'g, S, M, O, const P: usize> {
         /// The distribution to draw a move from.
         distribution: Distribution<M>,
         /// Compute the next node from the move drawn from the distribution.
-        next: Arc<dyn NextGameTree<'g, M, S, M, O, P>>,
+        next: Arc<dyn NextGameTree<M, S, M, U, O, P>>,
     },
 
     /// End a game and return the outcome, which includes the game's payoff.
     End {
         /// The final outcome of the game.
         outcome: O,
+        /// Phantom data to specify the utility value type.
+        utility_type: PhantomData<U>,
     },
 }
 
-impl<'g, S, M: Move, O, const P: usize> Action<'g, S, M, O, P> {
+impl<S, M: Move, U, O, const P: usize> Action<S, M, U, O, P> {
     /// Construct an action where a single player must make a move and the next node is computed
     /// from the move they choose.
-    pub fn player(to_move: PlayerIndex<P>, next: impl NextGameTree<'g, M, S, M, O, P>) -> Self {
+    pub fn player(to_move: PlayerIndex<P>, next: impl NextGameTree<M, S, M, U, O, P>) -> Self {
         Action::players(vec![to_move], move |state, moves| {
             assert_eq!(moves.len(), 1);
             next(state, moves[0])
@@ -70,7 +73,7 @@ impl<'g, S, M: Move, O, const P: usize> Action<'g, S, M, O, P> {
     /// is computed from the moves they choose.
     pub fn players(
         to_move: Vec<PlayerIndex<P>>,
-        next: impl NextGameTree<'g, Vec<M>, S, M, O, P>,
+        next: impl NextGameTree<Vec<M>, S, M, U, O, P>,
     ) -> Self {
         Action::Turns {
             to_move,
@@ -80,7 +83,7 @@ impl<'g, S, M: Move, O, const P: usize> Action<'g, S, M, O, P> {
 
     /// Construct an action where all players must make a move simultaneously and the next node is
     /// computed from the moves they choose.
-    pub fn all_players(next: impl NextGameTree<'g, Profile<M, P>, S, M, O, P>) -> Self {
+    pub fn all_players(next: impl NextGameTree<Profile<M, P>, S, M, U, O, P>) -> Self {
         Action::players(PlayerIndex::all().collect(), move |state, moves| {
             assert_eq!(moves.len(), P);
             next(state, Profile::new(moves.try_into().unwrap()))
@@ -91,7 +94,7 @@ impl<'g, S, M: Move, O, const P: usize> Action<'g, S, M, O, P> {
     /// computed from the selected move.
     pub fn chance(
         distribution: Distribution<M>,
-        next: impl NextGameTree<'g, M, S, M, O, P>,
+        next: impl NextGameTree<M, S, M, U, O, P>,
     ) -> Self {
         Action::Chance {
             distribution,
@@ -101,13 +104,16 @@ impl<'g, S, M: Move, O, const P: usize> Action<'g, S, M, O, P> {
 
     /// Construct an action ending the game with the given outcome.
     pub fn end(outcome: O) -> Self {
-        Action::End { outcome }
+        Action::End {
+            outcome,
+            utility_type: PhantomData,
+        }
     }
 }
 
-impl<'g, S, M: Move, O, const P: usize> GameTree<'g, S, M, O, P> {
+impl<S, M: Move, U, O, const P: usize> GameTree<S, M, U, O, P> {
     /// Construct a new game node with the given state and action.
-    pub fn new(state: Arc<S>, action: Action<'g, S, M, O, P>) -> Self {
+    pub fn new(state: Arc<S>, action: Action<S, M, U, O, P>) -> Self {
         GameTree { state, action }
     }
 
@@ -116,7 +122,7 @@ impl<'g, S, M: Move, O, const P: usize> GameTree<'g, S, M, O, P> {
     pub fn player(
         state: Arc<S>,
         player: PlayerIndex<P>,
-        next: impl NextGameTree<'g, M, S, M, O, P>,
+        next: impl NextGameTree<M, S, M, U, O, P>,
     ) -> Self {
         GameTree::new(state, Action::player(player, next))
     }
@@ -126,7 +132,7 @@ impl<'g, S, M: Move, O, const P: usize> GameTree<'g, S, M, O, P> {
     pub fn players(
         state: Arc<S>,
         players: Vec<PlayerIndex<P>>,
-        next: impl NextGameTree<'g, Vec<M>, S, M, O, P>,
+        next: impl NextGameTree<Vec<M>, S, M, U, O, P>,
     ) -> Self {
         GameTree::new(state, Action::players(players, next))
     }
@@ -135,7 +141,7 @@ impl<'g, S, M: Move, O, const P: usize> GameTree<'g, S, M, O, P> {
     /// is computed from the moves they choose.
     pub fn all_players(
         state: Arc<S>,
-        next: impl NextGameTree<'g, Profile<M, P>, S, M, O, P>,
+        next: impl NextGameTree<Profile<M, P>, S, M, U, O, P>,
     ) -> Self {
         GameTree::new(state, Action::all_players(next))
     }
@@ -145,7 +151,7 @@ impl<'g, S, M: Move, O, const P: usize> GameTree<'g, S, M, O, P> {
     pub fn chance(
         state: Arc<S>,
         distribution: Distribution<M>,
-        next: impl NextGameTree<'g, M, S, M, O, P>,
+        next: impl NextGameTree<M, S, M, U, O, P>,
     ) -> Self {
         GameTree::new(state, Action::chance(distribution, next))
     }
@@ -153,5 +159,23 @@ impl<'g, S, M: Move, O, const P: usize> GameTree<'g, S, M, O, P> {
     /// Construct a game node ending the game with the given outcome.
     pub fn end(state: Arc<S>, outcome: O) -> Self {
         GameTree::new(state, Action::end(outcome))
+    }
+}
+
+impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Game<P>
+    for GameTree<S, M, U, O, P>
+{
+    type Move = M;
+    type Utility = U;
+    type Outcome = O;
+    type State = S;
+    type View = S;
+
+    fn into_game_tree(self) -> GameTree<S, M, U, O, P> {
+        self
+    }
+
+    fn state_view(&self, state: &Self::State, _player: PlayerIndex<P>) -> Self::View {
+        state.clone()
     }
 }

@@ -72,11 +72,11 @@ impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
     }
 }
 
-fn lift_node<'g, G: Game<P> + 'g, const P: usize>(
-    stage_game: &'g G,
+fn lift_node<G: Game<P> + 'static, const P: usize>(
+    stage_game: Arc<G>,
     state: Arc<RepeatedState<G, P>>,
-    node: GameTree<'g, G::State, G::Move, G::Outcome, P>,
-) -> GameTree<'g, RepeatedState<G, P>, G::Move, History<G, P>, P> {
+    node: GameTree<G::State, G::Move, G::Utility, G::Outcome, P>,
+) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, History<G, P>, P> {
     match node.action {
         Action::Turns {
             to_move: players,
@@ -92,7 +92,11 @@ fn lift_node<'g, G: Game<P> + 'g, const P: usize>(
                     let mut next_state = (*state).clone();
                     next_state.stage_state = stage_node.state.clone();
 
-                    Ok(lift_node(stage_game, Arc::new(next_state), stage_node))
+                    Ok(lift_node(
+                        stage_game.clone(),
+                        Arc::new(next_state),
+                        stage_node,
+                    ))
                 }
 
                 Err(kind) => Err(kind),
@@ -110,14 +114,18 @@ fn lift_node<'g, G: Game<P> + 'g, const P: usize>(
                     let mut next_state = (*state).clone();
                     next_state.stage_state = stage_node.state.clone();
 
-                    Ok(lift_node(stage_game, Arc::new(next_state), stage_node))
+                    Ok(lift_node(
+                        stage_game.clone(),
+                        Arc::new(next_state),
+                        stage_node,
+                    ))
                 }
 
                 Err(kind) => Err(kind),
             },
         ),
 
-        Action::End { outcome } if state.remaining > 0 => {
+        Action::End { outcome, .. } if state.remaining > 0 => {
             let stage_node = stage_game.game_tree();
 
             let mut next_state = (*state).clone();
@@ -129,7 +137,7 @@ fn lift_node<'g, G: Game<P> + 'g, const P: usize>(
             lift_node(stage_game, Arc::new(next_state), stage_node)
         }
 
-        Action::End { outcome } => {
+        Action::End { outcome, .. } => {
             let mut history = state.completed.clone(); // TODO avoid this clone
             history.add(outcome);
 
@@ -145,14 +153,16 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
     type State = RepeatedState<G, P>;
     type View = RepeatedState<G, P>; // TODO add RepeatedStateView or some other solution
 
-    fn game_tree(&self) -> GameTree<RepeatedState<G, P>, G::Move, History<G, P>, P> {
+    fn into_game_tree(
+        self,
+    ) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, History<G, P>, P> {
         let init_state = Arc::new(RepeatedState::new(
             self.stage_game.clone(),
             self.repetitions - 1,
         ));
 
         lift_node(
-            self.stage_game.as_ref(),
+            self.stage_game.clone(),
             init_state,
             self.stage_game.game_tree(),
         )
@@ -164,16 +174,6 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
         _player: PlayerIndex<P>,
     ) -> RepeatedState<G, P> {
         state.clone() // TODO
-    }
-
-    fn is_valid_move(
-        &self,
-        state: &Self::State,
-        player: PlayerIndex<P>,
-        the_move: Self::Move,
-    ) -> bool {
-        self.stage_game
-            .is_valid_move(&state.stage_state, player, the_move)
     }
 }
 

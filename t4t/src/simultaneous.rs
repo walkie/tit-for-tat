@@ -125,7 +125,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     type State = ();
     type View = ();
 
-    fn game_tree(&self) -> GameTree<(), M, SimultaneousOutcome<M, U, P>, P> {
+    fn into_game_tree(self) -> GameTree<(), M, U, SimultaneousOutcome<M, U, P>, P> {
         let state = Arc::new(());
         GameTree::all_players(state.clone(), move |_, profile| {
             for ply in profile.plies() {
@@ -142,10 +142,6 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     }
 
     fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
-
-    fn is_valid_move(&self, _state: &(), player: PlayerIndex<P>, the_move: M) -> bool {
-        self.is_valid_move_for_player(player, the_move)
-    }
 }
 
 #[cfg(test)]

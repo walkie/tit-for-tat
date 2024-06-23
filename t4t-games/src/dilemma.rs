@@ -78,7 +78,12 @@ impl Dilemma {
         Dilemma { game, utils }
     }
 
-    /// Get the normal form representation of this game.
+    /// Convert this game into its normal-form representation.
+    pub fn into_normal(self) -> Normal<Move, i64, 2> {
+        self.game
+    }
+
+    /// Get the normal-form representation of this game.
     pub fn as_normal(&self) -> &Normal<Move, i64, 2> {
         &self.game
     }
@@ -386,15 +391,11 @@ impl Game<2> for Dilemma {
     type State = ();
     type View = ();
 
-    fn game_tree(&self) -> GameTree<(), Move, SimultaneousOutcome<Move, i64, 2>, 2> {
-        self.as_normal().game_tree()
+    fn into_game_tree(self) -> GameTree<(), Move, i64, SimultaneousOutcome<Move, i64, 2>, 2> {
+        self.into_normal().into_game_tree()
     }
 
     fn state_view(&self, _state: &(), _player: PlayerIndex<2>) {}
-
-    fn is_valid_move(&self, _state: &(), _player: PlayerIndex<2>, _the_move: Move) -> bool {
-        true
-    }
 }
 
 // Strategies
