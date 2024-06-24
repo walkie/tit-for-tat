@@ -3,12 +3,12 @@ use crate::{Distribution, Move, PlayerIndex, State};
 /// The strategic context in which a player makes a move during a game.
 ///
 /// This type includes all information, besides the definition of the stage game, that a strategy
-/// may use to compute its next move. It includes the player's index, the player's view of the game
-/// state, a transcript of actions so far, and the current score.
+/// may use to compute its next move. It includes the player's index and the player's view of the
+/// game state.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Context<V, const P: usize> {
-    state_view: V,
     index: PlayerIndex<P>,
+    state_view: V,
 }
 
 impl<V: State, const P: usize> Context<V, P> {
