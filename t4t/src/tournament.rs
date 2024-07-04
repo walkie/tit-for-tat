@@ -141,7 +141,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     }
 
     /// Construct a new tournament where the matchups are all
-    /// [premutations](https://en.wikipedia.org/wiki/Permutation)
+    /// [permutations](https://en.wikipedia.org/wiki/Permutation)
     /// [with replacement](https://en.wikipedia.org/wiki/Sampling_(statistics)#Replacement_of_selected_units)
     /// of the given list of players.
     ///
@@ -194,7 +194,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     }
 
     /// Construct a new tournament where the matchups are all
-    /// [premutations](https://en.wikipedia.org/wiki/Permutation)
+    /// [permutations](https://en.wikipedia.org/wiki/Permutation)
     /// [without replacement](https://en.wikipedia.org/wiki/Sampling_(statistics)#Replacement_of_selected_units)
     /// of the given list of players.
     ///

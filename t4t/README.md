@@ -20,7 +20,7 @@ defining games and strategies, then executing them to observe the results.
 ## Reach out
 
 If you use this library for something, or are considering using it, I'd love to hear about it!
-Please get in touch using the contact info on my [Github profile][github-profile].
+Please get in touch using the contact info on my [GitHub profile][github-profile].
 
 
 [github-build]: https://github.com/walkie/tit-for-tat/actions

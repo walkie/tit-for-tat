@@ -111,7 +111,7 @@ impl<V: State + 'static, M: Move, const P: usize> Strategy<V, M, P> {
         mut on_false: Strategy<V, M, P>,
     ) -> Self {
         Strategy::new(move |context| {
-            if (condition)(context) {
+            if condition(context) {
                 on_true.next_move(context)
             } else {
                 on_false.next_move(context)
@@ -129,7 +129,7 @@ impl<V: State + 'static, M: Move, const P: usize> Strategy<V, M, P> {
         let mut triggered = false;
         Strategy::new(move |context| {
             if !triggered {
-                triggered = (trigger)(context);
+                triggered = trigger(context);
             }
             if triggered {
                 after.next_move(context)

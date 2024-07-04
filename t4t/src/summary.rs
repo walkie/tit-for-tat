@@ -151,7 +151,7 @@ impl<const P: usize> Summary<P> {
 impl<const P: usize> Add<Self> for Summary<P> {
     type Output = Self;
 
-    /// Combine two summaries by adding all of the corresponding move counts.
+    /// Combine two summaries by adding all the corresponding move counts.
     ///
     /// # Examples
     /// ```

@@ -32,7 +32,7 @@ pub trait Outcome<M: Move, U: Utility, const P: usize>:
 /// The profile of moves played by each player and the resulting payoff.
 ///
 /// For normal-form games, an outcome corresponds to a cell in the payoff table. The profile is the
-/// address of the cell and the payoff is its value.
+/// address of the cell, the payoff is its value.
 #[derive(Clone, Debug, PartialEq, Hash)]
 pub struct SimultaneousOutcome<M: Move, U: Utility, const P: usize> {
     profile: Profile<M, P>,
