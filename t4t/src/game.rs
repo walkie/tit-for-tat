@@ -14,6 +14,10 @@ pub type PlayResult<G, const P: usize> =
     Result<<G as Game<P>>::Outcome, Error<<G as Game<P>>::State, <G as Game<P>>::Move, P>>;
 
 /// A root trait that all games implement.
+///
+/// # Future work
+/// The const generic parameter `P` will be replaced by an associated constant when
+/// [this Rust issue](https://github.com/rust-lang/rust/issues/60551) is resolved.
 pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
     /// The type of moves played by players in this game.
     type Move: Move;
