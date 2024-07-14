@@ -10,10 +10,10 @@ categories = ["mathematics", "simulation"]
 keywords = ["game-theory", "economics", "evolution"]
 
 [dependencies]
-derive_more = "0.99.17"
+derive_more = "0.99.18"
 dyn-clone = "1.0.17"
 itertools = "0.13.0"
-log = "0.4.21"
+log = "0.4.22"
 num = "0.4.3"
 rand = "0.8.5"
 rand_distr = "0.4.3"
@@ -22,4 +22,4 @@ rayon = "1.10.0"
 [dev-dependencies]
 env_logger = "0.11.3"
 impls = "1.0.3"
-test-log = "0.2.12"
+test-log = "0.2.16"
