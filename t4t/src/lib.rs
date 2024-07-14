@@ -178,7 +178,9 @@
 //!
 //! # This is a work in progress!
 //!
-//! The library is a work-in-progress and will continue expanding and evolving.
+//! The library is a work-in-progress and will continue expanding and evolving. For now, expect
+//! breaking changes on even patch-level version changes. Minor version changes will indicate
+//! significant new features.
 //!
 //! The type- and method-level documentation is very good in places, minimal in others.
 //!
