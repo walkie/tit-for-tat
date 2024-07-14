@@ -1,4 +1,4 @@
-use crate::{Game, Matchup, Outcome, PerPlayer, PlayResult, Player, Score};
+use crate::{Matchup, Outcome, PerPlayer, PlayResult, Playable, Player, Score};
 use itertools::Itertools;
 use log::error;
 use rayon::prelude::*;
@@ -7,20 +7,20 @@ use std::sync::Arc;
 
 /// A tournament in which several players play a game in a series of matchups, executed in parallel.
 #[derive(Clone, Debug)]
-pub struct Tournament<G: Game<P>, const P: usize> {
+pub struct Tournament<G: Playable<P>, const P: usize> {
     game: Arc<G>,
     matchups: Vec<Matchup<G, P>>,
 }
 
 /// The collected results from running a tournament.
 #[derive(Clone, Debug, PartialEq)]
-pub struct TournamentResult<G: Game<P>, const P: usize> {
+pub struct TournamentResult<G: Playable<P>, const P: usize> {
     results: HashMap<PerPlayer<String, P>, PlayResult<G, P>>,
     score: Score<G::Utility>,
     has_errors: bool,
 }
 
-impl<G: Game<P>, const P: usize> Tournament<G, P> {
+impl<G: Playable<P>, const P: usize> Tournament<G, P> {
     /// Construct a new tournament for the given game with the given list of matchups.
     pub fn new(game: Arc<G>, matchups: Vec<Matchup<G, P>>) -> Self {
         Tournament { game, matchups }
@@ -349,7 +349,7 @@ impl<G: Game<P>, const P: usize> Tournament<G, P> {
     }
 }
 
-impl<G: Game<P>, const P: usize> TournamentResult<G, P> {
+impl<G: Playable<P>, const P: usize> TournamentResult<G, P> {
     /// The individual play result of each matchup.
     pub fn results(&self) -> &HashMap<PerPlayer<String, P>, PlayResult<G, P>> {
         &self.results

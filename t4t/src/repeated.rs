@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::{Action, FiniteGame, Game, GameTree, History, PlayerIndex, PossibleMoves};
+use crate::{Action, FiniteGame, Game, GameTree, History, Playable, PlayerIndex, PossibleMoves};
 
 /// A finitely [repeated](https://en.wikipedia.org/wiki/Repeated_game) or iterated version of game
 /// `G`.
@@ -43,7 +43,7 @@ impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
     }
 }
 
-impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
+impl<G: Playable<P>, const P: usize> RepeatedState<G, P> {
     /// Construct a new repeated game state.
     pub fn new(stage_game: Arc<G>, remaining: usize) -> Self {
         let stage_state = stage_game.game_tree().state.clone();
@@ -72,7 +72,7 @@ impl<G: Game<P>, const P: usize> RepeatedState<G, P> {
     }
 }
 
-fn lift_node<G: Game<P> + 'static, const P: usize>(
+fn lift_node<G: Playable<P> + 'static, const P: usize>(
     stage_game: Arc<G>,
     state: Arc<RepeatedState<G, P>>,
     node: GameTree<G::State, G::Move, G::Utility, G::Outcome, P>,
@@ -153,6 +153,16 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
     type State = RepeatedState<G, P>;
     type View = RepeatedState<G, P>; // TODO add RepeatedStateView or some other solution
 
+    fn state_view(
+        &self,
+        state: &RepeatedState<G, P>,
+        _player: PlayerIndex<P>,
+    ) -> RepeatedState<G, P> {
+        state.clone() // TODO
+    }
+}
+
+impl<G: Playable<P> + 'static, const P: usize> Playable<P> for Repeated<G, P> {
     fn into_game_tree(
         self,
     ) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, History<G, P>, P> {
@@ -166,14 +176,6 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
             init_state,
             self.stage_game.game_tree(),
         )
-    }
-
-    fn state_view(
-        &self,
-        state: &RepeatedState<G, P>,
-        _player: PlayerIndex<P>,
-    ) -> RepeatedState<G, P> {
-        state.clone() // TODO
     }
 }
 

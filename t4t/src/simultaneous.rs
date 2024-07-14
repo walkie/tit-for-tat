@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    ErrorKind, Game, GameTree, Move, Payoff, PerPlayer, PlayerIndex, Profile, Record,
+    ErrorKind, Game, GameTree, Move, Payoff, PerPlayer, Playable, PlayerIndex, Profile, Record,
     SimultaneousOutcome, Utility,
 };
 
@@ -124,7 +124,10 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     type Outcome = SimultaneousOutcome<M, U, P>;
     type State = ();
     type View = ();
+    fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
+}
 
+impl<M: Move, U: Utility, const P: usize> Playable<P> for Simultaneous<M, U, P> {
     fn into_game_tree(self) -> GameTree<(), M, U, SimultaneousOutcome<M, U, P>, P> {
         let state = Arc::new(());
         GameTree::all_players(state.clone(), move |_, profile| {
@@ -140,8 +143,6 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
             ))
         })
     }
-
-    fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
 }
 
 #[cfg(test)]

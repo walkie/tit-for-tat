@@ -390,12 +390,13 @@ impl Game<2> for Dilemma {
     type Outcome = SimultaneousOutcome<Move, i64, 2>;
     type State = ();
     type View = ();
+    fn state_view(&self, _state: &(), _player: PlayerIndex<2>) {}
+}
 
+impl Playable<2> for Dilemma {
     fn into_game_tree(self) -> GameTree<(), Move, i64, SimultaneousOutcome<Move, i64, 2>, 2> {
         self.into_normal().into_game_tree()
     }
-
-    fn state_view(&self, _state: &(), _player: PlayerIndex<2>) {}
 }
 
 // Strategies

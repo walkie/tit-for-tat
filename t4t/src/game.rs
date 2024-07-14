@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Action, Context, Error, GameTree, Matchup, Move, Outcome, PlayerIndex, Utility};
+use crate::{Move, Outcome, PlayerIndex, Utility};
 
 /// A trait that collects the trait requirements of a game state.
 ///
@@ -9,15 +9,30 @@ use crate::{Action, Context, Error, GameTree, Matchup, Move, Outcome, PlayerInde
 pub trait State: Clone + Debug + PartialEq + Send + Sync + 'static {}
 impl<T: Clone + Debug + PartialEq + Send + Sync + 'static> State for T {}
 
-/// The result of playing a game. Either an outcome or an error.
-pub type PlayResult<G, const P: usize> =
-    Result<<G as Game<P>>::Outcome, Error<<G as Game<P>>::State, <G as Game<P>>::Move, P>>;
-
 /// A root trait that all games implement.
 ///
+/// This trait primarily serves two purposes:
+/// - It specifies the trait requirements of all game types via its supertraits.
+/// - It defines a set of associated types, common to all games, which simplifies type signatures
+///   elsewhere.
+///
+/// Additionally, for games with hidden information, it defines the relationship between the
+/// primary game state and the view of that state available to each player.
+///
 /// # Future work
-/// The const generic parameter `P` will be replaced by an associated constant when
-/// [this Rust issue](https://github.com/rust-lang/rust/issues/60551) is resolved.
+/// There are two improvements planned for this trait, pending the stabilization of certain Rust
+/// features:
+///
+/// - The const generic parameter `P` will be replaced by an associated constant when
+///   [this Rust issue](https://github.com/rust-lang/rust/issues/60551) is resolved, allowing
+///   associated constants to be used in const generics. This will simplify many type signatures
+///   throughout the library.
+///
+/// - The associated type `View` will default to the associated type `State`, and the `state_view`
+///   method will default to simply return the state unchanged, when
+///   [associated type defaults](https://github.com/rust-lang/rust/issues/29661) are stabilized,
+///   allowing implementers to skip specifying these for the common case of perfect-information
+///   games.
 pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
     /// The type of moves played by players in this game.
     type Move: Move;
@@ -40,68 +55,13 @@ pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
     /// state that are not visible to players while making strategic decisions.
     type View: State;
 
-    /// Convert this game into the corresponding game tree.
-    ///
-    /// The game tree is effectively a step-by-step executable description of how this game is
-    /// played.
-    fn into_game_tree(self) -> GameTree<Self::State, Self::Move, Self::Utility, Self::Outcome, P>;
-
-    /// Get the corresponding game tree for this game.
-    ///
-    /// The game tree is effectively a step-by-step executable description of how this game is
-    /// played.
-    fn game_tree(&self) -> GameTree<Self::State, Self::Move, Self::Utility, Self::Outcome, P> {
-        self.clone().into_game_tree()
-    }
-
     /// Produce a view of the game state for the given player.
+    ///
+    /// For perfect-information games, this should return the original state unchanged.
     fn state_view(&self, state: &Self::State, player: PlayerIndex<P>) -> Self::View;
 
     /// The number of players this game is for.
     fn num_players(&self) -> usize {
         P
-    }
-
-    /// Play this game with the given players by executing the game tree.
-    ///
-    /// Produces a value of the game's outcome type on success, otherwise an error.
-    fn play(&self, matchup: &Matchup<Self, P>) -> PlayResult<Self, P> {
-        let mut node = self.game_tree();
-        let mut strategies = matchup.strategies();
-
-        loop {
-            match node.action {
-                Action::Turns { to_move, next } => {
-                    let moves = to_move
-                        .iter()
-                        .map(|&index| {
-                            let view = self.state_view(&node.state, index);
-                            let context = Context::new(index, view);
-                            strategies[index].next_move(&context)
-                        })
-                        .collect();
-
-                    match next(node.state.clone(), moves) {
-                        Ok(next_node) => node = next_node,
-                        Err(kind) => {
-                            return Err(Error::new(node.state, kind));
-                        }
-                    }
-                }
-
-                Action::Chance { distribution, next } => {
-                    let the_move = distribution.sample();
-
-                    match next(node.state.clone(), *the_move) {
-                        Ok(next_node) => node = next_node,
-                        Err(kind) => {
-                            return Err(Error::new(node.state, kind));
-                        }
-                    }
-                }
-
-                Action::End { outcome, .. } => return Ok(outcome),
-            }
-        }
     }
 }

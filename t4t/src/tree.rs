@@ -1,7 +1,9 @@
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::{Distribution, ErrorKind, Game, Move, Outcome, PlayerIndex, Profile, State, Utility};
+use crate::{
+    Distribution, ErrorKind, Game, Move, Outcome, Playable, PlayerIndex, Profile, State, Utility,
+};
 
 /// The outgoing edges of a node in a game tree, represented as a function.
 ///
@@ -171,11 +173,15 @@ impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Game<P>
     type State = S;
     type View = S;
 
-    fn into_game_tree(self) -> GameTree<S, M, U, O, P> {
-        self
-    }
-
     fn state_view(&self, state: &Self::State, _player: PlayerIndex<P>) -> Self::View {
         state.clone()
+    }
+}
+
+impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Playable<P>
+    for GameTree<S, M, U, O, P>
+{
+    fn into_game_tree(self) -> GameTree<S, M, U, O, P> {
+        self
     }
 }

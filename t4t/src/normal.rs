@@ -6,9 +6,9 @@ use std::iter::Iterator;
 use std::sync::Arc;
 
 use crate::{
-    Dominated, ErrorKind, FiniteGame, Game, GameTree, Move, Outcome, Payoff, PerPlayer,
-    PlayerIndex, PossibleMoves, PossibleOutcomes, PossibleProfiles, Profile, Record, Simultaneous,
-    SimultaneousOutcome, Utility,
+    Dominated, FiniteGame, Game, GameTree, Move, Outcome, Payoff, PerPlayer, Playable, PlayerIndex,
+    PossibleMoves, PossibleOutcomes, PossibleProfiles, Profile, Simultaneous, SimultaneousOutcome,
+    Utility,
 };
 
 /// A game represented in [normal form](https://en.wikipedia.org/wiki/Normal-form_game).
@@ -385,9 +385,8 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
     }
 
     /// Get this normal form game as a simultaneous move game.
-    pub fn as_simultaneous(&self) -> Simultaneous<M, U, P> {
-        let moves = self.moves.clone();
-        let payoff_fn = self.payoff_fn.clone();
+    pub fn into_simultaneous(self) -> Simultaneous<M, U, P> {
+        let Normal { moves, payoff_fn } = self;
         Simultaneous::from_payoff_fn(
             move |player, the_move| moves[player].contains(&the_move),
             move |profile| payoff_fn(profile),
@@ -943,24 +942,13 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type Outcome = SimultaneousOutcome<M, U, P>;
     type State = ();
     type View = ();
-
-    fn into_game_tree(self) -> GameTree<(), M, U, SimultaneousOutcome<M, U, P>, P> {
-        let state = Arc::new(());
-        GameTree::all_players(state.clone(), move |_, profile| {
-            for ply in profile.plies() {
-                let player = ply.player.unwrap();
-                if !self.is_valid_move_for_player(player, ply.the_move) {
-                    return Err(ErrorKind::InvalidMove(player, ply.the_move));
-                }
-            }
-            Ok(GameTree::end(
-                state.clone(),
-                SimultaneousOutcome::new(profile, self.payoff(profile)),
-            ))
-        })
-    }
-
     fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
+}
+
+impl<M: Move, U: Utility, const P: usize> Playable<P> for Normal<M, U, P> {
+    fn into_game_tree(self) -> GameTree<(), M, U, SimultaneousOutcome<M, U, P>, P> {
+        self.into_simultaneous().into_game_tree()
+    }
 }
 
 impl<M: Move, U: Utility, const P: usize> FiniteGame<P> for Normal<M, U, P> {
