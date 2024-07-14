@@ -1,6 +1,6 @@
 [package]
 name = "t4t-games"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Eric Walkingshaw <eric@walkingshaw.net>"]
 edition = "2021"
 description = "A library of games and strategies built with t4t."
