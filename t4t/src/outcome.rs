@@ -186,6 +186,18 @@ impl<'g, M: Move, U: Utility, const P: usize> Iterator for PossibleOutcomes<'g, 
     }
 }
 
+impl<M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Outcome<M, U, P> for Arc<O> {
+    type Record = O::Record;
+
+    fn record(&self) -> &Self::Record {
+        self.as_ref().record()
+    }
+
+    fn payoff(&self) -> &Payoff<U, P> {
+        self.as_ref().payoff()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

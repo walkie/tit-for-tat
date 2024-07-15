@@ -42,7 +42,7 @@
 //! - [`Playable`]: Defines a common interface for playing games via translation to the [`GameTree`]
 //!   type.
 //!
-//! - [`FiniteGame`]: Provides a method to enumerate the moves available to a player in games where
+//! - [`Finite`]: Provides a method to enumerate the moves available to a player in games where
 //!   this set is finite.
 //!
 //! If you'd like to define your own completely new game forms or transformations, you will need to

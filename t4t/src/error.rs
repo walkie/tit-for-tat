@@ -1,5 +1,4 @@
 use std::fmt::{Debug, Display};
-use std::sync::Arc;
 
 use crate::{Move, PlayerIndex, State};
 
@@ -7,14 +6,14 @@ use crate::{Move, PlayerIndex, State};
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Error<S, M, const P: usize> {
     /// The current state at the point of the error.
-    pub state: Arc<S>,
+    pub state: S,
     /// The kind of error that occurred.
     pub kind: ErrorKind<M, P>,
 }
 
 impl<S, M, const P: usize> Error<S, M, P> {
     /// Construct a new gameplay error.
-    pub fn new(state: Arc<S>, kind: ErrorKind<M, P>) -> Self {
+    pub fn new(state: S, kind: ErrorKind<M, P>) -> Self {
         Error { state, kind }
     }
 }

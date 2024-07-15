@@ -13,12 +13,12 @@ use crate::{
 /// This trait is effectively a type synonym for the function type it extends. A blanket
 /// implementation covers all possible instances, so it should not be implemented directly.
 pub trait NextGameTree<T, S, M, U, O, const P: usize>:
-    Fn(Arc<S>, T) -> Result<GameTree<S, M, U, O, P>, ErrorKind<M, P>> + Send + Sync + 'static
+    Fn(S, T) -> Result<GameTree<S, M, U, O, P>, ErrorKind<M, P>> + Send + Sync + 'static
 {
 }
 
 impl<F, T, S, M, U, O, const P: usize> NextGameTree<T, S, M, U, O, P> for F where
-    F: Fn(Arc<S>, T) -> Result<GameTree<S, M, U, O, P>, ErrorKind<M, P>> + Send + Sync + 'static
+    F: Fn(S, T) -> Result<GameTree<S, M, U, O, P>, ErrorKind<M, P>> + Send + Sync + 'static
 {
 }
 
@@ -28,7 +28,7 @@ impl<F, T, S, M, U, O, const P: usize> NextGameTree<T, S, M, U, O, P> for F wher
 #[derive(Clone)]
 pub struct GameTree<S, M, U, O, const P: usize> {
     /// The game state at this node.
-    pub state: Arc<S>,
+    pub state: S,
     /// The action to take at this node.
     pub action: Action<S, M, U, O, P>,
 }
@@ -63,14 +63,14 @@ pub enum Action<S, M, U, O, const P: usize> {
 
 impl<S, M: Move, U, O, const P: usize> GameTree<S, M, U, O, P> {
     /// Construct a new game node with the given state and action.
-    pub fn new(state: Arc<S>, action: Action<S, M, U, O, P>) -> Self {
+    pub fn new(state: S, action: Action<S, M, U, O, P>) -> Self {
         GameTree { state, action }
     }
 
     /// Construct a game node where a single player must make a move and the next node is computed
     /// from the move they choose.
     pub fn player(
-        state: Arc<S>,
+        state: S,
         player: PlayerIndex<P>,
         next: impl NextGameTree<M, S, M, U, O, P>,
     ) -> Self {
@@ -80,7 +80,7 @@ impl<S, M: Move, U, O, const P: usize> GameTree<S, M, U, O, P> {
     /// Construct a game node where several players must make a move simultaneously and the next
     /// node is computed from the moves they choose.
     pub fn players(
-        state: Arc<S>,
+        state: S,
         players: Vec<PlayerIndex<P>>,
         next: impl NextGameTree<Vec<M>, S, M, U, O, P>,
     ) -> Self {
@@ -89,17 +89,14 @@ impl<S, M: Move, U, O, const P: usize> GameTree<S, M, U, O, P> {
 
     /// Construct a game node where all players must make a move simultaneously and the next node
     /// is computed from the moves they choose.
-    pub fn all_players(
-        state: Arc<S>,
-        next: impl NextGameTree<Profile<M, P>, S, M, U, O, P>,
-    ) -> Self {
+    pub fn all_players(state: S, next: impl NextGameTree<Profile<M, P>, S, M, U, O, P>) -> Self {
         GameTree::new(state, Action::all_players(next))
     }
 
     /// Construct a game node where a move is selected from a distribution and the next node is
     /// computed from the selected move.
     pub fn chance(
-        state: Arc<S>,
+        state: S,
         distribution: Distribution<M>,
         next: impl NextGameTree<M, S, M, U, O, P>,
     ) -> Self {
@@ -107,7 +104,7 @@ impl<S, M: Move, U, O, const P: usize> GameTree<S, M, U, O, P> {
     }
 
     /// Construct a game node ending the game with the given outcome.
-    pub fn end(state: Arc<S>, outcome: O) -> Self {
+    pub fn end(state: S, outcome: O) -> Self {
         GameTree::new(state, Action::end(outcome))
     }
 }

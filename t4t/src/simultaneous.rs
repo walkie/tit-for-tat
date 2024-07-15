@@ -129,8 +129,7 @@ impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
 
 impl<M: Move, U: Utility, const P: usize> Playable<P> for Simultaneous<M, U, P> {
     fn into_game_tree(self) -> GameTree<(), M, U, SimultaneousOutcome<M, U, P>, P> {
-        let state = Arc::new(());
-        GameTree::all_players(state.clone(), move |_, profile| {
+        GameTree::all_players((), move |_, profile| {
             for ply in profile.plies() {
                 let player = ply.player.unwrap();
                 if !self.is_valid_move_for_player(player, ply.the_move) {
@@ -138,7 +137,7 @@ impl<M: Move, U: Utility, const P: usize> Playable<P> for Simultaneous<M, U, P> 
                 }
             }
             Ok(GameTree::end(
-                state.clone(),
+                (),
                 SimultaneousOutcome::new(profile, self.payoff(profile)),
             ))
         })

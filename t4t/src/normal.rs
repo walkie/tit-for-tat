@@ -6,7 +6,7 @@ use std::iter::Iterator;
 use std::sync::Arc;
 
 use crate::{
-    Dominated, FiniteGame, Game, GameTree, Move, Outcome, Payoff, PerPlayer, Playable, PlayerIndex,
+    Dominated, Finite, Game, GameTree, Move, Outcome, Payoff, PerPlayer, Playable, PlayerIndex,
     PossibleMoves, PossibleOutcomes, PossibleProfiles, Profile, Simultaneous, SimultaneousOutcome,
     Utility,
 };
@@ -951,7 +951,7 @@ impl<M: Move, U: Utility, const P: usize> Playable<P> for Normal<M, U, P> {
     }
 }
 
-impl<M: Move, U: Utility, const P: usize> FiniteGame<P> for Normal<M, U, P> {
+impl<M: Move, U: Utility, const P: usize> Finite<P> for Normal<M, U, P> {
     fn possible_moves(&self, player: PlayerIndex<P>, _state: &()) -> PossibleMoves<'_, M> {
         self.possible_moves_for_player(player)
     }
