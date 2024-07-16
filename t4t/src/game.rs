@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Move, Outcome, PlayerIndex, Utility};
+use crate::{Move, PlayerIndex, Utility};
 
 /// A trait that collects the trait requirements of a game state.
 ///
@@ -39,12 +39,6 @@ pub trait Game<const P: usize>: Clone + Sized + Send + Sync {
 
     /// The type of utility values awarded to each player at the end of the game.
     type Utility: Utility;
-
-    /// The type of value produced by playing the game.
-    /// - For simultaneous games: [`SimultaneousOutcome`](crate::SimultaneousOutcome)
-    /// - For sequential games: [`SequentialOutcome`](crate::SequentialOutcome)
-    /// - For repeated games: [`History`](crate::History)
-    type Outcome: Outcome<Self::Move, Self::Utility, P>;
 
     /// The type of intermediate game state used during the execution of the game.
     type State: State;

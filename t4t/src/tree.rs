@@ -166,7 +166,6 @@ impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Game<P>
 {
     type Move = M;
     type Utility = U;
-    type Outcome = O;
     type State = S;
     type View = S;
 
@@ -178,6 +177,8 @@ impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Game<P>
 impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Playable<P>
     for GameTree<S, M, U, O, P>
 {
+    type Outcome = O;
+
     fn into_game_tree(self) -> GameTree<S, M, U, O, P> {
         self
     }

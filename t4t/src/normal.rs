@@ -939,13 +939,14 @@ impl<M: Move, U: Utility> Normal<M, U, 4> {
 impl<M: Move, U: Utility, const P: usize> Game<P> for Normal<M, U, P> {
     type Move = M;
     type Utility = U;
-    type Outcome = SimultaneousOutcome<M, U, P>;
     type State = ();
     type View = ();
     fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
 }
 
 impl<M: Move, U: Utility, const P: usize> Playable<P> for Normal<M, U, P> {
+    type Outcome = SimultaneousOutcome<M, U, P>;
+
     fn into_game_tree(self) -> GameTree<(), M, U, SimultaneousOutcome<M, U, P>, P> {
         self.into_simultaneous().into_game_tree()
     }

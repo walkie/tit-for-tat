@@ -1,8 +1,8 @@
-use crate::{Action, Context, Error, Game, GameTree, Matchup};
+use crate::{Action, Context, Error, Game, GameTree, Matchup, Outcome};
 
 /// The result of playing a game. Either an outcome or an error.
 pub type PlayResult<G, const P: usize> =
-    Result<<G as Game<P>>::Outcome, Error<<G as Game<P>>::State, <G as Game<P>>::Move, P>>;
+    Result<<G as Playable<P>>::Outcome, Error<<G as Game<P>>::State, <G as Game<P>>::Move, P>>;
 
 /// A shared interface for playing games.
 ///
@@ -10,6 +10,12 @@ pub type PlayResult<G, const P: usize> =
 /// [`GameTree`], which can then be played by executing the game tree with a given matchup of
 /// players.
 pub trait Playable<const P: usize>: Game<P> {
+    /// The type of value produced by playing the game.
+    /// - For simultaneous games: [`SimultaneousOutcome`](crate::SimultaneousOutcome)
+    /// - For sequential games: [`SequentialOutcome`](crate::SequentialOutcome)
+    /// - For repeated games: [`History`](crate::History)
+    type Outcome: Outcome<Self::Move, Self::Utility, P>;
+
     /// Convert this game into the corresponding game tree.
     ///
     /// The game tree is effectively a step-by-step executable description of how this game is

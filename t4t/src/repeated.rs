@@ -16,7 +16,7 @@ pub struct Repeated<G: Game<P>, const P: usize> {
 
 /// The intermediate state of a repeated game.
 #[derive(Clone)]
-pub struct RepeatedState<G: Game<P>, const P: usize> {
+pub struct RepeatedState<G: Playable<P>, const P: usize> {
     stage_game: Arc<G>,
     stage_state: G::State,
     completed: Arc<History<G, P>>,
@@ -167,10 +167,9 @@ fn generate_tree<G: Playable<P> + 'static, const P: usize>(
     }
 }
 
-impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
+impl<G: Playable<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
     type Move = G::Move;
     type Utility = G::Utility;
-    type Outcome = Arc<History<G, P>>;
     type State = RepeatedState<G, P>;
     type View = RepeatedState<G, P>; // TODO add RepeatedStateView or some other solution
 
@@ -184,6 +183,8 @@ impl<G: Game<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
 }
 
 impl<G: Playable<P> + 'static, const P: usize> Playable<P> for Repeated<G, P> {
+    type Outcome = Arc<History<G, P>>;
+
     fn into_game_tree(
         self,
     ) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, Arc<History<G, P>>, P> {
@@ -194,7 +195,7 @@ impl<G: Playable<P> + 'static, const P: usize> Playable<P> for Repeated<G, P> {
     }
 }
 
-impl<G: Finite<P> + 'static, const P: usize> Finite<P> for Repeated<G, P> {
+impl<G: Playable<P> + Finite<P> + 'static, const P: usize> Finite<P> for Repeated<G, P> {
     fn possible_moves(
         &self,
         player: PlayerIndex<P>,
@@ -204,7 +205,7 @@ impl<G: Finite<P> + 'static, const P: usize> Finite<P> for Repeated<G, P> {
     }
 }
 
-impl<G: Game<P>, const P: usize> fmt::Debug for RepeatedState<G, P> {
+impl<G: Playable<P>, const P: usize> fmt::Debug for RepeatedState<G, P> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("RepeatedState")
             .field("stage_state", &self.stage_state)
@@ -214,7 +215,7 @@ impl<G: Game<P>, const P: usize> fmt::Debug for RepeatedState<G, P> {
     }
 }
 
-impl<G: Game<P>, const P: usize> PartialEq for RepeatedState<G, P> {
+impl<G: Playable<P>, const P: usize> PartialEq for RepeatedState<G, P> {
     fn eq(&self, other: &Self) -> bool {
         self.stage_state == other.stage_state
             && self.completed == other.completed

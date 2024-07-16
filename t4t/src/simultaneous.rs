@@ -121,13 +121,14 @@ impl<M: Move, U: Utility, const P: usize> Simultaneous<M, U, P> {
 impl<M: Move, U: Utility, const P: usize> Game<P> for Simultaneous<M, U, P> {
     type Move = M;
     type Utility = U;
-    type Outcome = SimultaneousOutcome<M, U, P>;
     type State = ();
     type View = ();
     fn state_view(&self, _state: &(), _player: PlayerIndex<P>) {}
 }
 
 impl<M: Move, U: Utility, const P: usize> Playable<P> for Simultaneous<M, U, P> {
+    type Outcome = SimultaneousOutcome<M, U, P>;
+
     fn into_game_tree(self) -> GameTree<(), M, U, SimultaneousOutcome<M, U, P>, P> {
         GameTree::all_players((), move |_, profile| {
             for ply in profile.plies() {

@@ -387,13 +387,14 @@ impl Dilemma {
 impl Game<2> for Dilemma {
     type Move = Move;
     type Utility = i64;
-    type Outcome = SimultaneousOutcome<Move, i64, 2>;
     type State = ();
     type View = ();
     fn state_view(&self, _state: &(), _player: PlayerIndex<2>) {}
 }
 
 impl Playable<2> for Dilemma {
+    type Outcome = SimultaneousOutcome<Move, i64, 2>;
+
     fn into_game_tree(self) -> GameTree<(), Move, i64, SimultaneousOutcome<Move, i64, 2>, 2> {
         self.into_normal().into_game_tree()
     }
