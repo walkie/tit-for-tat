@@ -19,7 +19,7 @@
 //! repeated forms of such games, including the famous [tit-for-tat strategy][tft-strategy] from
 //! which the t4t library gets its name!
 //!
-//! # Rock-paper-scissors games ([rps])
+//! # Rock-paper-scissors games ([rock_paper_scissors])
 //!
 //! This module includes the classic [rock-paper-scissors][rps-game] game plus a few variant games
 //! involving either more moves or more players.
@@ -34,4 +34,4 @@
 //! [rps-game]: https://en.wikipedia.org/wiki/Rock_paper_scissors
 
 pub mod dilemma;
-pub mod rps;
+pub mod rock_paper_scissors;

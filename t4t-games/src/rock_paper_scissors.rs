@@ -26,9 +26,9 @@ pub enum Move {
 /// # Examples
 /// ```
 /// use t4t::*;
-/// use t4t_games::rps;
+/// use t4t_games::rock_paper_scissors;
 ///
-/// let rps = rps::rock_paper_scissors();
+/// let rps = rock_paper_scissors::rock_paper_scissors();
 /// assert!(rps.is_zero_sum());
 /// ```
 #[rustfmt::skip]
@@ -53,9 +53,9 @@ pub fn rock_paper_scissors() -> Normal<Move, i64, 2> {
 /// # Examples
 /// ```
 /// use t4t::*;
-/// use t4t_games::rps;
+/// use t4t_games::rock_paper_scissors;
 ///
-/// let fw = rps::fire_water();
+/// let fw = rock_paper_scissors::fire_water();
 /// assert!(fw.is_zero_sum());
 /// ```
 #[rustfmt::skip]
@@ -82,14 +82,14 @@ pub fn fire_water() -> Normal<Move, i64, 2> {
 ///
 /// ```
 /// use t4t::*;
-/// use t4t_games::rps;
+/// use t4t_games::rock_paper_scissors;
 ///
 /// // 10-player rock-paper-scissors.
-/// let rps10: Normal<rps::Move, i64, 10> = rps::big_rock_paper_scissors();
+/// let rps10: Normal<rock_paper_scissors::Move, i64, 10> = rock_paper_scissors::big_rock_paper_scissors();
 /// assert!(rps10.is_zero_sum());
 ///
 /// // 1000-player rock-paper-scissors!
-/// let rps1000: Normal<rps::Move, i64, 1000> = rps::big_rock_paper_scissors();
+/// let rps1000: Normal<rock_paper_scissors::Move, i64, 1000> = rock_paper_scissors::big_rock_paper_scissors();
 /// ```
 ///
 /// Note that `rps1000` demonstrates that `Normal` can represent extremely large games---this game
