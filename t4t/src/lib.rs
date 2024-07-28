@@ -204,6 +204,7 @@
 //! [repeated-game]: https://en.wikipedia.org/wiki/Repeated_game
 //! [games-crate]: https://crates.io/crates/t4t-games
 
+// pub(crate) mod combinatorial;
 pub(crate) mod distribution;
 pub(crate) mod dominated;
 pub(crate) mod error;
@@ -234,6 +235,7 @@ pub(crate) mod tournament;
 pub(crate) mod transcript;
 pub(crate) mod tree;
 
+// pub use combinatorial::*;
 pub use distribution::*;
 pub use dominated::*;
 pub use error::*;
