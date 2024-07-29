@@ -142,7 +142,8 @@ impl Dilemma {
     ///
     /// let g = Dilemma::stag_hunt();
     ///
-    /// let nash = g.as_normal().pure_nash_equilibria_parallel();
+    /// let mut nash = g.as_normal().pure_nash_equilibria_parallel();
+    /// nash.sort();
     /// assert_eq!(nash, vec![Profile::new([C, C]), Profile::new([D, D])]);
     ///
     /// let mut pareto = g.as_normal().pareto_optimal_solutions_parallel();
