@@ -3,6 +3,15 @@ use std::sync::Arc;
 
 use crate::{Finite, Game, GameTree, History, InvalidMove, Playable, PlayerIndex, PossibleMoves};
 
+/// Game tree type for a [`Repeated`] game with stage game `G`.
+pub type RepeatedGameTree<G, const P: usize> = GameTree<
+    RepeatedState<G, P>,
+    <G as Game<P>>::Move,
+    <G as Game<P>>::Utility,
+    History<<G as Game<P>>::Move, <G as Game<P>>::Utility, <G as Playable<P>>::Outcome, P>,
+    P,
+>;
+
 /// A finitely [repeated](https://en.wikipedia.org/wiki/Repeated_game) or iterated version of game
 /// `G`.
 ///
@@ -18,7 +27,7 @@ pub struct Repeated<G: Game<P>, const P: usize> {
 #[derive(Clone)]
 pub struct RepeatedState<G: Playable<P>, const P: usize> {
     stage_state: G::State,
-    completed: History<G, P>,
+    completed: History<G::Move, G::Utility, G::Outcome, P>,
     remaining: usize,
 }
 
@@ -54,7 +63,7 @@ impl<G: Playable<P>, const P: usize> RepeatedState<G, P> {
     }
 
     /// The current history of all completed repetitions of the stage game so far.
-    pub fn history(&self) -> &History<G, P> {
+    pub fn history(&self) -> &History<G::Move, G::Utility, G::Outcome, P> {
         &self.completed
     }
 
@@ -68,7 +77,7 @@ fn generate_tree<G: Playable<P> + 'static, const P: usize>(
     stage_game: Arc<G>,
     stage_node: GameTree<G::State, G::Move, G::Utility, G::Outcome, P>,
     repeated_state: RepeatedState<G, P>,
-) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, History<G, P>, P> {
+) -> RepeatedGameTree<G, P> {
     let remaining = repeated_state.remaining;
     match stage_node {
         GameTree::Turns {
@@ -177,11 +186,9 @@ impl<G: Playable<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
 }
 
 impl<G: Playable<P> + 'static, const P: usize> Playable<P> for Repeated<G, P> {
-    type Outcome = History<G, P>;
+    type Outcome = History<G::Move, G::Utility, G::Outcome, P>;
 
-    fn into_game_tree(
-        self,
-    ) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, History<G, P>, P> {
+    fn into_game_tree(self) -> RepeatedGameTree<G, P> {
         let init_state = RepeatedState::new(&self.stage_game, self.repetitions - 1);
         let stage_tree = self.stage_game.game_tree();
 

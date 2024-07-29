@@ -1,18 +1,20 @@
-use std::{fmt, hash};
+use std::marker::PhantomData;
 
 use crate::{
-    Move, Outcome, Past, Payoff, Playable, PlayerIndex, Plies, Profile, Record, SequentialOutcome,
+    Move, Outcome, Past, Payoff, PlayerIndex, Plies, Profile, Record, SequentialOutcome,
     SimultaneousOutcome, Summary, Transcript, Utility,
 };
 
 /// For repeated games, a history of previously played games.
-pub struct History<G: Playable<P>, const P: usize> {
-    outcomes: im::Vector<G::Outcome>,
-    score: Payoff<G::Utility, P>,
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct History<M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> {
+    outcomes: im::Vector<O>,
+    score: Payoff<U, P>,
     summary: Summary<P>,
+    move_type: PhantomData<M>,
 }
 
-impl<G: Playable<P>, const P: usize> History<G, P> {
+impl<M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> History<M, U, O, P> {
     /// Construct a new, empty history.
     pub fn empty() -> Self {
         History::default()
@@ -20,7 +22,7 @@ impl<G: Playable<P>, const P: usize> History<G, P> {
 
     /// Update the history by adding a new game outcome. Returns a reference to the newly added
     /// outcome.
-    pub fn add(&mut self, outcome: G::Outcome) -> &G::Outcome {
+    pub fn add(&mut self, outcome: O) -> &O {
         self.score = self.score + *outcome.payoff();
         self.summary = self.summary + outcome.record().summary();
         self.outcomes.push_back(outcome);
@@ -28,12 +30,12 @@ impl<G: Playable<P>, const P: usize> History<G, P> {
     }
 
     /// Get an iterator over the outcomes of previously played games.
-    pub fn outcomes(&self) -> Past<&G::Outcome> {
+    pub fn outcomes(&self) -> Past<&O> {
         Past::from_iter(self.outcomes.len(), self.outcomes.iter())
     }
 
     /// Get an iterator over the move records of previously played games.
-    pub fn records(&self) -> Past<&<G::Outcome as Outcome<G::Move, G::Utility, P>>::Record> {
+    pub fn records(&self) -> Past<&<O as Outcome<M, U, P>>::Record> {
         Past::from_iter(
             self.outcomes.len(),
             self.outcomes().map(|outcome| outcome.record()),
@@ -41,7 +43,7 @@ impl<G: Playable<P>, const P: usize> History<G, P> {
     }
 
     /// Get an iterator over the payoffs of previously played games.
-    pub fn payoffs(&self) -> Past<&Payoff<G::Utility, P>> {
+    pub fn payoffs(&self) -> Past<&Payoff<U, P>> {
         Past::from_iter(
             self.outcomes.len(),
             self.outcomes().map(|outcome| outcome.payoff()),
@@ -49,19 +51,14 @@ impl<G: Playable<P>, const P: usize> History<G, P> {
     }
 
     /// Get the cumulative score of all previously played games.
-    pub fn score(&self) -> &Payoff<G::Utility, P> {
+    pub fn score(&self) -> &Payoff<U, P> {
         &self.score
     }
 }
 
-impl<M, U, G, const P: usize> History<G, P>
-where
-    M: Move,
-    U: Utility,
-    G: Playable<P, Move = M, Utility = U, Outcome = SimultaneousOutcome<M, U, P>>,
-{
+impl<M: Move, U: Utility, const P: usize> History<M, U, SimultaneousOutcome<M, U, P>, P> {
     /// Get an iterator over the profiles of previously played games.
-    pub fn profiles(&self) -> Past<&Profile<G::Move, P>> {
+    pub fn profiles(&self) -> Past<&Profile<M, P>> {
         Past::from_iter(
             self.outcomes.len(),
             self.outcomes().map(|outcome| outcome.profile()),
@@ -69,7 +66,7 @@ where
     }
 
     /// Get an iterator over all moves played by a given player.
-    pub fn moves_for_player(&self, player: PlayerIndex<P>) -> Past<G::Move> {
+    pub fn moves_for_player(&self, player: PlayerIndex<P>) -> Past<M> {
         Past::from_iter(
             self.outcomes.len(),
             self.profiles().map(move |profile| profile[player]),
@@ -77,14 +74,9 @@ where
     }
 }
 
-impl<M, U, G, const P: usize> History<G, P>
-where
-    M: Move,
-    U: Utility,
-    G: Playable<P, Move = M, Utility = U, Outcome = SequentialOutcome<M, U, P>>,
-{
+impl<M: Move, U: Utility, const P: usize> History<M, U, SequentialOutcome<M, U, P>, P> {
     /// Get an iterator over the transcripts of previously played games.
-    pub fn transcripts(&self) -> Past<&Transcript<G::Move, P>> {
+    pub fn transcripts(&self) -> Past<&Transcript<M, P>> {
         Past::from_iter(
             self.outcomes.len(),
             self.outcomes().map(|outcome| outcome.transcript()),
@@ -92,18 +84,21 @@ where
     }
 }
 
-impl<G: Playable<P>, const P: usize> Default for History<G, P> {
+impl<M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Default for History<M, U, O, P> {
     fn default() -> Self {
         History {
             outcomes: im::Vector::new(),
             score: Payoff::zeros(),
             summary: Summary::empty(),
+            move_type: PhantomData,
         }
     }
 }
 
-impl<G: Playable<P>, const P: usize> Record<G::Move, P> for History<G, P> {
-    fn plies(&self) -> Plies<G::Move, P> {
+impl<M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Record<M, P>
+    for History<M, U, O, P>
+{
+    fn plies(&self) -> Plies<M, P> {
         Past::from_iter(
             self.outcomes.len(),
             self.outcomes
@@ -117,50 +112,16 @@ impl<G: Playable<P>, const P: usize> Record<G::Move, P> for History<G, P> {
     }
 }
 
-impl<G: Playable<P>, const P: usize> Outcome<G::Move, G::Utility, P> for History<G, P> {
+impl<M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Outcome<M, U, P>
+    for History<M, U, O, P>
+{
     type Record = Self;
 
     fn record(&self) -> &Self {
         self
     }
 
-    fn payoff(&self) -> &Payoff<G::Utility, P> {
+    fn payoff(&self) -> &Payoff<U, P> {
         &self.score
-    }
-}
-
-impl<G: Playable<P>, const P: usize> Clone for History<G, P> {
-    fn clone(&self) -> Self {
-        History {
-            outcomes: self.outcomes.clone(),
-            score: self.score,
-            summary: self.summary,
-        }
-    }
-}
-
-impl<G: Playable<P>, const P: usize> fmt::Debug for History<G, P> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("History")
-            .field("outcomes", &self.outcomes)
-            .field("score", &self.score)
-            .finish()
-    }
-}
-
-impl<G: Playable<P>, const P: usize> PartialEq for History<G, P> {
-    fn eq(&self, other: &Self) -> bool {
-        self.outcomes == other.outcomes && self.score == other.score
-    }
-}
-
-impl<G: Playable<P>, const P: usize> hash::Hash for History<G, P>
-where
-    G::Outcome: hash::Hash,
-    G::Utility: hash::Hash,
-{
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.outcomes.hash(state);
-        self.score.hash(state);
     }
 }
