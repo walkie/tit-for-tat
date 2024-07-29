@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::{Action, Finite, Game, GameTree, History, Playable, PlayerIndex, PossibleMoves};
+use crate::{Finite, Game, GameTree, History, InvalidMove, Playable, PlayerIndex, PossibleMoves};
 
 /// A finitely [repeated](https://en.wikipedia.org/wiki/Repeated_game) or iterated version of game
 /// `G`.
@@ -10,14 +10,13 @@ use crate::{Action, Finite, Game, GameTree, History, Playable, PlayerIndex, Poss
 /// accumulating the payoffs.
 #[derive(Clone)]
 pub struct Repeated<G: Game<P>, const P: usize> {
-    stage_game: Arc<G>,
+    stage_game: G,
     repetitions: usize,
 }
 
 /// The intermediate state of a repeated game.
 #[derive(Clone)]
 pub struct RepeatedState<G: Playable<P>, const P: usize> {
-    stage_game: Arc<G>,
     stage_state: G::State,
     completed: Arc<History<G, P>>,
     remaining: usize,
@@ -25,7 +24,7 @@ pub struct RepeatedState<G: Playable<P>, const P: usize> {
 
 impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
     /// Construct a repeated game that plays the stage game the given number of repetitions.
-    pub fn new(stage_game: Arc<G>, repetitions: usize) -> Self {
+    pub fn new(stage_game: G, repetitions: usize) -> Self {
         Repeated {
             stage_game,
             repetitions,
@@ -33,7 +32,7 @@ impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
     }
 
     /// Get the stage game for this repeated game.
-    pub fn stage_game(&self) -> &Arc<G> {
+    pub fn stage_game(&self) -> &G {
         &self.stage_game
     }
 
@@ -45,19 +44,13 @@ impl<G: Game<P> + 'static, const P: usize> Repeated<G, P> {
 
 impl<G: Playable<P>, const P: usize> RepeatedState<G, P> {
     /// Construct a new repeated game state.
-    pub fn new(stage_game: Arc<G>, remaining: usize) -> Self {
-        let stage_state = stage_game.game_tree().state;
+    pub fn new(stage_game: &G, remaining: usize) -> Self {
+        let stage_state = stage_game.game_tree().state().clone();
         RepeatedState {
-            stage_game,
             stage_state,
             completed: Arc::new(History::empty()),
             remaining,
         }
-    }
-
-    /// Get the view of the stage game's current intermediate state for the given player.
-    pub fn state_view(&self, player: PlayerIndex<P>) -> G::View {
-        self.stage_game.state_view(&self.stage_state, player)
     }
 
     /// The current history of all completed repetitions of the stage game so far.
@@ -73,91 +66,93 @@ impl<G: Playable<P>, const P: usize> RepeatedState<G, P> {
 
 fn generate_tree<G: Playable<P> + 'static, const P: usize>(
     stage_game: Arc<G>,
-    state: RepeatedState<G, P>,
-    action: Action<G::State, G::Move, G::Utility, G::Outcome, P>,
+    stage_node: GameTree<G::State, G::Move, G::Utility, G::Outcome, P>,
+    repeated_state: RepeatedState<G, P>,
 ) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, Arc<History<G, P>>, P> {
-    let remaining = state.remaining;
-    match action {
-        Action::Turns {
-            to_move: players,
+    let remaining = repeated_state.remaining;
+    match stage_node {
+        GameTree::Turns {
+            state: stage_state,
+            to_move,
             next,
         } => GameTree::players(
-            state,
-            players,
-            move |current_state: RepeatedState<G, P>, moves: Vec<G::Move>| match next(
-                current_state.stage_state,
-                moves,
-            ) {
-                Ok(stage_tree) => {
-                    let next_state = RepeatedState {
-                        stage_game: Arc::clone(&stage_game),
-                        stage_state: stage_tree.state,
-                        completed: Arc::clone(&current_state.completed),
-                        remaining,
-                    };
+            repeated_state,
+            to_move,
+            move |current_state: RepeatedState<G, P>, moves: Vec<G::Move>| {
+                // TODO: not sure why I need to clone stage_state here...
+                let next_stage_tree = next(stage_state.clone(), moves).map_err(|err| {
+                    InvalidMove::new(current_state.clone(), err.player, err.the_move)
+                })?;
 
-                    Ok(generate_tree(
-                        Arc::clone(&stage_game),
-                        next_state,
-                        stage_tree.action,
-                    ))
-                }
+                let next_stage_state = next_stage_tree.state().clone();
+                let next_repeated_state = RepeatedState {
+                    stage_state: next_stage_state,
+                    completed: Arc::clone(&current_state.completed),
+                    remaining,
+                };
 
-                Err(kind) => Err(kind),
+                Ok(generate_tree(
+                    Arc::clone(&stage_game),
+                    next_stage_tree,
+                    next_repeated_state,
+                ))
             },
         ),
 
-        Action::Chance { distribution, next } => GameTree::chance(
-            state,
+        GameTree::Chance {
+            state: stage_state,
             distribution,
-            move |current_state: RepeatedState<G, P>, the_move: G::Move| match next(
-                current_state.stage_state,
-                the_move,
-            ) {
-                Ok(stage_tree) => {
-                    let next_state = RepeatedState {
-                        stage_game: Arc::clone(&stage_game),
-                        stage_state: stage_tree.state,
-                        completed: Arc::clone(&current_state.completed),
-                        remaining,
-                    };
+            next,
+        } => GameTree::chance(
+            repeated_state,
+            distribution,
+            move |current_state: RepeatedState<G, P>, the_move: G::Move| {
+                // TODO: not sure why I need to clone stage_state here...
+                let next_stage_tree = next(stage_state.clone(), the_move).map_err(|err| {
+                    InvalidMove::new(current_state.clone(), err.player, err.the_move)
+                })?;
 
-                    Ok(generate_tree(
-                        Arc::clone(&stage_game),
-                        next_state,
-                        stage_tree.action,
-                    ))
-                }
+                let next_stage_state = next_stage_tree.state().clone();
+                let next_repeated_state = RepeatedState {
+                    stage_state: next_stage_state,
+                    completed: Arc::clone(&current_state.completed),
+                    remaining,
+                };
 
-                Err(kind) => Err(kind),
+                Ok(generate_tree(
+                    Arc::clone(&stage_game),
+                    next_stage_tree,
+                    next_repeated_state,
+                ))
             },
         ),
 
-        Action::End { outcome, .. } if remaining > 0 => {
-            let stage_tree = stage_game.game_tree();
-
-            let mut completed = Arc::unwrap_or_clone(state.completed);
+        GameTree::End { outcome, .. } if remaining > 0 => {
+            let mut completed = Arc::unwrap_or_clone(repeated_state.completed);
             completed.add(outcome);
 
-            let next_state = RepeatedState {
-                stage_game: Arc::clone(&stage_game),
-                stage_state: stage_tree.state,
+            let next_stage_tree = stage_game.game_tree();
+            let next_stage_state = next_stage_tree.state().clone();
+            let next_repeated_state = RepeatedState {
+                stage_state: next_stage_state,
                 completed: Arc::new(completed),
                 remaining: remaining - 1,
             };
 
-            generate_tree(stage_game, next_state, stage_tree.action)
+            generate_tree(stage_game, next_stage_tree, next_repeated_state)
         }
 
-        Action::End { outcome, .. } => {
-            let mut completed = Arc::unwrap_or_clone(state.completed);
+        GameTree::End {
+            state: stage_state,
+            outcome,
+            ..
+        } => {
+            let mut completed = Arc::unwrap_or_clone(repeated_state.completed);
             completed.add(outcome);
 
             let arc_completed = Arc::new(completed);
-
             let final_state = RepeatedState {
-                stage_game: Arc::clone(&stage_game),
-                stage_state: state.stage_state,
+                stage_state,
                 completed: Arc::clone(&arc_completed),
                 remaining,
             };
@@ -188,10 +183,10 @@ impl<G: Playable<P> + 'static, const P: usize> Playable<P> for Repeated<G, P> {
     fn into_game_tree(
         self,
     ) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, Arc<History<G, P>>, P> {
-        let init_state = RepeatedState::new(Arc::clone(&self.stage_game), self.repetitions - 1);
-        let init_action = self.stage_game.game_tree().action;
+        let init_state = RepeatedState::new(&self.stage_game, self.repetitions - 1);
+        let stage_tree = self.stage_game.game_tree();
 
-        generate_tree(Arc::clone(&self.stage_game), init_state, init_action)
+        generate_tree(Arc::new(self.stage_game), stage_tree, init_state)
     }
 }
 

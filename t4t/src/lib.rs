@@ -103,7 +103,7 @@
 //! assert_eq!(result.unwrap().payoff(), &Payoff::from([0, 3]));
 //!
 //! // Define the repeated prisoner's dilemma.
-//! let rpd: Repeated<Dilemma, 2> = Repeated::new(Arc::new(pd), 100);
+//! let rpd: Repeated<Dilemma, 2> = Repeated::new(pd, 100);
 //!
 //! // Define a player that plays the famous tit-for-tat strategy.
 //! let tit_for_tat: Player<Repeated<Dilemma, 2>, 2> = Player::new(
@@ -207,8 +207,8 @@
 // mod combinatorial;
 mod distribution;
 mod dominated;
-mod error;
 mod finite;
+mod result;
 // mod extensive;
 mod game;
 mod history;
@@ -238,8 +238,8 @@ mod tree;
 // pub use combinatorial::*;
 pub use distribution::*;
 pub use dominated::*;
-pub use error::*;
 pub use finite::*;
+pub use result::*;
 // pub use extensive::*;
 pub use game::*;
 pub use history::*;

@@ -1,4 +1,3 @@
-use std::array;
 use t4t::*;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
@@ -32,7 +31,7 @@ pub struct Square {
     pub col: Col,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct Board {
     squares: [[Option<Mark>; 3]; 3],
 }
@@ -127,7 +126,7 @@ impl Game<2> for TicTacToe {
     type View = Board;
 
     fn state_view(&self, state: &Self::State, _player: PlayerIndex<2>) -> Self::View {
-        *state
+        state.clone()
     }
 }
 
@@ -149,9 +148,9 @@ impl StateBased<2> for TicTacToe {
         player: PlayerIndex<2>,
         square: Square,
         board: Board,
-    ) -> Result<Board, ErrorKind<Square, 2>> {
+    ) -> PlayResult<Board, Board, Square, 2> {
         if board.get_mark(&square).is_some() {
-            return Err(ErrorKind::InvalidMove(player, square));
+            return Err(InvalidMove::new(board.clone(), player, square));
         }
 
         let mut next_board = board;

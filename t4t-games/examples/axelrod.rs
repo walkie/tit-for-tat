@@ -5,13 +5,14 @@ use t4t_games::dilemma::*;
 /// Run a tournament with the given game and players. Prints the scores and also adds them to
 /// the current overall scores.
 fn run_tournament(game: Dilemma, players: &[Arc<DilemmaPlayer>], overall: &mut Score<i64>) {
-    let tournament = Tournament::combinations_with_replacement(
-        Arc::new(Repeated::new(Arc::new(game), 100)),
-        players,
-    );
+    let tournament =
+        Tournament::combinations_with_replacement(Arc::new(Repeated::new(game, 100)), players);
+
     let result = tournament.play();
     assert!(!result.has_errors());
+
     result.score().print_best_to_worst();
+
     overall.add_all(result.score());
 }
 

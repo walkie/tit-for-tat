@@ -15,7 +15,7 @@ pub struct Tournament<G: Playable<P>, const P: usize> {
 /// The collected results from running a tournament.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TournamentResult<G: Playable<P>, const P: usize> {
-    results: HashMap<PerPlayer<String, P>, PlayResult<G, P>>,
+    results: HashMap<PerPlayer<String, P>, PlayResult<G::Outcome, G::State, G::Move, P>>,
     score: Score<G::Utility>,
     has_errors: bool,
 }
@@ -351,7 +351,9 @@ impl<G: Playable<P>, const P: usize> Tournament<G, P> {
 
 impl<G: Playable<P>, const P: usize> TournamentResult<G, P> {
     /// The individual play result of each matchup.
-    pub fn results(&self) -> &HashMap<PerPlayer<String, P>, PlayResult<G, P>> {
+    pub fn results(
+        &self,
+    ) -> &HashMap<PerPlayer<String, P>, PlayResult<G::Outcome, G::State, G::Move, P>> {
         &self.results
     }
 

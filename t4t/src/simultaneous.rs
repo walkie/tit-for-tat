@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    ErrorKind, Game, GameTree, Move, Payoff, PerPlayer, Playable, PlayerIndex, Profile, Record,
+    Game, GameTree, InvalidMove, Move, Payoff, PerPlayer, Playable, PlayerIndex, Profile, Record,
     SimultaneousOutcome, Utility,
 };
 
@@ -134,7 +134,7 @@ impl<M: Move, U: Utility, const P: usize> Playable<P> for Simultaneous<M, U, P> 
             for ply in profile.plies() {
                 let player = ply.player.unwrap();
                 if !self.is_valid_move_for_player(player, ply.the_move) {
-                    return Err(ErrorKind::InvalidMove(player, ply.the_move));
+                    return Err(InvalidMove::new((), player, ply.the_move));
                 }
             }
             Ok(GameTree::end(

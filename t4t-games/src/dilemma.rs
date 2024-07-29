@@ -640,11 +640,10 @@ pub fn grim_trigger() -> DilemmaPlayer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
 
     #[test]
     fn defector_vs_cooperator() {
-        let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
+        let g = Repeated::new(Dilemma::prisoners_dilemma(), 100);
         let matchup = Matchup::from_players([defector(), cooperator()]);
         let history = g.play(&matchup).unwrap();
         assert_eq!(history.score(), &Payoff::from([300, 0]));
@@ -652,7 +651,7 @@ mod tests {
 
     #[test]
     fn defector_vs_tit_for_tat() {
-        let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
+        let g = Repeated::new(Dilemma::prisoners_dilemma(), 100);
         let matchup = Matchup::from_players([defector(), tit_for_tat()]);
         let history = g.play(&matchup).unwrap();
         assert_eq!(history.score(), &Payoff::from([102, 99]));
@@ -660,7 +659,7 @@ mod tests {
 
     #[test]
     fn tit_for_tat_vs_tit_for_tat() {
-        let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
+        let g = Repeated::new(Dilemma::prisoners_dilemma(), 100);
         let matchup = Matchup::from_players([tit_for_tat(), tit_for_tat()]);
         let history = g.play(&matchup).unwrap();
         assert_eq!(history.score(), &Payoff::from([200, 200]));
@@ -668,7 +667,7 @@ mod tests {
 
     #[test]
     fn tit_for_tat_vs_suspicious_tit_for_tat() {
-        let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
+        let g = Repeated::new(Dilemma::prisoners_dilemma(), 100);
         let matchup = Matchup::from_players([tit_for_tat(), suspicious_tit_for_tat()]);
         let history = g.play(&matchup).unwrap();
         assert_eq!(history.score(), &Payoff::from([150, 150]));
@@ -676,7 +675,7 @@ mod tests {
 
     #[test]
     fn tit_for_two_tats_vs_suspicious_tit_for_tat() {
-        let g = Repeated::new(Arc::new(Dilemma::prisoners_dilemma()), 100);
+        let g = Repeated::new(Dilemma::prisoners_dilemma(), 100);
         let matchup = Matchup::from_players([tit_for_n_tats(2), suspicious_tit_for_tat()]);
         let history = g.play(&matchup).unwrap();
         assert_eq!(history.score(), &Payoff::from([198, 201]));

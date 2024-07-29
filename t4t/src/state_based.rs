@@ -1,8 +1,10 @@
 use crate::{
-    Context, ErrorKind, Finite, Game, GameTree, Payoff, Playable, PlayerIndex, SequentialOutcome,
-    Strategy, Transcript,
+    Game, GameTree, Payoff, PlayResult, Playable, PlayerIndex, SequentialOutcome, Transcript,
 };
 use std::sync::Arc;
+
+// TODO
+#[allow(missing_docs)]
 
 pub trait StateBased<const P: usize>: Game<P> {
     fn initial_state(&self) -> Self::State;
@@ -14,7 +16,7 @@ pub trait StateBased<const P: usize>: Game<P> {
         player: PlayerIndex<P>,
         the_move: Self::Move,
         state: Self::State,
-    ) -> Result<Self::State, ErrorKind<Self::Move, P>>;
+    ) -> PlayResult<Self::State, Self::State, Self::Move, P>;
 
     fn check_final_state(
         &self,
@@ -57,20 +59,16 @@ fn generate_tree<G: StateBased<P> + 'static, const P: usize>(
         Some(payoff) => GameTree::end(state, SequentialOutcome::new(transcript, payoff)),
 
         None => GameTree::player(state, player, move |state, the_move| {
-            let maybe_next_state = game.next_state(player, the_move, state);
+            let next_state = game.next_state(player, the_move, state)?;
 
             let mut updated_transcript = transcript.clone();
             updated_transcript.add_player_move(player, the_move);
 
-            match maybe_next_state {
-                Ok(next_state) => Ok(generate_tree(
-                    Arc::clone(&game),
-                    next_state,
-                    updated_transcript,
-                )),
-
-                Err(kind) => Err(kind),
-            }
+            Ok(generate_tree(
+                Arc::clone(&game),
+                next_state,
+                updated_transcript,
+            ))
         }),
     }
 }
