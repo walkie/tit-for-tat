@@ -7,7 +7,7 @@ use crate::{
 
 /// For repeated games, a history of previously played games.
 pub struct History<G: Playable<P>, const P: usize> {
-    outcomes: Vec<G::Outcome>,
+    outcomes: im::Vector<G::Outcome>,
     score: Payoff<G::Utility, P>,
     summary: Summary<P>,
 }
@@ -23,8 +23,8 @@ impl<G: Playable<P>, const P: usize> History<G, P> {
     pub fn add(&mut self, outcome: G::Outcome) -> &G::Outcome {
         self.score = self.score + *outcome.payoff();
         self.summary = self.summary + outcome.record().summary();
-        self.outcomes.push(outcome);
-        self.outcomes.last().unwrap()
+        self.outcomes.push_back(outcome);
+        self.outcomes.back().unwrap()
     }
 
     /// Get an iterator over the outcomes of previously played games.
@@ -95,7 +95,7 @@ where
 impl<G: Playable<P>, const P: usize> Default for History<G, P> {
     fn default() -> Self {
         History {
-            outcomes: Vec::new(),
+            outcomes: im::Vector::new(),
             score: Payoff::zeros(),
             summary: Summary::empty(),
         }

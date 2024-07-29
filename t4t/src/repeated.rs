@@ -18,7 +18,7 @@ pub struct Repeated<G: Game<P>, const P: usize> {
 #[derive(Clone)]
 pub struct RepeatedState<G: Playable<P>, const P: usize> {
     stage_state: G::State,
-    completed: Arc<History<G, P>>,
+    completed: History<G, P>,
     remaining: usize,
 }
 
@@ -48,13 +48,13 @@ impl<G: Playable<P>, const P: usize> RepeatedState<G, P> {
         let stage_state = stage_game.game_tree().state().clone();
         RepeatedState {
             stage_state,
-            completed: Arc::new(History::empty()),
+            completed: History::empty(),
             remaining,
         }
     }
 
     /// The current history of all completed repetitions of the stage game so far.
-    pub fn history(&self) -> &Arc<History<G, P>> {
+    pub fn history(&self) -> &History<G, P> {
         &self.completed
     }
 
@@ -68,7 +68,7 @@ fn generate_tree<G: Playable<P> + 'static, const P: usize>(
     stage_game: Arc<G>,
     stage_node: GameTree<G::State, G::Move, G::Utility, G::Outcome, P>,
     repeated_state: RepeatedState<G, P>,
-) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, Arc<History<G, P>>, P> {
+) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, History<G, P>, P> {
     let remaining = repeated_state.remaining;
     match stage_node {
         GameTree::Turns {
@@ -87,7 +87,7 @@ fn generate_tree<G: Playable<P> + 'static, const P: usize>(
                 let next_stage_state = next_stage_tree.state().clone();
                 let next_repeated_state = RepeatedState {
                     stage_state: next_stage_state,
-                    completed: Arc::clone(&current_state.completed),
+                    completed: current_state.completed.clone(),
                     remaining,
                 };
 
@@ -115,7 +115,7 @@ fn generate_tree<G: Playable<P> + 'static, const P: usize>(
                 let next_stage_state = next_stage_tree.state().clone();
                 let next_repeated_state = RepeatedState {
                     stage_state: next_stage_state,
-                    completed: Arc::clone(&current_state.completed),
+                    completed: current_state.completed.clone(),
                     remaining,
                 };
 
@@ -128,14 +128,14 @@ fn generate_tree<G: Playable<P> + 'static, const P: usize>(
         ),
 
         GameTree::End { outcome, .. } if remaining > 0 => {
-            let mut completed = Arc::unwrap_or_clone(repeated_state.completed);
+            let mut completed = repeated_state.completed.clone();
             completed.add(outcome);
 
             let next_stage_tree = stage_game.game_tree();
             let next_stage_state = next_stage_tree.state().clone();
             let next_repeated_state = RepeatedState {
                 stage_state: next_stage_state,
-                completed: Arc::new(completed),
+                completed,
                 remaining: remaining - 1,
             };
 
@@ -147,17 +147,16 @@ fn generate_tree<G: Playable<P> + 'static, const P: usize>(
             outcome,
             ..
         } => {
-            let mut completed = Arc::unwrap_or_clone(repeated_state.completed);
+            let mut completed = repeated_state.completed.clone();
             completed.add(outcome);
 
-            let arc_completed = Arc::new(completed);
             let final_state = RepeatedState {
                 stage_state,
-                completed: Arc::clone(&arc_completed),
+                completed: completed.clone(),
                 remaining,
             };
 
-            GameTree::end(final_state, arc_completed)
+            GameTree::end(final_state, completed)
         }
     }
 }
@@ -178,11 +177,11 @@ impl<G: Playable<P> + 'static, const P: usize> Game<P> for Repeated<G, P> {
 }
 
 impl<G: Playable<P> + 'static, const P: usize> Playable<P> for Repeated<G, P> {
-    type Outcome = Arc<History<G, P>>;
+    type Outcome = History<G, P>;
 
     fn into_game_tree(
         self,
-    ) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, Arc<History<G, P>>, P> {
+    ) -> GameTree<RepeatedState<G, P>, G::Move, G::Utility, History<G, P>, P> {
         let init_state = RepeatedState::new(&self.stage_game, self.repetitions - 1);
         let stage_tree = self.stage_game.game_tree();
 

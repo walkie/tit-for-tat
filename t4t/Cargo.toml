@@ -12,6 +12,7 @@ keywords = ["game-theory", "economics", "evolution"]
 [dependencies]
 derive_more = "0.99.18"
 dyn-clone = "1.0.17"
+im = "15.1.0"
 itertools = "0.13.0"
 log = "0.4.22"
 num = "0.4.3"
