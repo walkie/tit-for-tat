@@ -13,6 +13,7 @@ pub struct Tournament<G: Playable<P>, const P: usize> {
 }
 
 /// The collected results from running a tournament.
+#[allow(clippy::type_complexity)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct TournamentResult<G: Playable<P>, const P: usize> {
     results: HashMap<PerPlayer<String, P>, PlayResult<G::Outcome, G::State, G::Move, P>>,
@@ -351,6 +352,7 @@ impl<G: Playable<P>, const P: usize> Tournament<G, P> {
 
 impl<G: Playable<P>, const P: usize> TournamentResult<G, P> {
     /// The individual play result of each matchup.
+    #[allow(clippy::type_complexity)]
     pub fn results(
         &self,
     ) -> &HashMap<PerPlayer<String, P>, PlayResult<G::Outcome, G::State, G::Move, P>> {

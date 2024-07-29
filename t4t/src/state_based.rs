@@ -49,6 +49,7 @@ pub trait StateBased<const P: usize>: Game<P> {
 //     })
 // }
 
+#[allow(clippy::type_complexity)]
 fn generate_tree<G: StateBased<P> + 'static, const P: usize>(
     game: Arc<G>,
     state: G::State,
