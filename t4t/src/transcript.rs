@@ -2,17 +2,17 @@ use crate::{Move, PerPlayer, PlayerIndex, Plies, Ply, Profile, Record, Summary};
 
 /// A transcript of the moves played (so far) in a sequential game.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Transcript<M, const P: usize> {
+pub struct Transcript<M: Move, const P: usize> {
     /// The sequence of played moves.
-    plies: Vec<Ply<M, P>>,
+    plies: im::Vector<Ply<M, P>>,
     /// The number of moves played by each player.
     summary: Summary<P>,
 }
 
-impl<M, const P: usize> Default for Transcript<M, P> {
+impl<M: Move, const P: usize> Default for Transcript<M, P> {
     fn default() -> Self {
         Transcript {
-            plies: Vec::new(),
+            plies: im::Vector::new(),
             summary: Summary::empty(),
         }
     }
@@ -20,7 +20,7 @@ impl<M, const P: usize> Default for Transcript<M, P> {
 
 impl<M: Move, const P: usize> Record<M, P> for Transcript<M, P> {
     fn plies(&self) -> Plies<M, P> {
-        Plies::from_vec(self.plies.clone())
+        Plies::from_iter(self.plies.len(), self.plies.clone().into_iter())
     }
 
     fn summary(&self) -> Summary<P> {
@@ -38,18 +38,13 @@ impl<M: Move, const P: usize> Transcript<M, P> {
         Transcript::default()
     }
 
-    /// Construct a transcript from a vector of plies.
-    pub fn from_ply_vec(plies: Vec<Ply<M, P>>) -> Self {
-        let mut summary = Summary::empty();
-        for ply in &plies {
-            summary.increment_moves_by(ply.player)
-        }
-        Transcript { plies, summary }
-    }
-
     /// Construct a transcript from a ply iterator.
     pub fn from_plies(plies: Plies<M, P>) -> Self {
-        Self::from_ply_vec(plies.collect())
+        let mut transcript = Transcript::new();
+        for ply in plies {
+            transcript.add(ply);
+        }
+        transcript
     }
 
     /// Construct a transcript from the given profile.
@@ -72,7 +67,7 @@ impl<M: Move, const P: usize> Transcript<M, P> {
 
     /// Add a ply to the transcript.
     pub fn add(&mut self, ply: Ply<M, P>) {
-        self.plies.push(ply);
+        self.plies.push_back(ply);
         match ply.player {
             Some(p) => self.summary.increment_moves_by_player(p),
             None => self.summary.increment_moves_by_chance(),
@@ -157,42 +152,5 @@ impl<M: Move, const P: usize> Transcript<M, P> {
     /// Returns `None` if the given player has not played any moves.
     pub fn last_move_by_player(&self, player: PlayerIndex<P>) -> Option<M> {
         self.last_move_by(Some(player))
-    }
-}
-
-impl<M, const P: usize> Transcript<M, P> {
-    /// An iterator over references to plies in the transcript.
-    pub fn iter(&self) -> <&Transcript<M, P> as IntoIterator>::IntoIter {
-        self.plies.iter()
-    }
-
-    /// An iterator over mutable references to plies in the transcript.
-    pub fn iter_mut(&mut self) -> <&mut Transcript<M, P> as IntoIterator>::IntoIter {
-        self.plies.iter_mut()
-    }
-}
-
-// TODO: Reuse Plies iterator here?
-impl<M, const P: usize> IntoIterator for Transcript<M, P> {
-    type Item = <Vec<Ply<M, P>> as IntoIterator>::Item;
-    type IntoIter = <Vec<Ply<M, P>> as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <Vec<Ply<M, P>> as IntoIterator>::IntoIter {
-        self.plies.into_iter()
-    }
-}
-
-impl<'a, M, const P: usize> IntoIterator for &'a Transcript<M, P> {
-    type Item = <&'a Vec<Ply<M, P>> as IntoIterator>::Item;
-    type IntoIter = <&'a Vec<Ply<M, P>> as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <&'a Vec<Ply<M, P>> as IntoIterator>::IntoIter {
-        self.plies.iter()
-    }
-}
-
-impl<'a, M, const P: usize> IntoIterator for &'a mut Transcript<M, P> {
-    type Item = <&'a mut Vec<Ply<M, P>> as IntoIterator>::Item;
-    type IntoIter = <&'a mut Vec<Ply<M, P>> as IntoIterator>::IntoIter;
-    fn into_iter(self) -> <&'a mut Vec<Ply<M, P>> as IntoIterator>::IntoIter {
-        self.plies.iter_mut()
     }
 }
