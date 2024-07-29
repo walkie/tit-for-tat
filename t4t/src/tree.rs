@@ -22,17 +22,6 @@ impl<F, T, S, M, U, O, const P: usize> NextGameTree<T, S, M, U, O, P> for F wher
 {
 }
 
-/// A node in a game tree. The current game state and an [action](GameTreeAction) to perform.
-///
-/// Subsequent nodes, if applicable, are reachable via the action's `next` function.
-// #[derive(Clone)]
-// pub struct GameTree<S, M, U, O, const P: usize> {
-//     /// The game state at this node.
-//     pub state: S,
-//     /// The action to take at this node.
-//     pub action: GameTreeAction<S, M, U, O, P>,
-// }
-
 /// A node in a game tree.
 #[derive(Clone)]
 pub enum GameTree<S, M, U, O, const P: usize> {
