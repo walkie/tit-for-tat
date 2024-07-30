@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use crate::{Finite, Game, GameTree, History, InvalidMove, Playable, PlayerIndex, PossibleMoves};
+use crate::{Finite, Game, GameTree, History, PlayError, Playable, PlayerIndex, PossibleMoves};
 
 /// Game tree type for a [`Repeated`] game with stage game `G`.
 pub type RepeatedGameTree<G, const P: usize> = GameTree<
@@ -89,9 +89,8 @@ fn generate_tree<G: Playable<P> + 'static, const P: usize>(
             to_move,
             move |current_state: RepeatedState<G, P>, moves: Vec<G::Move>| {
                 // TODO: not sure why I need to clone stage_state here...
-                let next_stage_tree = next(stage_state.clone(), moves).map_err(|err| {
-                    InvalidMove::new(current_state.clone(), err.player, err.the_move)
-                })?;
+                let next_stage_tree = next(stage_state.clone(), moves)
+                    .map_err(|err| PlayError::new(current_state.clone(), err.kind))?;
 
                 let next_stage_state = next_stage_tree.state().clone();
                 let next_repeated_state = RepeatedState {
@@ -117,9 +116,8 @@ fn generate_tree<G: Playable<P> + 'static, const P: usize>(
             distribution,
             move |current_state: RepeatedState<G, P>, the_move: G::Move| {
                 // TODO: not sure why I need to clone stage_state here...
-                let next_stage_tree = next(stage_state.clone(), the_move).map_err(|err| {
-                    InvalidMove::new(current_state.clone(), err.player, err.the_move)
-                })?;
+                let next_stage_tree = next(stage_state.clone(), the_move)
+                    .map_err(|err| PlayError::new(current_state.clone(), err.kind))?;
 
                 let next_stage_state = next_stage_tree.state().clone();
                 let next_repeated_state = RepeatedState {

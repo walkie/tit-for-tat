@@ -150,7 +150,7 @@ impl StateBased<2> for TicTacToe {
         board: Board,
     ) -> PlayResult<Board, Board, Square, 2> {
         if board.get_mark(&square).is_some() {
-            return Err(InvalidMove::new(board.clone(), player, square));
+            return Err(PlayError::invalid_move(board.clone(), player, square));
         }
 
         let mut next_board = board;
