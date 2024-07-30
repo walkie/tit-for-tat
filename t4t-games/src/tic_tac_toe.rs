@@ -130,12 +130,12 @@ impl Game<2> for TicTacToe {
     }
 }
 
-impl StateBased<2> for TicTacToe {
+impl Combinatorial<2> for TicTacToe {
     fn initial_state(&self) -> Board {
         Board::new()
     }
 
-    fn next_turn(&self, state: &Board) -> PlayerIndex<2> {
+    fn whose_turn(&self, state: &Board) -> PlayerIndex<2> {
         if state.empty_squares().len() % 2 == 0 {
             for2::P0
         } else {
@@ -143,14 +143,10 @@ impl StateBased<2> for TicTacToe {
         }
     }
 
-    fn next_state(
-        &self,
-        player: PlayerIndex<2>,
-        square: Square,
-        board: Board,
-    ) -> PlayResult<Board, Board, Square, 2> {
+    fn next_state(&self, board: Board, square: Square) -> PlayResult<Board, Board, Square, 2> {
+        let player = self.whose_turn(&board);
         if board.get_mark(&square).is_some() {
-            return Err(PlayError::invalid_move(board.clone(), player, square));
+            return Err(InvalidMove::new(board.clone(), player, square));
         }
 
         let mut next_board = board;
@@ -159,7 +155,7 @@ impl StateBased<2> for TicTacToe {
         Ok(next_board)
     }
 
-    fn check_final_state(&self, _player: PlayerIndex<2>, state: &Board) -> Option<Payoff<u64, 2>> {
+    fn payoff(&self, state: &Board) -> Option<Payoff<u64, 2>> {
         match state.check_winner() {
             Some(Mark::X) => Some(Payoff::zero_sum_winner(for2::P0)),
             Some(Mark::O) => Some(Payoff::zero_sum_winner(for2::P1)),
@@ -175,8 +171,8 @@ impl StateBased<2> for TicTacToe {
 }
 
 impl Finite<2> for TicTacToe {
-    fn possible_moves(&self, player: PlayerIndex<2>, state: &Board) -> PossibleMoves<Square> {
-        let vec = if self.is_final_state(player, state) {
+    fn possible_moves(&self, _player: PlayerIndex<2>, state: &Board) -> PossibleMoves<Square> {
+        let vec = if self.is_game_end(state) {
             Vec::new()
         } else {
             state.empty_squares()

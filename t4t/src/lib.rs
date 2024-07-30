@@ -26,7 +26,9 @@
 //!   that is, games represented as complete game trees, where players take turns making moves,
 //!   possibly with moves of chance interspersed.
 //!
-//! - `StateBased` (coming soon): Games that revolve around manipulating a shared state.
+//! - [`Combinatorial`]: A trait for defining [combinatorial games][combinatorial-game], that is,
+//!   [perfect-information][pefect-information] games where players interact by sequentially making
+//!   moves to modify a shared state.
 //!
 //! - [`Repeated`]: Games where another game is played repeatedly a given number of times.
 //!
@@ -201,13 +203,14 @@
 //! [normal-form-game]: https://en.wikipedia.org/wiki/Normal-form_game
 //! [simultaneous-game]: https://en.wikipedia.org/wiki/Simultaneous_game
 //! [extensive-form-game]: https://en.wikipedia.org/wiki/Extensive-form_game
+//! [combinatorial-game]: https://en.wikipedia.org/wiki/Combinatorial_game_theory
+//! [pefect-information]: https://en.wikipedia.org/wiki/Perfect_information
 //! [repeated-game]: https://en.wikipedia.org/wiki/Repeated_game
 //! [games-crate]: https://crates.io/crates/t4t-games
 
-// mod combinatorial;
+mod combinatorial;
 mod distribution;
 mod dominated;
-mod error;
 mod finite;
 // mod extensive;
 mod game;
@@ -226,19 +229,18 @@ mod possible_profiles;
 mod profile;
 mod record;
 mod repeated;
+mod result;
 mod score;
 mod simultaneous;
-mod state_based;
 mod strategy;
 mod summary;
 mod tournament;
 mod transcript;
 mod tree;
 
-// pub use combinatorial::*;
+pub use combinatorial::*;
 pub use distribution::*;
 pub use dominated::*;
-pub use error::*;
 pub use finite::*;
 // pub use extensive::*;
 pub use game::*;
@@ -257,9 +259,9 @@ pub use possible_profiles::*;
 pub use profile::*;
 pub use record::*;
 pub use repeated::*;
+pub use result::*;
 pub use score::*;
 pub use simultaneous::*;
-pub use state_based::*;
 pub use strategy::*;
 pub use summary::*;
 pub use tournament::*;
