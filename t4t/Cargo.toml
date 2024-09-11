@@ -10,7 +10,7 @@ categories = ["mathematics", "simulation"]
 keywords = ["game-theory", "economics", "evolution"]
 
 [dependencies]
-derive_more = "0.99.18"
+derive_more = { version = "1.0.0", features = ["as_ref", "index", "index_mut"] }
 dyn-clone = "1.0.17"
 im = "15.1.0"
 itertools = "0.13.0"
