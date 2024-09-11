@@ -41,7 +41,7 @@ impl<T> Distribution<T> {
     ///
     /// Logs an error and returns `None` if:
     /// - The vector is empty.
-    /// - The vector is longer than u32::MAX.
+    /// - The vector is longer than `u32::MAX`.
     /// - For any weight `w`: `w < 0.0` or `w > max`
     ///   where `max = f64::MAX / weighted_elements.len()`.
     /// - The sum of the weights is zero.

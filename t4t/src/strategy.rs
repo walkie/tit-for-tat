@@ -11,6 +11,20 @@ pub struct Context<V, const P: usize> {
     state_view: V,
 }
 
+/// A function computing the next move for a player given a strategic context.
+///
+/// This trait is effectively a type synonym for the function type it extends. A blanket
+/// implementation covers all possible instances, so it should not be implemented directly.
+pub trait NextMove<V, M, const P: usize>:
+    FnMut(&Context<V, P>) -> M + Send + Sync + 'static
+{
+}
+
+impl<F, V, M, const P: usize> NextMove<V, M, P> for F where
+    F: FnMut(&Context<V, P>) -> M + Send + Sync + 'static
+{
+}
+
 impl<V: State, const P: usize> Context<V, P> {
     /// Construct a new context from the index of the player whose turn it is to move and that
     /// player's view of the current state.
@@ -41,13 +55,13 @@ impl<V: State> Context<V, 2> {
 /// A strategy is a function from an intermediate game context to a move.
 pub struct Strategy<V, M, const P: usize> {
     #[allow(clippy::type_complexity)]
-    next_move: Box<dyn FnMut(&Context<V, P>) -> M + Send + Sync>,
+    next_move: Box<dyn NextMove<V, M, P>>,
 }
 
 impl<V: State + 'static, M: Move, const P: usize> Strategy<V, M, P> {
     /// Construct a new strategy from a function that computes the next move given a strategic
     /// context.
-    pub fn new(next_move: impl FnMut(&Context<V, P>) -> M + Send + Sync + 'static) -> Self {
+    pub fn new(next_move: impl NextMove<V, M, P>) -> Self {
         Strategy {
             next_move: Box::new(next_move),
         }
