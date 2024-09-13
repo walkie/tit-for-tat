@@ -88,7 +88,7 @@ impl Board {
         empty
     }
 
-    pub fn rows(&self) -> [[Option<Mark>; 3]; 8] {
+    pub fn lines(&self) -> [[Option<Mark>; 3]; 8] {
         [
             [self.squares[0][0], self.squares[0][1], self.squares[0][2]],
             [self.squares[1][0], self.squares[1][1], self.squares[1][2]],
@@ -102,9 +102,9 @@ impl Board {
     }
 
     pub fn check_winner(&self) -> Option<Mark> {
-        for row in self.rows().iter() {
+        for line in self.lines().iter() {
             for mark in [Mark::X, Mark::O] {
-                if row.iter().all(|&m| m == Some(mark)) {
+                if line.iter().all(|&m| m == Some(mark)) {
                     return Some(mark);
                 }
             }
