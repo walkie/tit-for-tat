@@ -11,7 +11,7 @@ use crate::{Move, Payoff, PlayerIndex, PossibleProfiles, Profile, Record, Transc
 /// - [`SequentialOutcome`] for sequential games.
 /// - [`History`](crate::History) for [repeated](crate::Repeated) games.
 pub trait Outcome<M: Move, U: Utility, const P: usize>:
-    Clone + Debug + PartialEq + Send + Sync
+    Clone + Debug + PartialEq + Send + Sync + 'static
 {
     /// A type for capturing the record of moves that produced (or would produce) this outcome.
     ///
