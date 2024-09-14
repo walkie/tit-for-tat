@@ -137,7 +137,7 @@ impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> GameTre
                 if to_move.is_empty() {
                     next(state, vec![])
                         .map(|node| node.sequentialize())
-                        .expect("Turns node with no players failed to produce next node")
+                        .expect("malformed game tree: turn node with no players failed to produce the next node")
                 } else {
                     Self::sequentialize_turns(
                         state,

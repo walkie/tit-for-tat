@@ -24,26 +24,6 @@ pub trait Combinatorial<const P: usize>: Game<P> {
     }
 }
 
-// pub fn state_based_total_minimax<S, G: Game<2, State = S, View = S> + StateBased<2> + Finite<2>>(
-//     game: G,
-// ) -> Strategy<G::View, G::Move, 2> {
-//     let value: Fn(S) -> G::Utility = |state: S| {
-//         todo!()
-//     }
-//
-//     Strategy::new(move |&context| {
-//         let player = context.my_index();
-//         let state = context.state_view();
-//         match game.check_final_state(player, state) {
-//             Some(payoff) => payoff[player],
-//         }
-//
-//         let possible = game.possible_moves(context.player, context.state);
-//
-//         todo!()
-//     })
-// }
-
 #[allow(clippy::type_complexity)]
 fn generate_tree<G: Combinatorial<P> + 'static, const P: usize>(
     game: Arc<G>,
