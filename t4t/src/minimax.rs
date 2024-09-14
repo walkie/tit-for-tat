@@ -1,6 +1,4 @@
-use crate::{
-    Finite, Game, GameTree, Move, Outcome, Playable, PlayerIndex, State, Strategy, Utility,
-};
+use crate::{Finite, Game, GameTree, Move, Outcome, Playable, PlayerIndex, State, Utility};
 use std::sync::Arc;
 
 // TODO
@@ -20,9 +18,11 @@ pub struct Minimax<G: Game<P> + Finite<P>, const P: usize> {
     game: Arc<G>,
     player: PlayerIndex<P>,
     max_depth: usize,
+    #[allow(clippy::type_complexity)]
     heuristic: Arc<dyn Fn(&G::State) -> f64>,
 }
 
+#[allow(dead_code)]
 impl<M, S, U, O, G, const P: usize> Minimax<G, P>
 where
     M: Move,
