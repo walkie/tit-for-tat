@@ -92,11 +92,11 @@
 //!
 //! // Define two functions that produce players for playing social dilemma games. The game type is
 //! // generic so that we can reuse these players later for repeated prisoner's dilemma.
-//! fn nice<G: Game<2, Move = DilemmaMove>>() -> Player<G, 2> {
+//! fn nice<G: Playable<2, Move = DilemmaMove>>() -> Player<G, 2> {
 //!     Player::new("Nice".to_string(), || Strategy::pure(DilemmaMove::Cooperate))
 //! }
 //!
-//! fn mean<G: Game<2, Move = DilemmaMove>>() -> Player<G, 2> {
+//! fn mean<G: Playable<2, Move = DilemmaMove>>() -> Player<G, 2> {
 //!     Player::new("Mean".to_string(), || Strategy::pure(DilemmaMove::Defect))
 //! }
 //!
@@ -110,7 +110,7 @@
 //! // Define a player that plays the famous tit-for-tat strategy.
 //! let tit_for_tat: Player<Repeated<Dilemma, 2>, 2> = Player::new(
 //!     "Tit-for-Tat".to_string(),
-//!     || Strategy::new(|context: &Context<RepeatedState<Dilemma, 2>, 2>| {
+//!     || Strategy::new(|context: Context<Repeated<Dilemma, 2>, 2>| {
 //!         context
 //!             .state_view() // get the repeated game state
 //!             .history() // get the completed game history from the state

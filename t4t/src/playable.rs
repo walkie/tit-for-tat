@@ -5,7 +5,7 @@ use crate::{Context, Game, GameTree, Matchup, Outcome, PlayResult};
 /// This trait is implemented by all game types. It defines how to convert the game into a
 /// [`GameTree`], which can then be played by executing the game tree with a given matchup of
 /// players.
-pub trait Playable<const P: usize>: Game<P> {
+pub trait Playable<const P: usize>: Game<P> + 'static {
     /// The type of value produced by playing the game.
     /// - For simultaneous games: [`SimultaneousOutcome`](crate::SimultaneousOutcome)
     /// - For sequential games: [`SequentialOutcome`](crate::SequentialOutcome)
@@ -37,7 +37,7 @@ pub trait Playable<const P: usize>: Game<P> {
         let mut strategies = matchup.strategies();
 
         loop {
-            match node {
+            match &node {
                 GameTree::Turns {
                     state,
                     to_move,
@@ -46,13 +46,13 @@ pub trait Playable<const P: usize>: Game<P> {
                     let moves = to_move
                         .iter()
                         .map(|&index| {
-                            let view = self.state_view(&state, index);
-                            let context = Context::new(index, view);
-                            strategies[index].next_move(&context)
+                            let view = self.state_view(state, index);
+                            let context = Context::new(index, &view, &node);
+                            strategies[index].next_move(context)
                         })
                         .collect();
 
-                    let next_node = next(state, moves)?;
+                    let next_node = next(state.clone(), moves)?;
                     node = next_node;
                 }
 
@@ -62,11 +62,11 @@ pub trait Playable<const P: usize>: Game<P> {
                     next,
                 } => {
                     let the_move = distribution.sample();
-                    let next_node = next(state, *the_move)?;
+                    let next_node = next(state.clone(), *the_move)?;
                     node = next_node;
                 }
 
-                GameTree::End { outcome, .. } => return Ok(outcome),
+                GameTree::End { outcome, .. } => return Ok(outcome.clone()),
             }
         }
     }

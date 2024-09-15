@@ -407,7 +407,7 @@ impl Playable<2> for Dilemma {
 pub type DilemmaPlayer = Player<Repeated<Dilemma, 2>, 2>;
 
 /// The strategic context in a repeated social dilemma game.
-pub type DilemmaContext = Context<RepeatedState<Dilemma, 2>, 2>;
+pub type DilemmaContext<'a> = Context<'a, Repeated<Dilemma, 2>, 2>;
 
 /// A player that always cooperates.
 pub fn cooperator() -> DilemmaPlayer {
@@ -449,7 +449,7 @@ pub fn random_ccd() -> DilemmaPlayer {
 /// opponent defects.
 pub fn tit_for_tat() -> DilemmaPlayer {
     Player::new("Tit-for-Tat".to_string(), || {
-        Strategy::new(|context: &DilemmaContext| {
+        Strategy::new(|context: DilemmaContext| {
             context
                 .state_view()
                 .history()
@@ -465,7 +465,7 @@ pub fn tit_for_tat() -> DilemmaPlayer {
 /// Like [Tit-for-Tat](tit_for_tat) but defects on the first move.
 pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
     Player::new("Suspicious Tit-for-Tat".to_string(), || {
-        Strategy::new(|context: &DilemmaContext| {
+        Strategy::new(|context: DilemmaContext| {
             context
                 .state_view()
                 .history()
@@ -482,7 +482,7 @@ pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
 /// defected `n` times in a row.
 pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
     Player::new(format!("Tit-for-{}-Tats", n), move || {
-        Strategy::new(move |context: &DilemmaContext| {
+        Strategy::new(move |context: DilemmaContext| {
             let last_n: Vec<Move> = context
                 .state_view()
                 .history()
@@ -506,7 +506,7 @@ pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
 /// defecting `n` times in a row.
 pub fn n_tits_for_tat(n: usize) -> DilemmaPlayer {
     Player::new(format!("{}-Tits-for-Tat", n), move || {
-        Strategy::new(move |context: &DilemmaContext| {
+        Strategy::new(move |context: DilemmaContext| {
             let last_n: Vec<Move> = context
                 .state_view()
                 .history()
@@ -541,7 +541,7 @@ pub fn probabilistic_tit_for_tat(
         format!("Probabilistic Tit-for-Tat {}", name_suffix),
         move || {
             Strategy::conditional(
-                |context: &DilemmaContext| {
+                |context: DilemmaContext| {
                     context
                         .state_view()
                         .history()
@@ -582,7 +582,7 @@ pub fn probing_tit_for_tat() -> DilemmaPlayer {
 /// Different from [Tit-for-Tat](tit_for_tat) since it will cooperate after mutual defection.
 pub fn firm_but_fair() -> DilemmaPlayer {
     Player::new("Firm-but-Fair".to_string(), || {
-        Strategy::new(|context: &DilemmaContext| {
+        Strategy::new(|context: DilemmaContext| {
             context
                 .state_view()
                 .history()
@@ -603,7 +603,7 @@ pub fn firm_but_fair() -> DilemmaPlayer {
 /// opponent cooperated or else flips its move if the opponent defected.
 pub fn pavlov() -> DilemmaPlayer {
     Player::new("Pavlov".to_string(), || {
-        Strategy::new(|context: &DilemmaContext| {
+        Strategy::new(|context: DilemmaContext| {
             context
                 .state_view()
                 .history()
@@ -624,7 +624,7 @@ pub fn pavlov() -> DilemmaPlayer {
 pub fn grim_trigger() -> DilemmaPlayer {
     Player::new("Grim Trigger".to_string(), || {
         Strategy::trigger(
-            |context: &DilemmaContext| {
+            |context: DilemmaContext| {
                 context
                     .state_view()
                     .history()

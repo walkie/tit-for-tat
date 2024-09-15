@@ -1,13 +1,13 @@
-use crate::{Game, PerPlayer, Player, Strategy};
+use crate::{PerPlayer, Playable, Player, Strategy};
 use std::sync::Arc;
 
 /// A collection of players ready to play a game.
 #[derive(Clone, Debug)]
-pub struct Matchup<G: Game<P>, const P: usize> {
+pub struct Matchup<G: Playable<P>, const P: usize> {
     players: PerPlayer<Arc<Player<G, P>>, P>,
 }
 
-impl<G: Game<P>, const P: usize> Matchup<G, P> {
+impl<G: Playable<P>, const P: usize> Matchup<G, P> {
     /// Construct a new matchup.
     pub fn new(players: PerPlayer<Arc<Player<G, P>>, P>) -> Self {
         Matchup { players }
@@ -29,7 +29,7 @@ impl<G: Game<P>, const P: usize> Matchup<G, P> {
     }
 
     /// Get fresh copies of each player's strategy for playing the game.
-    pub fn strategies(&self) -> PerPlayer<Strategy<G::View, G::Move, P>, P> {
+    pub fn strategies(&self) -> PerPlayer<Strategy<G, P>, P> {
         self.players.map(|player| player.new_strategy())
     }
 }
