@@ -47,7 +47,7 @@ pub trait Playable<const P: usize>: Game<P> + 'static {
                         .iter()
                         .map(|&index| {
                             let view = self.state_view(state, index);
-                            let context = Context::new(index, &view, &node);
+                            let context = Context::new(self, &node, &view, index);
                             strategies[index].next_move(context)
                         })
                         .collect();

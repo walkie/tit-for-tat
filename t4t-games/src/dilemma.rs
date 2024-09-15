@@ -393,6 +393,16 @@ impl Game<2> for Dilemma {
     fn state_view(&self, _state: &(), _player: PlayerIndex<2>) {}
 }
 
+impl Finite<2> for Dilemma {
+    fn possible_moves(
+        &self,
+        _player: PlayerIndex<2>,
+        _state: &Self::State,
+    ) -> PossibleMoves<'_, Self::Move> {
+        PossibleMoves::from_vec(vec![C, D])
+    }
+}
+
 impl Playable<2> for Dilemma {
     type Outcome = SimultaneousOutcome<Move, i64, 2>;
 
@@ -431,9 +441,7 @@ pub fn periodic(moves: Vec<Move>) -> DilemmaPlayer {
 
 /// A player that plays randomly with a 1:1 expected ratio of cooperation to defection.
 pub fn random() -> DilemmaPlayer {
-    Player::new("Random 1:1".to_string(), || {
-        Strategy::mixed_flat(vec![C, D]).unwrap()
-    })
+    Player::new("Random 1:1".to_string(), Strategy::randomly)
 }
 
 /// A player that plays randomly with a 2:1 expected ratio of cooperation to defection.

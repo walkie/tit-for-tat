@@ -7,9 +7,10 @@ use crate::{Distribution, Finite, GameTree, Playable, PlayerIndex, State};
 /// game state.
 #[derive(Clone)]
 pub struct Context<'a, G: Playable<P>, const P: usize> {
-    index: PlayerIndex<P>,
-    state_view: &'a G::View,
+    game: &'a G,
     location: &'a GameTree<G::State, G::Move, G::Utility, G::Outcome, P>,
+    state_view: &'a G::View,
+    index: PlayerIndex<P>,
 }
 
 /// A function computing the next move for a player given a strategic context.
@@ -30,15 +31,22 @@ impl<'a, G: Playable<P>, const P: usize> Context<'a, G, P> {
     /// Construct a new context from the index of the player whose turn it is to move and that
     /// player's view of the current state.
     pub fn new(
-        index: PlayerIndex<P>,
-        state_view: &'a G::View,
+        game: &'a G,
         location: &'a GameTree<G::State, G::Move, G::Utility, G::Outcome, P>,
+        state_view: &'a G::View,
+        index: PlayerIndex<P>,
     ) -> Self {
         Context {
-            index,
-            state_view,
+            game,
             location,
+            state_view,
+            index,
         }
+    }
+
+    /// The game being played.
+    pub fn game(&self) -> &'a G {
+        self.game
     }
 
     /// Get the player's view of the current state of the game.
@@ -194,11 +202,14 @@ where
     /// # Panics
     ///
     /// Panics if the number of possible moves is 0 or larger than `u32::MAX`.
-    pub fn randomly(game: &'static G) -> Self {
-        Strategy::new(|context| {
-            let state = context.state_view();
+    pub fn randomly() -> Self {
+        Strategy::new(|context: Context<G, P>| {
             let player = context.my_index();
-            let moves = game.possible_moves(player, state).collect::<Vec<_>>();
+            let state = context.state_view();
+            let moves = context
+                .game()
+                .possible_moves(player, state)
+                .collect::<Vec<_>>();
             let dist = Distribution::flat(moves);
             match dist {
                 Some(dist) => dist.sample().to_owned(),
