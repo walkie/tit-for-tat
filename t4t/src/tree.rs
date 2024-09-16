@@ -146,9 +146,8 @@ impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> GameTre
                         .map(|node| node.sequentialize(prioritize))
                         .expect("malformed game tree: turn node with no players failed to produce the next node")
                 } else {
-                    let prioritized_index = prioritize
-                        .map(|player| to_move.iter().position(|&p| p == player))
-                        .flatten();
+                    let prioritized_index =
+                        prioritize.and_then(|player| to_move.iter().position(|&p| p == player));
                     match prioritized_index {
                         Some(index) => {
                             let mut reordered_to_move = to_move.clone();
