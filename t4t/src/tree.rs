@@ -26,7 +26,7 @@ impl<F, T, S, M, U, O, const P: usize> NextGameTree<T, S, M, U, O, P> for F wher
 #[derive(Clone)]
 pub enum GameTree<S, M, U, O, const P: usize> {
     /// One or more players play a move simultaneously.
-    Turns {
+    Turn {
         /// The game state at this node.
         state: S,
         /// The players to move simultaneously.
@@ -77,7 +77,7 @@ impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> GameTre
         to_move: Vec<PlayerIndex<P>>,
         next: impl NextGameTree<Vec<M>, S, M, U, O, P>,
     ) -> Self {
-        GameTree::Turns {
+        GameTree::Turn {
             state,
             to_move,
             next: Arc::new(next),
@@ -119,48 +119,80 @@ impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> GameTre
     /// Get the game state at this node.
     pub fn state(&self) -> &S {
         match self {
-            GameTree::Turns { state, .. } => state,
+            GameTree::Turn { state, .. } => state,
             GameTree::Chance { state, .. } => state,
             GameTree::End { state, .. } => state,
         }
     }
 
-    /// Transform the game tree such that each [GameTree::Turns] node contains exactly one player.
-    /// Simultaneous turns will become sequential using an arbitrary ordering of players.
-    pub fn sequentialize(self) -> Self {
+    /// Transform the game tree such that each [GameTree::Turn] node contains exactly one player.
+    /// Each turn node where several players move simultaneously will be expanded into a sequence
+    /// of single-player turn nodes.
+    ///
+    /// A particular player may be prioritized in the transformation. The prioritized player will
+    /// move first among all players in a simultaneous turn. This is useful, e.g. for focusing on
+    /// the current player when traversing a game tree within a strategy.
+    ///
+    /// Non-prioritized players will be ordered arbitrarily in the transformed tree.
+    pub fn sequentialize(self, prioritize: Option<PlayerIndex<P>>) -> Self {
         match self {
-            GameTree::Turns {
+            GameTree::Turn {
                 state,
                 to_move,
                 next,
             } => {
                 if to_move.is_empty() {
                     next(state, vec![])
-                        .map(|node| node.sequentialize())
+                        .map(|node| node.sequentialize(prioritize))
                         .expect("malformed game tree: turn node with no players failed to produce the next node")
                 } else {
-                    Self::sequentialize_turns(
-                        state,
-                        to_move.into_iter().rev().collect_vec(),
-                        vec![],
-                        next,
-                    )
+                    let prioritized_index = prioritize
+                        .map(|player| to_move.iter().position(|&p| p == player))
+                        .flatten();
+                    match prioritized_index {
+                        Some(index) => {
+                            let mut reordered_to_move = to_move.clone();
+                            reordered_to_move.rotate_left(index);
+                            Self::sequentialize_turns(
+                                prioritize,
+                                state,
+                                reordered_to_move.into_iter().rev().collect_vec(),
+                                vec![],
+                                Arc::new(move |state, moves| {
+                                    let mut reordered_moves = moves.clone();
+                                    reordered_moves.rotate_right(index);
+                                    next(state, reordered_moves)
+                                }),
+                            )
+                        }
+                        None => Self::sequentialize_turns(
+                            prioritize,
+                            state,
+                            to_move.into_iter().rev().collect_vec(),
+                            vec![],
+                            next,
+                        ),
+                    }
                 }
             }
+
             GameTree::Chance {
                 state,
                 distribution,
                 next,
             } => {
-                let new_next =
-                    move |state, the_move| next(state, the_move).map(|node| node.sequentialize());
+                let new_next = move |state, the_move| {
+                    next(state, the_move).map(|node| node.sequentialize(prioritize))
+                };
                 GameTree::chance(state, distribution, new_next)
             }
+
             GameTree::End { state, outcome, .. } => GameTree::end(state, outcome),
         }
     }
 
     fn sequentialize_turns(
+        prioritize: Option<PlayerIndex<P>>,
         state: S,
         still_to_move: Vec<PlayerIndex<P>>,
         moves_so_far: Vec<M>,
@@ -171,7 +203,7 @@ impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> GameTre
             GameTree::player(state, still_to_move[0], move |state, the_move| {
                 let mut moves = moves_so_far.clone();
                 moves.push(the_move);
-                original_next(state, moves).map(|node| node.sequentialize())
+                original_next(state, moves).map(|node| node.sequentialize(prioritize))
             })
         } else {
             GameTree::player(
@@ -183,6 +215,7 @@ impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> GameTre
                     moves_so_far.push(the_move);
                     still_to_move.pop();
                     Ok(Self::sequentialize_turns(
+                        prioritize,
                         state,
                         still_to_move,
                         moves_so_far,
@@ -220,7 +253,7 @@ impl<S: State, M: Move, U: Utility, O: Outcome<M, U, P>, const P: usize> Playabl
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Matchup, Normal, Payoff, PerPlayer, Player, SimultaneousOutcome, Strategy};
+    use crate::{for3, Matchup, Normal, Payoff, PerPlayer, Player, SimultaneousOutcome, Strategy};
     use impls::impls;
     use test_log::test;
 
@@ -232,8 +265,8 @@ mod tests {
     #[test]
     fn game_tree_sequentialize() {
         let moves1 = vec!['A', 'B', 'C'];
-        let moves2 = vec!['D', 'E'];
-        let moves3 = vec!['F', 'G'];
+        let moves2 = vec!['D', 'E', 'F'];
+        let moves3 = vec!['G', 'H'];
 
         let simultaneous = Normal::from_payoff_vec(
             PerPlayer::new([moves1.clone(), moves2.clone(), moves3.clone()]),
@@ -250,12 +283,21 @@ mod tests {
                 Payoff::from([9, 10, 11]),
                 Payoff::from([10, 11, 12]),
                 Payoff::from([11, 12, 13]),
+                Payoff::from([12, 13, 14]),
+                Payoff::from([13, 14, 15]),
+                Payoff::from([14, 15, 16]),
+                Payoff::from([15, 16, 17]),
+                Payoff::from([16, 17, 18]),
+                Payoff::from([17, 18, 19]),
             ],
         )
         .unwrap()
         .game_tree();
 
-        let sequential = simultaneous.clone().sequentialize();
+        let sequential_none = simultaneous.clone().sequentialize(None);
+        let sequential_p1 = simultaneous.clone().sequentialize(Some(for3::P0));
+        let sequential_p2 = simultaneous.clone().sequentialize(Some(for3::P1));
+        let sequential_p3 = simultaneous.clone().sequentialize(Some(for3::P2));
 
         for m1 in moves1 {
             for m2 in moves2.clone() {
@@ -268,11 +310,26 @@ mod tests {
                         .play(&Matchup::from_players([p1.clone(), p2.clone(), p3.clone()]))
                         .unwrap();
 
-                    let sequential_outcome = sequential
+                    let sequential_none_outcome = sequential_none
+                        .play(&Matchup::from_players([p1.clone(), p2.clone(), p3.clone()]))
+                        .unwrap();
+
+                    let sequential_p1_outcome = sequential_p1
+                        .play(&Matchup::from_players([p1.clone(), p2.clone(), p3.clone()]))
+                        .unwrap();
+
+                    let sequential_p2_outcome = sequential_p2
+                        .play(&Matchup::from_players([p1.clone(), p2.clone(), p3.clone()]))
+                        .unwrap();
+
+                    let sequential_p3_outcome = sequential_p3
                         .play(&Matchup::from_players([p1, p2, p3]))
                         .unwrap();
 
-                    assert_eq!(simultaneous_outcome, sequential_outcome);
+                    assert_eq!(simultaneous_outcome, sequential_none_outcome);
+                    assert_eq!(simultaneous_outcome, sequential_p1_outcome);
+                    assert_eq!(simultaneous_outcome, sequential_p2_outcome);
+                    assert_eq!(simultaneous_outcome, sequential_p3_outcome);
                 }
             }
         }

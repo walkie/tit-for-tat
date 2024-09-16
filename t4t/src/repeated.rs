@@ -80,7 +80,7 @@ fn generate_tree<G: Playable<P> + 'static, const P: usize>(
 ) -> RepeatedGameTree<G, P> {
     let remaining = repeated_state.remaining;
     match stage_node {
-        GameTree::Turns {
+        GameTree::Turn {
             state: stage_state,
             to_move,
             next,

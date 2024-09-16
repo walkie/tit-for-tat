@@ -249,12 +249,17 @@ where
     ) -> Self {
         let heuristic = Arc::new(heuristic);
         Strategy::new(move |context: Context<G, P>| {
-            let game_tree = context.location().clone().sequentialize();
-            let next = if let GameTree::Turns { next, .. } = game_tree {
+            let game_tree = context
+                .location()
+                .clone()
+                .sequentialize(Some(context.my_index()));
+
+            let next = if let GameTree::Turn { next, .. } = game_tree {
                 next
             } else {
                 panic!("minimax: expected a turn node")
             };
+
             let best_move = context
                 .game()
                 .possible_moves(context.my_index(), context.state_view())
@@ -272,6 +277,7 @@ where
                     );
                     OrderedFloat(value)
                 });
+
             best_move.expect("minimax: no possible moves")
         })
     }
@@ -295,8 +301,8 @@ where
         mut alpha: f64,
         mut beta: f64,
     ) -> f64 {
-        match node.clone().sequentialize() {
-            GameTree::Turns {
+        match node.clone().sequentialize(Some(my_index)) {
+            GameTree::Turn {
                 state,
                 to_move,
                 next,

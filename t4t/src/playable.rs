@@ -38,7 +38,7 @@ pub trait Playable<const P: usize>: Game<P> + 'static {
 
         loop {
             match &node {
-                GameTree::Turns {
+                GameTree::Turn {
                     state,
                     to_move,
                     next,
