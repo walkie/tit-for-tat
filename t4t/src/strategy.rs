@@ -1,4 +1,6 @@
-use crate::{Distribution, Finite, GameTree, Playable, PlayerIndex, State};
+use crate::{Distribution, Finite, GameTree, Move, Outcome, Playable, PlayerIndex, State, Utility};
+use ordered_float::OrderedFloat;
+use std::sync::Arc;
 
 /// The strategic context in which a player makes a move during a game.
 ///
@@ -197,7 +199,7 @@ where
     G: Finite<P, State = S, View = S> + Playable<P>,
 {
     /// For a finite [perfect-information](https://en.wikipedia.org/wiki/Perfect_information) game,
-    /// produce a strategy that chooses a move randomly from the set of possible moves.
+    /// construct a strategy that chooses a move randomly from the set of possible moves.
     ///
     /// # Panics
     ///
@@ -216,6 +218,160 @@ where
                 None => panic!("randomly: Could not build distribution."),
             }
         })
+    }
+}
+
+impl<S, M, U, O, G, const P: usize> Strategy<G, P>
+where
+    S: State,
+    M: Move,
+    U: Utility + Into<f64>,
+    O: Outcome<M, U, P>,
+    G: Finite<P, Move = M, Utility = U, State = S, View = S> + Playable<P, Outcome = O>,
+{
+    /// Construct a strategy that uses the
+    /// [expectiminimax](https://en.wikipedia.org/wiki/Expectiminimax) algorithm to choose the move
+    /// that maximizes the minimum utility of the possible outcomes for the player.
+    ///
+    /// The algorithm uses [alpha-beta pruning](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning)
+    /// to reduce the search space where possible.
+    ///
+    /// The heuristic function will be applied to the game state when the maximum search depth is
+    /// reached. The heuristic function should return a value that is between the minimum and
+    /// maximum payoff values achievable by the player.
+    ///
+    /// # TODO
+    /// The "expecti-" part of the algorithm is not yet implemented. That is, the strategy will
+    /// panic if it encounters a chance node in the game tree.
+    pub fn minimax(
+        max_depth: usize,
+        heuristic: impl Fn(&S) -> f64 + Send + Sync + 'static,
+    ) -> Self {
+        let heuristic = Arc::new(heuristic);
+        Strategy::new(move |context: Context<G, P>| {
+            let game_tree = context.location().clone().sequentialize();
+            let next = if let GameTree::Turns { next, .. } = game_tree {
+                next
+            } else {
+                panic!("minimax: expected a turn node")
+            };
+            let best_move = context
+                .game()
+                .possible_moves(context.my_index(), context.state_view())
+                .max_by_key(|the_move| {
+                    let child = next(context.state_view().clone(), vec![*the_move])
+                        .expect("malformed game tree: possible move is invalid");
+                    let value = Strategy::minimax_value(
+                        context.game(),
+                        context.my_index(),
+                        Arc::clone(&heuristic),
+                        max_depth,
+                        &child,
+                        f64::NEG_INFINITY,
+                        f64::INFINITY,
+                    );
+                    OrderedFloat(value)
+                });
+            best_move.expect("minimax: no possible moves")
+        })
+    }
+
+    /// Construct a version of the [minimax](Strategy::minimax) strategy with no maximum search
+    /// depth.
+    ///
+    /// This strategy will always perform a total search of the game tree starting from the
+    /// player's location, and so is only suitable for relatively small games.
+    pub fn total_minimax() -> Self {
+        Strategy::minimax(usize::MAX, |_| 0.0)
+    }
+
+    /// Recursive helper function for the minimax strategy.
+    fn minimax_value(
+        game: &G,
+        my_index: PlayerIndex<P>,
+        heuristic: Arc<impl Fn(&S) -> f64>,
+        depth: usize,
+        node: &GameTree<S, M, U, O, P>,
+        mut alpha: f64,
+        mut beta: f64,
+    ) -> f64 {
+        match node.clone().sequentialize() {
+            GameTree::Turns {
+                state,
+                to_move,
+                next,
+            } => {
+                assert_eq!(to_move.len(), 1);
+                let player = to_move[0];
+                if depth == 0 {
+                    heuristic(&state)
+                } else if alpha >= beta {
+                    if player == my_index {
+                        alpha
+                    } else {
+                        beta
+                    }
+                } else if player == my_index {
+                    // maximizing player
+                    let mut value = f64::NEG_INFINITY;
+                    for the_move in game.possible_moves(player, &state) {
+                        let child = next(state.clone(), vec![the_move])
+                            .expect("malformed game tree: possible move is invalid");
+                        let child_value = Strategy::minimax_value(
+                            game,
+                            my_index,
+                            Arc::clone(&heuristic),
+                            depth - 1,
+                            &child,
+                            alpha,
+                            beta,
+                        );
+                        value = f64::max(value, child_value);
+                        alpha = f64::max(alpha, value);
+                        if value >= beta {
+                            break;
+                        }
+                    }
+                    value
+                } else {
+                    // minimizing player
+                    let mut value = f64::INFINITY;
+                    for the_move in game.possible_moves(player, &state) {
+                        let child = next(state.clone(), vec![the_move])
+                            .expect("malformed game tree: possible move is invalid");
+                        let child_value = Strategy::minimax_value(
+                            game,
+                            my_index,
+                            Arc::clone(&heuristic),
+                            depth - 1,
+                            &child,
+                            alpha,
+                            beta,
+                        );
+                        value = f64::min(value, child_value);
+                        beta = f64::min(beta, value);
+                        if value <= alpha {
+                            break;
+                        }
+                    }
+                    value
+                }
+            }
+
+            GameTree::Chance {
+                state,
+                distribution: _,
+                next: _,
+            } => {
+                if depth == 0 {
+                    heuristic(&state)
+                } else {
+                    todo! {"Minimax with chance nodes not yet implemented"}
+                }
+            }
+
+            GameTree::End { outcome, .. } => outcome.payoff()[my_index].into(),
+        }
     }
 }
 
