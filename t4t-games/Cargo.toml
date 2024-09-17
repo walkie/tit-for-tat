@@ -1,6 +1,6 @@
 [package]
 name = "t4t-games"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Eric Walkingshaw <eric@walkingshaw.net>"]
 edition = "2021"
 description = "A library of games and strategies built with t4t."
@@ -11,7 +11,7 @@ keywords = ["game-theory", "economics", "evolution"]
 
 [dependencies]
 log = "0.4.22"
-t4t = { path = "../t4t", version = "0.1.1" }
+t4t = { path = "../t4t", version = "0.2.0" }
 
 [dev-dependencies]
 env_logger = "0.11.5"
