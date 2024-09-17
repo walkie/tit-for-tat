@@ -27,7 +27,7 @@
 //!   possibly with moves of chance interspersed.
 //!
 //! - [`Combinatorial`]: A trait for defining [combinatorial games][combinatorial-game], that is,
-//!   [perfect-information][pefect-information] games where players interact by sequentially making
+//!   [perfect-information][perfect-information] games where players interact by sequentially making
 //!   moves to modify a shared state.
 //!
 //! - [`Repeated`]: Games where another game is played repeatedly a given number of times.
@@ -151,17 +151,17 @@
 //! games of arbitrary size, between arbitrary numbers of players, and with arbitrary move and
 //! utility values, but is somewhat less efficient than a simple matrix.
 //!
-//! Games are defined by translation into a generic [game tree](crate::GameTree) representation.
 //!
 //! A subtler but more extreme example of this tradeoff is how games are executed. The [`Game`] and
 //! [`Playable`] traits are quite generic. Implementers of these traits do not implement the
-//! execution of their game directly, but rather produce a [*description*](crate::GameTree) of how
-//! the game is executed. This is less efficient, but enables generically transforming the execution
-//! of a game, for example, defining new games that modify the behavior of existing games.
+//! execution of their game directly, but rather define a translation of the game into a generic
+//! [game tree](crate::GameTree) representation. This is less efficient, but enables manipulating
+//! game trees to modify the execution of a game, for example, defining new games that modify the
+//! behavior of existing games.
 //!
 //! An example of this capability in action is the [`Repeated`] type, which transforms any game into
-//! a repeated game, modifying the original game's state and execution to enable players of the game
-//! to see the history of games played so far.
+//! a repeated game, modifying the original game's tree and extending the state stored at each node
+//! to enable players of the game to see the history of games played so far.
 //!
 //! Of course, all things being equal, I'd still like things to run as fast as possible! However,
 //! if your application deals only with 2x2 numeric, normal-form games, and you need to run
@@ -178,33 +178,18 @@
 //! of experimental game theory is to compare various analytic solutions with each other and with
 //! other strategies.
 //!
-//! # This is a work in progress!
+//! # Work in progress!
 //!
 //! The library is a work-in-progress and will continue expanding and evolving. For now, expect
 //! breaking changes on even patch-level version changes. Minor version changes will indicate
 //! significant new features.
-//!
-//! The type- and method-level documentation is very good in places, minimal in others.
-//!
-//! [Normal-form games](crate::Normal) are in good shape, and [repeated games](crate::Repeated) are
-//! solid for perfect-information games. You can define [players](crate::Player) and
-//! [strategies](crate::Strategy) for these games, and they can be played.
-//!
-//! There is a mechanism to efficiently run [tournaments](crate::Tournament) by playing a game with
-//! all combinations or permutations of a set of entrants.
-//!
-//! There is a lot of infrastructure in place for sequential and state-based games, but the library
-//! is still missing the main top-level types to make this convenient to use.
-//!
-//! Long-term, I'd like to add ways to visualize game executions and build games and strategies
-//! interactively, but we'll see!
 //!
 //! [wiki-game-theory]: https://en.wikipedia.org/wiki/Game_theory
 //! [normal-form-game]: https://en.wikipedia.org/wiki/Normal-form_game
 //! [simultaneous-game]: https://en.wikipedia.org/wiki/Simultaneous_game
 //! [extensive-form-game]: https://en.wikipedia.org/wiki/Extensive-form_game
 //! [combinatorial-game]: https://en.wikipedia.org/wiki/Combinatorial_game_theory
-//! [pefect-information]: https://en.wikipedia.org/wiki/Perfect_information
+//! [perfect-information]: https://en.wikipedia.org/wiki/Perfect_information
 //! [repeated-game]: https://en.wikipedia.org/wiki/Repeated_game
 //! [games-crate]: https://crates.io/crates/t4t-games
 

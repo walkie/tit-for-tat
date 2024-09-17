@@ -1,8 +1,12 @@
-//! Rock-paper-scissors and related games.
+//! [Rock-paper-scissors](https://en.wikipedia.org/wiki/Rock_paper_scissors), a.k.a. Rochambeau,
+//! and related games.
+//!
+//! The games are defined as functions that produce a corresponding [normal-form game](t4t::Normal).
+//! See the documentation of each function for more details.
 
 use t4t::*;
 
-/// A move in rock-paper-scissors-style game.
+/// A move in a rock-paper-scissors game.
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum Move {

@@ -35,7 +35,4 @@
 
 pub mod dilemma;
 pub mod rock_paper_scissors;
-
-// TODO
-#[allow(missing_docs)]
 pub mod tic_tac_toe;
