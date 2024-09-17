@@ -27,10 +27,8 @@
 //!     let outcome =
 //!         TicTacToe.play(&Matchup::from_players([random.clone(), minimax.clone()])).unwrap();
 //!
-//!     // Print the final board.
-//!     outcome.
-//!
 //!     // Update the scores.
+//!     let payoff = *outcome.payoff();
 //!     if payoff == Payoff::zeros() {
 //!         cats_games += 1;
 //!     } else if payoff == Payoff::zero_sum_winner(for2::P0) {
