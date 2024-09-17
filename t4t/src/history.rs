@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use crate::{
     Move, Outcome, Past, Payoff, PlayerIndex, Plies, Profile, Record, SequentialOutcome,
-    SimultaneousOutcome, Summary, Transcript, Utility,
+    SimultaneousOutcome, State, Summary, Transcript, Utility,
 };
 
 /// For repeated games, a history of previously played games.
@@ -74,7 +74,9 @@ impl<M: Move, U: Utility, const P: usize> History<M, U, SimultaneousOutcome<M, U
     }
 }
 
-impl<M: Move, U: Utility, const P: usize> History<M, U, SequentialOutcome<M, U, P>, P> {
+impl<S: State, M: Move, U: Utility, const P: usize>
+    History<M, U, SequentialOutcome<S, M, U, P>, P>
+{
     /// Get an iterator over the transcripts of previously played games.
     pub fn transcripts(&self) -> Past<&Transcript<M, P>> {
         Past::from_iter(

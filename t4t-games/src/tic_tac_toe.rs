@@ -8,6 +8,7 @@
 //! # Example
 //!
 //! ```
+//! use log::warn;
 //! use t4t::*;
 //! use t4t_games::tic_tac_toe::*;
 //!
@@ -23,9 +24,13 @@
 //! let mut cats_games = 0;
 //!
 //! // Play 5 games, letting Random go first.
-//! for _ in 0..5 {
+//! for i in 0..5 {
 //!     let outcome =
 //!         TicTacToe.play(&Matchup::from_players([random.clone(), minimax.clone()])).unwrap();
+//!
+//!     // Print the final board state.
+//!     println!("\nGame {}:", i + 1);
+//!     outcome.final_state().print();
 //!
 //!     // Update the scores.
 //!     let payoff = *outcome.payoff();
@@ -186,6 +191,21 @@ impl Board {
             }
         }
         None
+    }
+
+    /// Print the current state of the board to stdout.
+    pub fn print(&self) {
+        let mark = |r: usize, c: usize| match self.squares[r][c] {
+            None => ' ',
+            Some(Mark::X) => 'X',
+            Some(Mark::O) => 'O',
+        };
+
+        println!("{}|{}|{}", mark(0, 0), mark(0, 1), mark(0, 2));
+        println!("-----");
+        println!("{}|{}|{}", mark(1, 0), mark(1, 1), mark(1, 2));
+        println!("-----");
+        println!("{}|{}|{}", mark(2, 0), mark(2, 1), mark(2, 2));
     }
 }
 

@@ -1,7 +1,9 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use crate::{Move, Payoff, PlayerIndex, PossibleProfiles, Profile, Record, Transcript, Utility};
+use crate::{
+    Move, Payoff, PlayerIndex, PossibleProfiles, Profile, Record, State, Transcript, Utility,
+};
 
 /// A (potential) outcome of a game. A payoff combined with a record of the moves that produced it.
 ///
@@ -69,15 +71,25 @@ impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> for SimultaneousOutco
 ///
 /// For extensive-form games, an outcome corresponds to a path through the game tree.
 #[derive(Clone, Debug, PartialEq, Hash)]
-pub struct SequentialOutcome<M: Move, U: Utility, const P: usize> {
+pub struct SequentialOutcome<S: State, M: Move, U: Utility, const P: usize> {
+    final_state: S,
     transcript: Transcript<M, P>,
     payoff: Payoff<U, P>,
 }
 
-impl<M: Move, U: Utility, const P: usize> SequentialOutcome<M, U, P> {
+impl<S: State, M: Move, U: Utility, const P: usize> SequentialOutcome<S, M, U, P> {
     /// Construct a new sequential game outcome.
-    pub fn new(transcript: Transcript<M, P>, payoff: Payoff<U, P>) -> Self {
-        SequentialOutcome { transcript, payoff }
+    pub fn new(final_state: S, transcript: Transcript<M, P>, payoff: Payoff<U, P>) -> Self {
+        SequentialOutcome {
+            final_state,
+            transcript,
+            payoff,
+        }
+    }
+
+    /// The final state when the game ended.
+    pub fn final_state(&self) -> &S {
+        &self.final_state
     }
 
     /// The move transcript associated with this outcome.
@@ -86,7 +98,9 @@ impl<M: Move, U: Utility, const P: usize> SequentialOutcome<M, U, P> {
     }
 }
 
-impl<M: Move, U: Utility, const P: usize> Outcome<M, U, P> for SequentialOutcome<M, U, P> {
+impl<S: State, M: Move, U: Utility, const P: usize> Outcome<M, U, P>
+    for SequentialOutcome<S, M, U, P>
+{
     type Record = Transcript<M, P>;
 
     fn record(&self) -> &Transcript<M, P> {

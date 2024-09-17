@@ -40,10 +40,14 @@ fn generate_tree<G: Combinatorial<P> + 'static, const P: usize>(
     game: Arc<G>,
     state: G::State,
     transcript: Transcript<G::Move, P>,
-) -> GameTree<G::State, G::Move, G::Utility, SequentialOutcome<G::Move, G::Utility, P>, P> {
+) -> GameTree<G::State, G::Move, G::Utility, SequentialOutcome<G::State, G::Move, G::Utility, P>, P>
+{
     let player = game.whose_turn(&state);
     match game.payoff(&state) {
-        Some(payoff) => GameTree::end(state, SequentialOutcome::new(transcript, payoff)),
+        Some(payoff) => GameTree::end(
+            state.clone(),
+            SequentialOutcome::new(state, transcript, payoff),
+        ),
 
         None => GameTree::player(state, player, move |state, the_move| {
             let next_state = game.next_state(state, the_move)?;
@@ -61,7 +65,7 @@ fn generate_tree<G: Combinatorial<P> + 'static, const P: usize>(
 }
 
 impl<G: Combinatorial<P> + 'static, const P: usize> Playable<P> for G {
-    type Outcome = SequentialOutcome<Self::Move, Self::Utility, P>;
+    type Outcome = SequentialOutcome<Self::State, Self::Move, Self::Utility, P>;
 
     fn into_game_tree(self) -> GameTree<Self::State, Self::Move, Self::Utility, Self::Outcome, P> {
         let initial_state = self.initial_state();
