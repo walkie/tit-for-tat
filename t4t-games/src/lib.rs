@@ -8,7 +8,7 @@
 //!
 //! # Dilemma games ([dilemma])
 //!
-//! This module includes a collection of 2x2 symmetric normal-form games, where each player may
+//! This module defines a collection of 2x2 symmetric normal-form games, where each player may
 //! cooperate or defect. It includes the classic [prisoner's dilemma][prisoner] game, along with
 //! several related games such as [stag hunt][stag-hunt], [chicken][chicken], and more!
 //!
@@ -21,8 +21,21 @@
 //!
 //! # Rock-paper-scissors games ([rock_paper_scissors])
 //!
-//! This module includes the classic [rock-paper-scissors][rps-game] game plus a few variant games
-//! involving either more moves or more players.
+//! This module defines [rock-paper-scissors][rps-game] plus a few variants of the classic game
+//! that involve either more moves or more players.
+//!
+//! In particular, this module illustrates a very large variant of rock-paper-scissors involving
+//! 100 players playing simultaneously, which is supported by t4t's normal form representation that
+//! does not require representing the payoff matrix directly.
+//!
+//! # Tic-tac-toe ([tic_tac_toe])
+//!
+//! This module defines [tic-tac-toe][tic-tac-toe-game], illustrating how combinatorial games can
+//! be defined by defining the game's state and describing the moves each player may make to modify
+//! that state.
+//!
+//! The example in the module also illustrates t4t's built-in generic minimax strategy, which can
+//! play small combinatorial games optimally.
 //!
 //! [t4t]: https://crates.io/crates/t4t
 //! [prisoner]: https://en.wikipedia.org/wiki/Prisoner%27s_dilemma
@@ -32,6 +45,7 @@
 //! [pd-strategies]: http://www.prisoners-dilemma.com/common-strategy/
 //! [tft-strategy]: https://en.wikipedia.org/wiki/Tit_for_tat
 //! [rps-game]: https://en.wikipedia.org/wiki/Rock_paper_scissors
+//! [tic-tac-toe-game]: https://en.wikipedia.org/wiki/Tic-tac-toe
 
 pub mod dilemma;
 pub mod rock_paper_scissors;
