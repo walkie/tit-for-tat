@@ -5,6 +5,10 @@
 //! second player marks `O`. If a player marks all three squares in a row, column, or one of the
 //! two diagonals, they win!
 //!
+//! The game is implemented by defining the state of the board and then implementing t4t's
+//! [Combinatorial](crate::Combinatorial) trait to define the game's rules, i.e. how players make
+//! moves to alter the state, and when and how the game ends.
+//!
 //! # Example
 //!
 //! ```
