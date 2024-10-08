@@ -231,11 +231,23 @@ impl<U: Utility, const P: usize> Payoff<U, P> {
         self.utilities.get_mut(i)
     }
 
+    /// Is this payoff all zeros?
+    ///
+    /// # Examples
+    /// ```
+    /// use t4t::Payoff;
+    ///
+    /// assert!(Payoff::<i64, 6>::zeros().is_zeros());
+    /// assert!(!Payoff::<i64, 3>::from([0, 1, 0]).is_zeros());
+    pub fn is_zeros(&self) -> bool {
+        self.utilities.iter().all(|&v| v.is_zero())
+    }
+
     /// Is this a zero-sum payoff? That is, do each of the utility values it contains sum to zero?
     ///
     /// # Examples
     /// ```
-    /// use t4t::{Payoff, PlayerIndex};
+    /// use t4t::Payoff;
     ///
     /// assert!(Payoff::<i64, 3>::from([-3, 2, 1]).is_zero_sum());
     /// assert!(Payoff::<i64, 6>::from([0, -10, 3, 0, -1, 8]).is_zero_sum());
@@ -355,6 +367,24 @@ impl<U: Utility + FromPrimitive, const P: usize> Payoff<U, P> {
         let penalty = U::zero().sub(U::one());
         let reward = U::from_usize(P).unwrap().sub(U::one());
         Payoff::flat(penalty).except(winner, reward)
+    }
+
+    /// Is this a zero-sum payoff in which the given player is the sole loser?
+    ///
+    /// Note that this just checks that the payoff is equal to
+    /// [`Payoff::zero_sum_loser(player)`](Payoff::zero_sum_loser), whereas "losing" payoffs may
+    /// be constructed in other ways as well.
+    pub fn is_zero_sum_loser(&self, player: PlayerIndex<P>) -> bool {
+        self == &Payoff::zero_sum_loser(player)
+    }
+
+    /// Is this a zero-sum payoff in which the given player is the sole winner?
+    ///
+    /// Note that this just checks that the payoff is equal to
+    /// [`Payoff::zero_sum_winner(player)`](Payoff::zero_sum_winner), whereas "winning" payoffs may
+    /// be constructed in other ways as well.
+    pub fn is_zero_sum_winner(&self, player: PlayerIndex<P>) -> bool {
+        self == &Payoff::zero_sum_winner(player)
     }
 }
 
