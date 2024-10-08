@@ -6,61 +6,22 @@
 //! two diagonals, they win!
 //!
 //! The game is implemented by defining the state of the board and then implementing t4t's
-//! [Combinatorial](crate::Combinatorial) trait to define the game's rules, i.e. how players make
+//! [Combinatorial](t4t::Combinatorial) trait to define the game's rules, i.e. how players make
 //! moves to alter the state, and when and how the game ends.
 //!
 //! # Example
 //!
+//! The following example runs a small tournament among three tic-tac-toe players, accumulating the
+//! scores for each player and checking that the optimal strategy never loses a game.
+//!
+//! You can run this example to see the final board for each game and the resulting scores by
+//! downloading this crate and running:
+//! ```bash
+//! $ cargo run --example tic_tac_toe
 //! ```
-//! use log::warn;
-//! use t4t::*;
-//! use t4t_games::tic_tac_toe::*;
 //!
-//! // A player that plays randomly.
-//! let random = Player::new("Random".to_string(), || Strategy::randomly());
-//!
-//! // A player that plays optimally, using the generic minimax algorithm.
-//! let minimax = Player::new("Minimax".to_string(), || Strategy::total_minimax());
-//!
-//! // Keep track of how many wins each player gets.
-//! let mut random_wins = 0;
-//! let mut minimax_wins = 0;
-//! let mut cats_games = 0;
-//!
-//! // Play 5 games, letting Random go first.
-//! for i in 0..5 {
-//!     let outcome =
-//!         TicTacToe.play(&Matchup::from_players([random.clone(), minimax.clone()])).unwrap();
-//!
-//!     // Print the final board state.
-//!     println!("\nGame {}:", i + 1);
-//!     outcome.final_state().print();
-//!
-//!     // Update the scores.
-//!     let payoff = *outcome.payoff();
-//!     if payoff == Payoff::zeros() {
-//!         cats_games += 1;
-//!     } else if payoff == Payoff::zero_sum_winner(for2::P0) {
-//!         random_wins += 1;
-//!     } else if payoff == Payoff::zero_sum_winner(for2::P1) {
-//!         minimax_wins += 1;
-//!     }
-//! }
-//!
-//! // Print the results.
-//! println!("Random wins: {}", random_wins);
-//! println!("Minimax wins: {}", minimax_wins);
-//! println!("Cat's games: {}", cats_games);
-//!
-//! // Check that all games are accounted for.
-//! assert_eq!(random_wins + minimax_wins + cats_games, 5);
-//!
-//! // Check that random didn't win any since minimax should always win or force a draw.
-//! assert_eq!(random_wins, 0);
-//!
-//! // Check that minimax won at least one. This could fail if we're exceptionally unlucky. Minimax
-//! // wins more than 99% of the time.
-//! assert!(minimax_wins > 0);
+//! ```
+#![doc = include_str!("../examples/tic_tac_toe.rs")]
 //! ```
 
 use t4t::*;
@@ -185,6 +146,20 @@ impl Board {
         ]
     }
 
+    /// Get a list of all winning moves for the given player.
+    pub fn winning_moves_for(&self, player: PlayerIndex<2>) -> Vec<Square> {
+        let mark = Mark::for_player(&player);
+        let mut winning_moves = Vec::new();
+        for square in self.empty_squares() {
+            let mut next_board = self.clone();
+            next_board.set_mark(&square, mark);
+            if next_board.check_winner() == Some(mark) {
+                winning_moves.push(square);
+            }
+        }
+        winning_moves
+    }
+
     /// Check if the game has a winner, and if so, return the mark of the winning player.
     pub fn check_winner(&self) -> Option<Mark> {
         for line in self.lines().iter() {
@@ -236,7 +211,7 @@ impl Combinatorial<2> for TicTacToe {
     }
 
     fn whose_turn(&self, state: &Board) -> PlayerIndex<2> {
-        if state.empty_squares().len() % 2 == 0 {
+        if state.empty_squares().len() % 2 == 1 {
             for2::P0
         } else {
             for2::P1
