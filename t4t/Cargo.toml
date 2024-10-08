@@ -1,6 +1,6 @@
 [package]
 name = "t4t"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Eric Walkingshaw <eric@walkingshaw.net>"]
 edition = "2021"
 description = "Tit-for-tat: a game theory toolbox."
