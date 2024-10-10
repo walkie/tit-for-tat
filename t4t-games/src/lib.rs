@@ -25,8 +25,8 @@
 //! that involve either more moves or more players.
 //!
 //! In particular, this module illustrates a very large variant of rock-paper-scissors involving
-//! 100 players playing simultaneously, which is supported by t4t's normal form representation that
-//! does not require representing the payoff matrix directly.
+//! 1000 players playing simultaneously, which is supported by t4t's normal form representation
+//! that does not require representing the payoff matrix directly.
 //!
 //! # Tic-tac-toe ([tic_tac_toe])
 //!
