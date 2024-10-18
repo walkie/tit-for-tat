@@ -129,7 +129,7 @@
 //! // Run all the matches in parallel and accumulate the resulting scores.
 //! let results = tournament.play();
 //! assert_eq!(
-//!     results.score().best_to_worst(),
+//!     results.score().best_to_worst().collect::<Vec<_>>(),
 //!     vec![
 //!         ("Tit-for-Tat", 699),
 //!         ("Mean", 602),

@@ -17,7 +17,7 @@ use std::collections::HashMap;
 /// score.add("Fry", -5);
 ///
 /// assert_eq!(
-///     score.best_to_worst(),
+///     score.best_to_worst().collect::<Vec<_>>(),
 ///     vec![
 ///         ("Leela", 7),
 ///         ("Bender", 4),
@@ -28,7 +28,7 @@ use std::collections::HashMap;
 /// score.add("Bender", 4);
 ///
 /// assert_eq!(
-///     score.worst_to_best(),
+///     score.worst_to_best().collect::<Vec<_>>(),
 ///     vec![
 ///         ("Fry", -2),
 ///         ("Leela", 7),
@@ -74,22 +74,20 @@ impl<U: Utility> Score<U> {
 
     /// Get the players with their associated scores sorted from best (highest score) to worst
     /// (lowest score).
-    pub fn best_to_worst(&self) -> Vec<(&str, U)> {
+    pub fn best_to_worst(&self) -> impl Iterator<Item = (&str, U)> {
         self.0
             .iter()
             .map(|(name, score)| (name.as_str(), *score))
             .sorted_by(|a, b| PartialOrd::partial_cmp(&b.1, &a.1).unwrap_or(Ordering::Equal))
-            .collect()
     }
 
     /// Get the players with their associated scores sorted from worst (lowest score) to best
     /// (highest score).
-    pub fn worst_to_best(&self) -> Vec<(&str, U)> {
+    pub fn worst_to_best(&self) -> impl Iterator<Item = (&str, U)> {
         self.0
             .iter()
             .map(|(name, score)| (name.as_str(), *score))
             .sorted_by(|a, b| PartialOrd::partial_cmp(&a.1, &b.1).unwrap_or(Ordering::Equal))
-            .collect()
     }
 
     /// Print the score and player name of each player, from [best to worst](Self::best_to_worst).
