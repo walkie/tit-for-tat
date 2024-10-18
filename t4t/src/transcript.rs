@@ -87,21 +87,20 @@ impl<M: Move, const P: usize> Transcript<M, P> {
     }
 
     /// Get all moves played by a given player (`Some`) or by chance (`None`).
-    pub fn moves_by(&self, player: Option<PlayerIndex<P>>) -> Vec<M> {
+    pub fn moves_by(&self, player: Option<PlayerIndex<P>>) -> impl Iterator<Item = M> + '_ {
         self.plies
             .iter()
-            .filter(|played| played.player == player)
+            .filter(move |played| played.player == player)
             .map(|played| played.the_move)
-            .collect()
     }
 
     /// Get all moves played by chance.
-    pub fn moves_by_chance(&self) -> Vec<M> {
+    pub fn moves_by_chance(&self) -> impl Iterator<Item = M> + '_ {
         self.moves_by(None)
     }
 
     /// Get all moves played by a given player.
-    pub fn moves_by_player(&self, player: PlayerIndex<P>) -> Vec<M> {
+    pub fn moves_by_player(&self, player: PlayerIndex<P>) -> impl Iterator<Item = M> + '_ {
         self.moves_by(Some(player))
     }
 

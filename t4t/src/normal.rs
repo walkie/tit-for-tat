@@ -568,7 +568,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
 
     /// A variant of [`pure_nash_equilibria`](Self::pure_nash_equilibria) that analyzes the outcomes
     /// in parallel.
-    pub fn pure_nash_equilibria_parallel(&self) -> Vec<Profile<M, P>> {
+    pub fn pure_nash_equilibria_parallel(&self) -> impl Iterator<Item = Profile<M, P>> {
         let (sender, receiver) = std::sync::mpsc::channel();
         self.possible_profiles()
             .par_bridge()
@@ -577,7 +577,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
                     s.send(profile).unwrap();
                 }
             });
-        receiver.iter().collect()
+        receiver.into_iter()
     }
 
     /// Return a new profile that represents a
@@ -629,7 +629,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
 
     /// A variant of [`pareto_optimal_solutions`](Self::pareto_optimal_solutions) that analyzes the
     /// outcomes in parallel.
-    pub fn pareto_optimal_solutions_parallel(&self) -> Vec<Profile<M, P>> {
+    pub fn pareto_optimal_solutions_parallel(&self) -> impl Iterator<Item = Profile<M, P>> {
         let (sender, receiver) = std::sync::mpsc::channel();
         self.possible_profiles()
             .par_bridge()
@@ -638,7 +638,7 @@ impl<M: Move, U: Utility, const P: usize> Normal<M, U, P> {
                     s.send(profile).unwrap();
                 }
             });
-        receiver.iter().collect()
+        receiver.into_iter()
     }
 
     /// Get all dominated move relationships for the given player. If a move is dominated by

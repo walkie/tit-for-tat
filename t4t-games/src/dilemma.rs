@@ -106,12 +106,23 @@ impl Dilemma {
     ///
     /// let g = Dilemma::prisoners_dilemma();
     ///
-    /// let nash = g.as_normal().pure_nash_equilibria_parallel();
+    /// let nash = g
+    ///     .as_normal()
+    ///     .pure_nash_equilibria_parallel()
+    ///     .collect::<Vec<_>>();
+    ///
     /// assert_eq!(nash, vec![Profile::new([D, D])]);
     ///
-    /// let mut pareto = g.as_normal().pareto_optimal_solutions_parallel();
+    /// let mut pareto = g
+    ///     .as_normal()
+    ///     .pareto_optimal_solutions_parallel()
+    ///     .collect::<Vec<_>>();
+    ///
     /// pareto.sort();
-    /// assert_eq!(pareto, vec![Profile::new([C, C]), Profile::new([C, D]), Profile::new([D, C])]);
+    /// assert_eq!(
+    ///     pareto,
+    ///     vec![Profile::new([C, C]), Profile::new([C, D]), Profile::new([D, C])],
+    /// );
     /// ```
     pub fn prisoners_dilemma() -> Self {
         Dilemma::new([2, 0, 3, 1])
@@ -142,12 +153,19 @@ impl Dilemma {
     ///
     /// let g = Dilemma::stag_hunt();
     ///
-    /// let mut nash = g.as_normal().pure_nash_equilibria_parallel();
+    /// let mut nash = g
+    ///     .as_normal()
+    ///     .pure_nash_equilibria_parallel()
+    ///     .collect::<Vec<_>>();
+    ///
     /// nash.sort();
     /// assert_eq!(nash, vec![Profile::new([C, C]), Profile::new([D, D])]);
     ///
-    /// let mut pareto = g.as_normal().pareto_optimal_solutions_parallel();
-    /// pareto.sort();
+    /// let pareto = g
+    ///     .as_normal()
+    ///     .pareto_optimal_solutions_parallel()
+    ///     .collect::<Vec<_>>();
+    ///
     /// assert_eq!(pareto, vec![Profile::new([C, C])]);
     /// ```
     pub fn stag_hunt() -> Self {
@@ -491,15 +509,14 @@ pub fn suspicious_tit_for_tat() -> DilemmaPlayer {
 pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
     Player::new(format!("Tit-for-{}-Tats", n), move || {
         Strategy::new(move |context: DilemmaContext| {
-            let last_n: Vec<Move> = context
+            let mut last_n = context
                 .state_view()
                 .history()
                 .moves_for_player(context.their_index())
                 .rev()
-                .take(n)
-                .collect();
+                .take(n);
 
-            if last_n.len() == n && last_n.iter().all(|m| *m == D) {
+            if last_n.len() == n && last_n.all(|m| m == D) {
                 D
             } else {
                 C
@@ -515,15 +532,14 @@ pub fn tit_for_n_tats(n: usize) -> DilemmaPlayer {
 pub fn n_tits_for_tat(n: usize) -> DilemmaPlayer {
     Player::new(format!("{}-Tits-for-Tat", n), move || {
         Strategy::new(move |context: DilemmaContext| {
-            let last_n: Vec<Move> = context
+            let mut last_n = context
                 .state_view()
                 .history()
                 .moves_for_player(context.their_index())
                 .rev()
-                .take(n)
-                .collect();
+                .take(n);
 
-            if last_n.contains(&D) {
+            if last_n.any(|m| m == D) {
                 D
             } else {
                 C

@@ -122,7 +122,7 @@ impl<G: Playable<P> + 'static, const P: usize> Strategy<G, P> {
     /// Logs an error and returns `None` if:
     /// - The vector is empty.
     /// - The vector is longer than u32::MAX.
-    pub fn mixed_flat(moves: Vec<G::Move>) -> Option<Self> {
+    pub fn mixed_flat<I: IntoIterator<Item = G::Move>>(moves: I) -> Option<Self> {
         Distribution::flat(moves).map(|dist| Strategy::mixed(dist))
     }
 
@@ -208,10 +208,7 @@ where
         Strategy::new(|context: Context<G, P>| {
             let player = context.my_index();
             let state = context.state_view();
-            let moves = context
-                .game()
-                .possible_moves(player, state)
-                .collect::<Vec<_>>();
+            let moves = context.game().possible_moves(player, state);
             let dist = Distribution::flat(moves);
             match dist {
                 Some(dist) => dist.sample().to_owned(),

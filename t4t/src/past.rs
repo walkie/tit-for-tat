@@ -27,8 +27,13 @@ impl<'a, T> Past<'a, T> {
 
 impl<'a, T> Iterator for Past<'a, T> {
     type Item = T;
+
     fn next(&mut self) -> Option<T> {
         self.iterator.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.length, Some(self.length))
     }
 }
 
@@ -38,8 +43,4 @@ impl<'a, T> DoubleEndedIterator for Past<'a, T> {
     }
 }
 
-impl<'a, T> ExactSizeIterator for Past<'a, T> {
-    fn len(&self) -> usize {
-        self.length
-    }
-}
+impl<'a, T> ExactSizeIterator for Past<'a, T> {}

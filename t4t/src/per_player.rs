@@ -587,6 +587,7 @@ impl<const P: usize> PlayerIndexes<P> {
 
 impl<const P: usize> Iterator for PlayerIndexes<P> {
     type Item = PlayerIndex<P>;
+
     fn next(&mut self) -> Option<PlayerIndex<P>> {
         if self.next < self.back {
             let index = PlayerIndex(self.next);
@@ -595,6 +596,10 @@ impl<const P: usize> Iterator for PlayerIndexes<P> {
         } else {
             None
         }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (P, Some(P))
     }
 }
 

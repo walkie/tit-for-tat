@@ -66,7 +66,7 @@ impl<T> Distribution<T> {
     /// Logs an error and returns `None` if:
     /// - The vector is empty.
     /// - The vector is longer than u32::MAX.
-    pub fn flat(elements: Vec<T>) -> Option<Self> {
+    pub fn flat<I: IntoIterator<Item = T>>(elements: I) -> Option<Self> {
         Distribution::new(std::iter::zip(elements, std::iter::repeat(1.0)).collect())
     }
 

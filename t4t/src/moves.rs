@@ -34,8 +34,13 @@ impl<'a, M: Move> PossibleMoves<'a, M> {
 
 impl<'a, M> Iterator for PossibleMoves<'a, M> {
     type Item = M;
+
     fn next(&mut self) -> Option<M> {
         self.iterator.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iterator.size_hint()
     }
 }
 
